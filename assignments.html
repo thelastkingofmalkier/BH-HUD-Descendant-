@@ -57,9 +57,9 @@
 					if (!assigned) where = which ? "Signed Up" : "Not Signed Up";
 					if (!guilds[where]) guilds[where] = [];
 					guilds[where].push(who);
-					if (+String(power).replace(/,/g,"").replace(/k$/,"000")) {
+					if (+String(power).split(".")[1]) {
 						var player = findPlayer(who);
-						if (player) player.rating = +String(power).replace(",","").replace(/k$/,"000");
+						if (player) player.rating = String(power).split(".")[1] + "%";
 					}
 				});
 				var guilds = Object.keys(guilds).map(function(guild) {
