@@ -1,0 +1,46 @@
+
+div.brain-hud-container { font-size:8pt; position:fixed; top:0; right:0; width:250px; background:#FFF; color:#000; border:2px solid #000; z-index:9999; padding:2px; }
+div.brain-hud-container div { clear:both; }
+div.brain-hud-container table { width:100%; margin:0; padding:0; border:0; }
+div.brain-hud-container td { padding:0; margin:0; border:0; }
+div.brain-hud-container select { width:175px; }
+div.brain-hud-container textarea { width:240px; font-size:8pt; display:none; }
+div.brain-hud-container div[data-parent-guid] { display:none; }
+
+div.brain-hud-header { text-align:center; font-weight:bold; }
+
+div.brain-hud-main-container { display:none; }
+div.brain-hud-scouter-guild-container, div.brain-hud-scouter-player-container { display:none; }
+button.brain-hud-button > img { height:16px; width:16px; }
+
+div.brain-hud-scouter-player-report { display:none; padding:0 2px; text-align:left; }
+div.brain-hud-scouter-player { display:none; }
+div.brain-hud-scouter-player > div.player-name { font-size:10pt; font-weight:bold; text-align:center; }
+
+div.brain-hud-scouter-panel-header { padding:2px 0 0 0; }
+div.brain-hud-scouter-panel-header > button { color:blue; cursor:pointer; border:0; background-color:white; width:240px; text-align:left; padding:0; margin:0; }
+div.brain-hud-scouter-panel-header > button > span.hero-level { display:inline-block; width:20px; }
+div.brain-hud-scouter-panel-header > button > span.hero-name { display:inline-block; width:60px; }
+div.brain-hud-scouter-panel-header > button > span.hero-hp { display:inline-block; width:75px; }
+div.brain-hud-scouter-panel-header > button > span.hero-rating { display:inline-block; width:75px; }
+
+div.brain-hud-scouter-panel-content { display:none; }
+
+div.brain-hud-inventory { display:none; }
+div.brain-hud-inventory-container { display:none; }
+div.brain-hud-inventory-buttons { text-align:center; }
+
+div.brain-hud-container .active,
+div.brain-hud-container div[data-parent-guid].active { display:block; }
+
+.star { color: darkgoldenrod; text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black; }
+.evo-star { color: gold; text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black; }
+img.icon.hero { height: 25px; width: 25px; }
+img.icon.element { height: 20px; width: 20px; margin: 1px; }
+img.icon.klass { height: 20px; margin: 1px 6px 1px 7px; }
+img.icon.brag { height: 20px; margin: 1px 8px; }
+img.icon.position { height: 20px; width: 20px; margin-right: 5px; }
+img.icon.card-type { height: 16px; width: 16px; vertical-align: middle; }
+img.icon.evo-jar { height: 20px; width: 20px; }
+img.icon.wildcard { height: 20px; width: 20px; }
+button.brain-hud-button > .icon.wildcard { height: 16px; width: 16px; }

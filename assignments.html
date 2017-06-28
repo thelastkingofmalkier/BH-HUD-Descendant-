@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-16" />
+		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"/>
+		<script type="text/javascript" src="https://code.jquery.com/jquery-2.2.0.min.js"></script>
+		<script>
+			function findPlayer(name) {
+				var lower = (name || "").toLowerCase();
+				return _players.find(function(player) { return player.lower == lower; });
+			}
+			function mapLineToParts(line) {
+				return line.split(/\t/).map(function(s) { return s.trim(); });
+			}
+			function sortGuilds(a, b) {
+				if (a.name == "Not Signed Up") return -1;
+				if (b.name == "Not Signed Up") return 1;
+				if (a.name == "The βrain") return -1;
+				if (b.name == "The βrain") return 1;
+				return sortAlpha(a.name, b.name);
+			}
+			function sortAlpha(a, b) {
+				var aLower = a.toLowerCase(), bLower = b.toLowerCase();
+				return aLower < bLower ? -1 : 1;
+			}
+			function sortMembers(a, b) {
+				var aPlayer = findPlayer(a), bPlayer = findPlayer(b);
+				var aRank = rankToNumber(aPlayer && aPlayer.rank || ""), bRank = rankToNumber(bPlayer && bPlayer.rank || "");
+				if (["fritz","jai"].includes(aPlayer && aPlayer.lower)) aRank = 5;
+				if (["fritz","jai"].includes(bPlayer && bPlayer.lower)) bRank = 5;
+				if (aRank != bRank) return aRank > bRank ? -1 : 1;
+				var aRating = aPlayer && aPlayer.rating || 0, bRating = bPlayer && bPlayer.rating || 0;
+				if (aRating != bRating) return aRating > bRating ? -1 : 1;
+				return sortAlpha(a, b);
+			}
+			function tsvToGuilds(tsv) {
+				var lines = tsv.split(/\n/);
+				$("div.alert").html(lines[0].trim().replace(" (", "<br/>("));
+				var parsed = lines.slice(3).map(mapLineToParts);
+				var guilds = { };
+				var done = false, split = false;
+				parsed.forEach(function(line) {
+					var who = line[0],
+						which = line[1] || line[2] || line[3] || line[4] || line[5],
+						brag = line[6],
+						keys = line[7],
+						rounds = line[8],
+						comment = line[9],
+						assigned = line[10],
+						rank = line[11],
+						fame = line[12],
+						power = line[13],
+						where = assigned;
+					if (!who || done) { done = true; return; }
+					_players.push({ name:who, lower:who.toLowerCase(), brag:brag=="Yes", rank:rank, fame:+fame||0, rating:+String(power).replace(",","") });
+					if (assigned) split = true;
+					if (!assigned) where = which ? "Signed Up" : "Not Signed Up";
+					if (!guilds[where]) guilds[where] = [];
+					guilds[where].push(who);
+					if (+String(power).replace(/,/g,"").replace(/k$/,"000")) {
+						var player = findPlayer(who);
+						if (player) player.rating = +String(power).replace(",","").replace(/k$/,"000");
+					}
+				});
+				var guilds = Object.keys(guilds).map(function(guild) {
+					var members = guilds[guild];
+					var name = guild == "Signed Up" && split ? "Not Assigned" : guild;
+					guild == "Not Signed Up" ? members.sort(sortAlpha) : members.sort(sortMembers);
+					return { name:name, members:members };
+				});
+				guilds.sort(sortGuilds);
+				return guilds;
+			}
+			function renderGuilds() {
+				_guilds.forEach(function(guild) {
+					var css = guild.name == "Not Signed Up" ? "panel-danger" : guild.name == "Signed Up" ? "panel-success" : guild.name == "Not Assigned" ? "panel-warning" : "panel-default";
+					var noGL = guild.name.includes("Signed Up");
+					var brags = guild.members.map(function(m) { return findPlayer(m).brag; }).reduce(function(count, brag) { return count + (brag ? 1 : 0); }, 0);
+					var html = '<div class="col-xs-12 col-sm-6 col-md-3"><div class="panel ' + css + '"><div class="panel-heading">';
+					html += guild.name;
+					html += "<span class='pull-right badge'>" + brags + " / " + guild.members.length + "</span>";
+					html += '</div><table class="table table-striped table-condensed"><tbody>';
+					html += guild.members.map(function(m, i) { return memberToRow(m, i, noGL); }).join("");
+					html += '</table></div></div>';
+					$("div.guilds").append(html);
+				});
+			}
+			function memberToRow(member, index, noGL) {
+				var player = findPlayer(member.toLowerCase());
+				var rank = player && player.rank ? rankToStars(index || !player.rating || noGL ? player.rank : "GL") : "";
+				var name = player && player.rank ? member : "<span class='text-danger'>" + member + "</span>";
+				var rating = player && player.rating ? "<span class='pull-right'>" + formatNumber(player.rating) + "</span>" : "";
+				var brag = player && player.brag ? "<img src='./images/cardtypes/Brag.png' style='width:20px;height:20px;'/>" : "";
+				return "<tr><td class='col-xs-1'>" + rank + "</td><td>" + name + "</td><td class='col-xs-1'>" + rating + "</td><td class='col-xs-1'>" + brag + "</td></tr>";
+			}
+			function formatNumber(value) {
+				var num = String(value).replace(",", "").split(""), out = [], o = 0;
+				for (var i = num.length; i--;) {
+					if (out.length && o % 3 == 0) out.unshift(",");
+					out.unshift(num.pop());
+					o++;
+				}
+				return out.join("");
+			}
+			function rankToNumber(rank) {
+				switch(rank) {
+					case "Trust": case "Captain": case "Officer": return 3;
+					case "Member": case "Alt": case "Zombie": return 2;
+					default: return 1;
+				}
+			}
+			function rankToStars(rank) {
+				switch(rank) {
+					case "GL": return "<img src='./images/misc/Leader.png'/>";
+					case "Trust": case "Captain": case "Officer": return "<img src='./images/misc/CoLeader.png'/>";
+					case "Member": case "Alt": case "Zombie": return "<img src='./images/misc/Elder.png'/>";
+					default: return "<img src='./images/misc/Member.png'/>";
+				}
+			}
+			var _guilds, _players = [];
+			$(function() {
+				var id = "1bY2Mv_hiQNlJ3k7LLiDU-WbwepLDkjEe7WYDPXLbNe4";
+				var gid = 1098769912;
+				var base = location.href.includes("/brain-bh/") ? "http://brains.sth.ovh" : ".";
+				$.get(base+"/tsv.php?id="+id+"&gid="+gid).then(tabGid => {
+					$.get(base+"/tsv.php?id="+id+"&gid="+tabGid.trim()).then(guilds => {
+						_guilds = tsvToGuilds(guilds);
+						renderGuilds();
+					});
+				});
+			});
+		</script>
+		<style type="text/css">
+		body { padding-top:5px; padding-bottom:5px; }
+		td.col-xs-1 img { height:16px; width:16px; }
+		</style>
+		<title>The BH Brain Trust</title>
+	</head>
+	<body>
+
+	<div class="container-fluid">
+		<div class="row">
+			<div class="col-xs-12 col-sm-8 col-sm-offset-2 col-md-6 col-md-offset-3">
+				<div class="alert alert-info text-center">Loading, please wait ...</div>
+			</div>
+		</div>
+		<div class="row">
+			<div class="guilds">
+			</div>
+		</div>
+	</div>
+
+	</body>
+</html>

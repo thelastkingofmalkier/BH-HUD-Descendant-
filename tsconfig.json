@@ -1,0 +1,47 @@
+{
+	"compilerOptions": {
+		"declaration": false,
+		"diagnostics": false,
+
+		"emitBOM": false,
+		"emitDecoratorMetadata": false,
+		"experimentalDecorators": false,
+
+		"inlineSourceMap": false,
+		"inlineSources": false,
+		"isolatedModules": false,
+
+		"listFiles": false,
+		"locale": "en-US",
+
+		//"mapRoot": "",
+		"module": "amd",
+
+		"newLine": "LF",
+		"noEmit": false,
+		"noEmitHelpers": false,
+		"noEmitOnError": false,
+		"noImplicitAny": true,
+		"noLib": false,
+		"noResolve": false,
+
+		"out": "./js/default.js",
+		"outDir": "./js/",
+
+		"preserveConstEnums": false,
+
+		"removeComments": true,
+		"rootDir": ".",
+
+		"skipDefaultLibCheck": false,
+		"sourceMap": false,
+		//"sourceRoot": "",
+		"stripInternal": false,
+		"suppressImplicitAnyIndexErrors": false,
+
+		"target": "es5",
+
+		"watch": false
+
+	}
+}

@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-16" />
+		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"/>
+		<script type="text/javascript" src="https://code.jquery.com/jquery-2.2.0.min.js"></script>
+		<script>
+			function parseTsv(tsv) {
+				var parsed = tsv.split("\n").map(function(line) { return line.split("\t").map(function(s) { return s.trim(); }); }),
+					titles = parsed.shift();
+				return parsed.map(function(parts) {
+					var item = { };
+					titles.forEach(function(title, index) { item[title] = parts[index]; });
+					return item;
+				});
+			}
+			function rarityToStars(rarity) {
+				switch (rarity) {
+					case "Common": return "<small class='evo-star'>&#9733;</small>";
+					case "Uncommon": return "<small class='evo-star'>&#9733;&#9733;</small>";
+					case "Rare": return "<small class='evo-star'>&#9733;&#9733;&#9733;</small>";
+					case "Super Rare": return "<small class='evo-star'>&#9733;&#9733;&#9733;&#9733;</small>";
+					case "Legendary": return "<small class='evo-star'>&#9733;&#9733;&#9733;&#9733;&#9733;</small>";
+					default: return "";
+				}
+			}
+			function elementToCrystal(element) {
+				return "<img class='element-crystal' src='./images/crystals/" + element + ".png'/>";
+			}
+			function renderCards(cards) {
+				var tbody = $("tbody");
+				cards.forEach(function(card) {
+					var html = "<tr>";
+						html += "<td class='text-center'>" + elementToCrystal(card.element) + "</td>";
+						html += "<td class='text-center'>" + rarityToStars(card.rarity) + "</td>";
+						html += "<td>" + card.name + "</td>";
+						html += "<td class='text-center'>" + card.klass + "</td>";
+					html += "</tr>";
+					tbody.append(html);
+				});
+				$("div.alert").remove();
+				$("table.table").show();
+			}
+			$(function() {
+				var id = "1uXkC_xua7KhhWQsfX_CZNa6fyl9CJlV9E7KNDO4_1T4";
+				var cardsGid = 795369586;
+				var matsGid = 0;
+				var cardsTsv = localStorage.getItem("cardsTsv");
+				if (cardsTsv) {
+					renderCards(parseTsv(cardsTsv));
+				}else {
+					$.get("http://brains.sth.ovh/tsv.php?id="+id+"&gid="+cardsGid).then(cardsTsv => {
+						localStorage.setItem("cardsTsv", cardsTsv);
+						renderCards(parseTsv(cardsTsv));
+					});
+				}
+			});
+		</script>
+		<style type="text/css">
+		body { padding:5px; }
+		small.evo-star { color: gold; text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black; }
+		img.element-crystal { height:16px; width:16px; }
+		</style>
+		<title>The BH Brain Trust</title>
+	</head>
+	<body>
+
+	<div class="container-fluid">
+		<div class="row">
+			<div class="col-xs-12 col-sm-8 col-sm-offset-2 col-md-6 col-md-offset-3">
+				<div class="alert alert-info text-center">Loading, please wait ...</div>
+			</div>
+		</div>
+		<div class="row">
+			<div class="col-xs-12">
+				<table class="table table-striped table-condensed" style="display:none;">
+					<thead>
+						<tr>
+							<th class="col-xs-1 text-center">Element</th>
+							<th class="col-xs-1 text-center">Rarity</th>
+							<th>Name</th>
+							<th class="col-xs-1 text-center">Class</th>
+						</tr>
+					</thead>
+					<tbody/>
+				</table>
+			</div>
+		</div>
+	</div>
+
+	</body>
+</html>
