@@ -103,6 +103,56 @@ namespace bh {
 
 			return dataURL;
 		}
+		export function createImagesJs() {
+			var allTypes = Object.keys(images),
+				loadedTypes: string[] = [],
+				imageSources = unique($("img").toArray().map(img => img.src)),
+				output = ``;
+			output += `var bh;(function (bh) {var images;(function (images) {`;
+			$("#data-output").val("Loading, please wait ...");
+			asyncForEach(imageSources, imageSource => {
+				var parts = imageSource.split("/images/")[1].split(".")[0].split("/");
+				if (allTypes.includes(parts[0]) && parts.length == 2) {
+					if (!loadedTypes.includes(parts[0])) {
+						loadedTypes.push(parts[0]);
+						output += `\nimages.${parts[0]} = {};`;
+					}
+					output += `\nimages.${parts[0]}["${parts[1]}"] = "${getBase64Image(imageSource)}";`;
+				}
+			}).then(() => {
+				output += `\n})(images = bh.images || (bh.images = {}));})(bh || (bh = {}));`;
+				$("#data-output").val(output);
+			});
+		}
 
+		export function asyncForEach<T>(array: T[], callbackfn: (value: T, index: number, array: T[]) => void): Promise<T[]>;
+		export function asyncForEach<T>(array: T[], callbackfn: (value: T, index: number, array: T[]) => void, thisArg: any): Promise<T[]>;
+		export function asyncForEach<T>(array: T[], callbackfn: (value: T, index: number, array: T[]) => Promise<any>): Promise<T[]>;
+		export function asyncForEach<T>(array: T[], callbackfn: (value: T, index: number, array: T[]) => Promise<any>, thisArg: any): Promise<T[]>;
+		export function asyncForEach<T>(array: T[], callbackfn: (value: T, index: number, array: T[]) => Promise<any>, thisArg?: any): Promise<T[]> {
+			return new Promise<T[]>((resolvefn: (values: T[]) => void, rejectfn: (reason: any) => void) => {
+				var functions = array.map((value: T, index: number, array: T[]) => {
+					return function(value: T, index: number, array: T[]) {
+						setTimeout((thisArg: any, value: T, index: number, array: T[]) => {
+							try {
+								var retVal: any = callbackfn.call(thisArg, value, index, array);
+								retVal instanceof Promise ? (<Promise<any>>retVal).then(process, rejectfn) : process();
+							}catch(ex) {
+								rejectfn(ex);
+							}
+						}, 0, thisArg, value, index, array);
+					}.bind(thisArg, value, index, array);
+				});
+				var process = () => {
+					if (functions.length) {
+						var fn = functions.shift();
+						fn ? fn() : process();
+					}else {
+						resolvefn(array);
+					}
+				};
+				process();
+			});
+		}
 	}
 }

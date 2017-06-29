@@ -2,7 +2,6 @@ namespace bh {
 	export namespace data {
 		export namespace cards {
 			export namespace battle {
-				export var tsv: string;
 				var gid = 795369586;
 
 				var _cards: IDataBattleCard[] = [];
@@ -47,6 +46,7 @@ namespace bh {
 				export function init(): Promise<IDataBattleCard[]> {
 					if (!_init) {
 						_init = new Promise<IDataBattleCard[]>((resolvefn: (cards: IDataBattleCard[]) => void) => {
+							var tsv = (TSV||{})[String(gid)];
 							if (tsv) {
 								resolvefn(parseTSV(tsv));
 							}else {

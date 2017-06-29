@@ -41,9 +41,9 @@ namespace bh {
 			export function init(win: Window, host: string = "http://brains.sth.ovh") {
 				return new Promise<Window>((res, rej) => {
 					var href = String(win && win.location && win.location.href || "").toLowerCase();
-					isLocal = href.includes("brain-bh/default.htm") || href.includes("brain-bh/iframe.htm");
-					isHud = href.includes("brain-bh/default.htm") || href.startsWith("http://www.kongregate.com/games/anotherplaceprod/battlehand-web"),
-					isListener = href.includes("brain-bh/iframe.htm") || href.startsWith("http://game261051.konggames.com/gamez/");
+					isLocal = href.includes("battlehand-hud/default.htm") || href.includes("battlehand-hud/iframe.htm");
+					isHud = href.includes("battlehand-hud/default.htm") || href.startsWith("http://www.kongregate.com/games/anotherplaceprod/battlehand-web"),
+					isListener = href.includes("battlehand-hud/iframe.htm") || href.startsWith("http://game261051.konggames.com/gamez/");
 					bh.host = host;
 					if (isHud) {
 						(<any>win).bh = bh;

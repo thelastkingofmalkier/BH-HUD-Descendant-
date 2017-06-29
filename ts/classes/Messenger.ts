@@ -1,6 +1,7 @@
 namespace bh {
 	var messenger: Messenger;
 	export class Messenger {
+
 		private _targetWindow: Window;
 		private get targetWindow() {
 			if (!this._targetWindow) {
@@ -17,25 +18,33 @@ namespace bh {
 			}
 			return this._targetWindow;
 		}
+
+		private updateActive(message: IMessage) {
+			if (message.playerGuid !== message.action && message.sessionKey !== message.action) {
+				if (!Messenger.ActivePlayerGuid || Messenger.ActivePlayerGuid !== message.playerGuid) Messenger.ActivePlayerGuid = message.playerGuid;
+				if (!Messenger.ActiveSessionKey || Messenger.ActiveSessionKey !== message.sessionKey) Messenger.ActiveSessionKey = message.sessionKey;
+			}
+		}
+
 		private constructor(private win: Window, private callbackfn: (message: IMessage) => void) {
 			window.addEventListener("message", (ev: BaseWindowMessage) => {
 				var message: IMessage = ev.data || (ev.originalEvent && ev.originalEvent.data) || null;
 				if (Messenger.isValidMessage(message)) {
-					if (!Messenger.ActivePlayerGuid && message.action != message.playerGuid) Messenger.ActivePlayerGuid = message.playerGuid;
-					if (!Messenger.ActiveSessionKey && message.action != message.sessionKey) Messenger.ActiveSessionKey = message.sessionKey;
+					this.updateActive(message);
 					this.callbackfn(message);
 				}
 			});
 		}
+
 		public postMessage(message: IMessage) {
 			if (Messenger.isValidMessage(message)) {
-				if (!Messenger.ActivePlayerGuid && message.action != message.playerGuid) Messenger.ActivePlayerGuid = message.playerGuid;
-				if (!Messenger.ActiveSessionKey && message.action != message.sessionKey) Messenger.ActiveSessionKey = message.sessionKey;
+				this.updateActive(message);
 				this.targetWindow.postMessage(message, "*");
 			}else {
 				console.log(`invalid message: ${message && message.action || "[no message]"}`);
 			}
 		}
+
 		public static isValidMessage(message: IMessage) {
 			if (!message) { return false; }
 			var keys = Object.keys(message);
@@ -56,6 +65,7 @@ namespace bh {
 		public static initialize(targetWindow: Window, callbackfn: (message: IMessage) => void) {
 			return messenger = new Messenger(targetWindow, callbackfn);
 		}
+
 		public static get instance() { return messenger; }
 	}
 }

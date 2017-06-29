@@ -121,7 +121,7 @@
 			$(function() {
 				var id = "1bY2Mv_hiQNlJ3k7LLiDU-WbwepLDkjEe7WYDPXLbNe4";
 				var gid = 1098769912;
-				var base = location.href.includes("/brain-bh/") ? "http://brains.sth.ovh" : ".";
+				var base = location.href.includes("/battlehand-hud/") ? "http://brains.sth.ovh" : ".";
 				$.get(base+"/tsv.php?id="+id+"&gid="+gid).then(tabGid => {
 					$.get(base+"/tsv.php?id="+id+"&gid="+tabGid.trim()).then(guilds => {
 						_guilds = tsvToGuilds(guilds);

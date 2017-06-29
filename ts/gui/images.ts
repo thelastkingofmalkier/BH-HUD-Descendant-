@@ -2,7 +2,7 @@ namespace bh {
 	var root: string;
 	function getRoot() {
 		if (!root) {
-			root = String(location.href).toLowerCase().includes("brain-bh/") ? "." : host;
+			root = String(location.href).toLowerCase().includes("battlehand-hud/") ? "." : host;
 		}
 		return root;
 	}

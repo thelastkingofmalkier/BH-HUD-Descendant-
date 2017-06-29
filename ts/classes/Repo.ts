@@ -67,6 +67,7 @@ namespace bh {
 		public static fetchTsv(idOrGid: string|number, gidOrUndefined: number) {
 			var id = gidOrUndefined ? <string>idOrGid : null,
 				gid = gidOrUndefined || <number>idOrGid;
+			if ((TSV||{})[String(gid)]) { return Promise.resolve(TSV[String(gid)]); }
 			return XmlHttpRequest.get(`${host}/tsv.php?gid=${gid}${id?`&id=${id}`:``}`);
 		}
 		public static mapTsv<T>(raw: string): T[] {

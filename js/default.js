@@ -1,5 +1,5 @@
 var __extends = (this && this.__extends) || (function () {
-   var extendStatics = Object.setPrototypeOf ||
+    var extendStatics = Object.setPrototypeOf ||
         ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
         function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
     return function (d, b) {
@@ -248,6 +248,9 @@ var bh;
         };
         Repo.fetchTsv = function (idOrGid, gidOrUndefined) {
             var id = gidOrUndefined ? idOrGid : null, gid = gidOrUndefined || idOrGid;
+            if ((bh.TSV || {})[String(gid)]) {
+                return Promise.resolve(bh.TSV[String(gid)]);
+            }
             return XmlHttpRequest.get(bh.host + "/tsv.php?gid=" + gid + (id ? "&id=" + id : ""));
         };
         Repo.mapTsv = function (raw) {
@@ -379,10 +382,7 @@ var bh;
             window.addEventListener("message", function (ev) {
                 var message = ev.data || (ev.originalEvent && ev.originalEvent.data) || null;
                 if (Messenger.isValidMessage(message)) {
-                    if (!Messenger.ActivePlayerGuid && message.action != message.playerGuid)
-                        Messenger.ActivePlayerGuid = message.playerGuid;
-                    if (!Messenger.ActiveSessionKey && message.action != message.sessionKey)
-                        Messenger.ActiveSessionKey = message.sessionKey;
+                    _this.updateActive(message);
                     _this.callbackfn(message);
                 }
             });
@@ -406,12 +406,17 @@ var bh;
             enumerable: true,
             configurable: true
         });
+        Messenger.prototype.updateActive = function (message) {
+            if (message.playerGuid !== message.action && message.sessionKey !== message.action) {
+                if (!Messenger.ActivePlayerGuid || Messenger.ActivePlayerGuid !== message.playerGuid)
+                    Messenger.ActivePlayerGuid = message.playerGuid;
+                if (!Messenger.ActiveSessionKey || Messenger.ActiveSessionKey !== message.sessionKey)
+                    Messenger.ActiveSessionKey = message.sessionKey;
+            }
+        };
         Messenger.prototype.postMessage = function (message) {
             if (Messenger.isValidMessage(message)) {
-                if (!Messenger.ActivePlayerGuid && message.action != message.playerGuid)
-                    Messenger.ActivePlayerGuid = message.playerGuid;
-                if (!Messenger.ActiveSessionKey && message.action != message.sessionKey)
-                    Messenger.ActiveSessionKey = message.sessionKey;
+                this.updateActive(message);
                 this.targetWindow.postMessage(message, "*");
             }
             else {
@@ -1771,8 +1776,9 @@ var bh;
                 function init() {
                     if (!_init) {
                         _init = new Promise(function (resolvefn) {
-                            if (battle.tsv) {
-                                resolvefn(parseTSV(battle.tsv));
+                            var tsv = (bh.TSV || {})[String(gid)];
+                            if (tsv) {
+                                resolvefn(parseTSV(tsv));
                             }
                             else {
                                 bh.Repo.fetchTsv(null, gid).then(function (tsv) { return resolvefn(parseTSV(tsv)); }, function () { return resolvefn(_cards); });
@@ -2145,8 +2151,9 @@ var bh;
             function init() {
                 if (!_init) {
                     _init = new Promise(function (resolvefn) {
-                        if (guilds.tsv) {
-                            resolvefn(parseTSV(guilds.tsv));
+                        var tsv = (bh.TSV || {})[String(gid)];
+                        if (tsv) {
+                            resolvefn(parseTSV(tsv));
                         }
                         else {
                             bh.Repo.fetchTsv(null, gid).then(function (tsv) { return resolvefn(parseTSV(tsv)); }, function () { return resolvefn(_names); });
@@ -2385,7 +2392,7 @@ var bh;
     var root;
     function getRoot() {
         if (!root) {
-            root = String(location.href).toLowerCase().includes("brain-bh/") ? "." : bh.host;
+            root = String(location.href).toLowerCase().includes("battlehand-hud/") ? "." : bh.host;
         }
         return root;
     }
@@ -2526,9 +2533,9 @@ var bh;
                 if (host === void 0) { host = "http://brains.sth.ovh"; }
                 return new Promise(function (res, rej) {
                     var href = String(win && win.location && win.location.href || "").toLowerCase();
-                    bh.isLocal = href.includes("brain-bh/default.htm") || href.includes("brain-bh/iframe.htm");
-                    bh.isHud = href.includes("brain-bh/default.htm") || href.startsWith("http://www.kongregate.com/games/anotherplaceprod/battlehand-web"),
-                        bh.isListener = href.includes("brain-bh/iframe.htm") || href.startsWith("http://game261051.konggames.com/gamez/");
+                    bh.isLocal = href.includes("battlehand-hud/default.htm") || href.includes("battlehand-hud/iframe.htm");
+                    bh.isHud = href.includes("battlehand-hud/default.htm") || href.startsWith("http://www.kongregate.com/games/anotherplaceprod/battlehand-web"),
+                        bh.isListener = href.includes("battlehand-hud/iframe.htm") || href.startsWith("http://game261051.konggames.com/gamez/");
                     bh.host = host;
                     if (bh.isHud) {
                         win.bh = bh;
@@ -3117,6 +3124,53 @@ var bh;
             return dataURL;
         }
         utils.getBase64Image = getBase64Image;
+        function createImagesJs() {
+            var allTypes = Object.keys(bh.images), loadedTypes = [], imageSources = unique(bh.$("img").toArray().map(function (img) { return img.src; })), output = "";
+            output += "var bh;(function (bh) {var images;(function (images) {";
+            bh.$("#data-output").val("Loading, please wait ...");
+            asyncForEach(imageSources, function (imageSource) {
+                var parts = imageSource.split("/images/")[1].split(".")[0].split("/");
+                if (allTypes.includes(parts[0]) && parts.length == 2) {
+                    if (!loadedTypes.includes(parts[0])) {
+                        loadedTypes.push(parts[0]);
+                        output += "\nimages." + parts[0] + " = {};";
+                    }
+                    output += "\nimages." + parts[0] + "[\"" + parts[1] + "\"] = \"" + getBase64Image(imageSource) + "\";";
+                }
+            }).then(function () {
+                output += "\n})(images = bh.images || (bh.images = {}));})(bh || (bh = {}));";
+                bh.$("#data-output").val(output);
+            });
+        }
+        utils.createImagesJs = createImagesJs;
+        function asyncForEach(array, callbackfn, thisArg) {
+            return new Promise(function (resolvefn, rejectfn) {
+                var functions = array.map(function (value, index, array) {
+                    return function (value, index, array) {
+                        setTimeout(function (thisArg, value, index, array) {
+                            try {
+                                var retVal = callbackfn.call(thisArg, value, index, array);
+                                retVal instanceof Promise ? retVal.then(process, rejectfn) : process();
+                            }
+                            catch (ex) {
+                                rejectfn(ex);
+                            }
+                        }, 0, thisArg, value, index, array);
+                    }.bind(thisArg, value, index, array);
+                });
+                var process = function () {
+                    if (functions.length) {
+                        var fn = functions.shift();
+                        fn ? fn() : process();
+                    }
+                    else {
+                        resolvefn(array);
+                    }
+                };
+                process();
+            });
+        }
+        utils.asyncForEach = asyncForEach;
     })(utils = bh.utils || (bh.utils = {}));
 })(bh || (bh = {}));
 var XmlHttpRequest = (function () {
