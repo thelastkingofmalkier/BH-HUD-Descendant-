@@ -1595,10 +1595,10 @@ var bh;
                     }
                     else {
                         var activeRecipes = this.player.activeRecipes, recipes = bh.data.RecipeRepo.findByMaterial(this.name), filtered = recipes.filter(function (recipe) { return activeRecipes.includes(recipe); });
-                        if (this.name == "Spindle Eggs")
-                            console.log(recipes);
                         filtered.forEach(function (recipe) {
                             var item = recipe.getItemByName(_this.name), playerBattleCard = _this.player.activeBattleCards.find(function (bc) { return bc.name == recipe.name && bc.rarityType === recipe.rarityType; });
+                            if (recipe.name.includes("Voo"))
+                                console.log(recipe);
                             children += playerBattleCard.toRowHtml(item.max);
                         });
                     }
@@ -1798,7 +1798,7 @@ var bh;
                     if (lastLine == line)
                         return;
                     lastLine = line;
-                    var parts = line.trim().split(/\t/), guid = parts.shift(), name = parts.shift(), rarity = parts.shift(), evo = parts.shift(), evoNumber = +evo[0], recipe = recipes[guid] || (recipes[guid] = new Recipe(guid, name, bh.RarityType[rarity])), mat;
+                    var parts = line.trim().split(/\t/), guid = parts.shift(), name = parts.shift(), rarity = parts.shift().replace(/ /g, ""), evo = parts.shift(), evoNumber = +evo[0], recipe = recipes[guid] || (recipes[guid] = new Recipe(guid, name, bh.RarityType[rarity])), mat;
                     while (parts.length) {
                         mat = { min: +parts.shift(), max: +parts.shift(), material: cleanMatName(parts.shift()) };
                         recipe.addMat(evoNumber, mat);
@@ -2847,7 +2847,7 @@ var bh;
                         .html("")
                         .append(player.boosterCards.map(function (card) { return card.rowHtml; }))
                         .append(player.battleCards.map(function (card) { return card.rowHtml; }))
-                        .append(player.inventory.map(function (item) { return item.rowHtml; }))
+                        .append(player.inventory.sort(bh.utils.sort.byName).map(function (item) { return item.rowHtml; }))
                         .append(player.wildCards.map(function (card) { return card.rowHtml; }))
                         .append(player.boosterRowHtml)
                         .append(player.fragmentsRowHtml)

@@ -52,7 +52,7 @@ namespace bh {
 					var parts = line.trim().split(/\t/),
 						guid = parts.shift(),
 						name = parts.shift(),
-						rarity = parts.shift(),
+						rarity = parts.shift().replace(/ /g, ""),
 						evo = parts.shift(),
 						evoNumber = +evo[0],
 						recipe = recipes[guid] || (recipes[guid] = new Recipe(guid, name, RarityType[<GameRarity>rarity])),

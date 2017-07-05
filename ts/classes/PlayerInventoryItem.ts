@@ -86,10 +86,10 @@ namespace bh {
 					var activeRecipes = this.player.activeRecipes,
 						recipes = data.RecipeRepo.findByMaterial(this.name),
 						filtered = recipes.filter(recipe => activeRecipes.includes(recipe));
-if (this.name == "Spindle Eggs") console.log(recipes)
 					filtered.forEach(recipe => {
 						var item = recipe.getItemByName(this.name),
 							playerBattleCard = this.player.activeBattleCards.find(bc => bc.name == recipe.name && bc.rarityType === recipe.rarityType);
+if(recipe.name.includes("Voo"))console.log(recipe)
 						children += playerBattleCard.toRowHtml(item.max);
 					});
 

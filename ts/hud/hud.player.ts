@@ -11,7 +11,7 @@ namespace bh {
 						.html("")
 						.append(player.boosterCards.map(card => card.rowHtml))
 						.append(player.battleCards.map(card => card.rowHtml))
-						.append(player.inventory.map(item => item.rowHtml))
+						.append(player.inventory.sort(utils.sort.byName).map(item => item.rowHtml))
 						.append(player.wildCards.map(card => card.rowHtml))
 						.append(player.boosterRowHtml)
 						.append(player.fragmentsRowHtml)
