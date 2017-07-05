@@ -12,7 +12,6 @@ namespace bh {
 		public get active() { return new PlayerHeroAbility(this, this.hero.active, this.activeLevel); }
 		public get guid() { return this.hero.guid; }
 		public get elementType() { return this.hero.elementType; }
-		public get klass() { return this.hero.klass; }
 		public get klassType() { return this.hero.klassType; }
 		public get name() { return this.hero.name; }
 		public get passive() { return new PlayerHeroAbility(this, this.hero.passive, this.passiveLevel); }

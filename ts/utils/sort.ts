@@ -5,18 +5,18 @@ namespace bh {
 			export function byElement(a: IHasElementType, b: IHasElementType): number {
 				return a.elementType == b.elementType ? 0 : a.elementType < b.elementType ? -1 : 1;
 			}
-			export function byElementThenKlass(a: IHasElementType & IHasKlass, b: IHasElementType & IHasKlass): number {
+			export function byElementThenKlass(a: IHasElementType & IHasKlassType, b: IHasElementType & IHasKlassType): number {
 				return byElement(a, b) || byKlass(a, b);
 			}
 			export function byElementThenName(a: IHasName & IHasElementType, b: IHasName & IHasElementType): number {
 				return byElement(a, b) || byName(a, b);
 			}
-			export function byElementThenRarityThenName(a: IHasName & IHasElementType & IHasRarity, b: IHasName & IHasElementType & IHasRarity): number {
+			export function byElementThenRarityThenName(a: IHasName & IHasElementType & IHasRarityType, b: IHasName & IHasElementType & IHasRarityType): number {
 				return byElement(a, b) || byRarityThenName(a, b);
 			}
 
-			export function byKlass(a: IHasKlass, b: IHasKlass) {
-				return a.klass == b.klass ? 0 : a.klass < b.klass ? -1 : 1;
+			export function byKlass(a: IHasKlassType, b: IHasKlassType) {
+				return a.klassType == b.klassType ? 0 : a.klassType < b.klassType ? -1 : 1;
 			}
 
 			export function byEvoLevel(a: IHasEvoLevel, b: IHasEvoLevel): number {
@@ -39,14 +39,13 @@ namespace bh {
 				return byPosition(a, b) || byName(a, b);
 			}
 
-			export function byRarity(a: IHasRarity, b: IHasRarity): number {
-				var aStars = rarityToStars(a.rarity).length, bStars = rarityToStars(b.rarity).length;
-				return aStars == bStars ? 0 : aStars < bStars ? -1 : 1;
+			export function byRarity(a: IHasRarityType, b: IHasRarityType): number {
+				return a.rarityType == b.rarityType ? 0 : a.rarityType < b.rarityType ? -1 : 1;
 			}
-			export function byRarityThenName(a: IHasName & IHasRarity, b: IHasName & IHasRarity): number {
+			export function byRarityThenName(a: IHasName & IHasRarityType, b: IHasName & IHasRarityType): number {
 				return byRarity(a, b) || byName(a, b);
 			}
-			export function byRarityThenNameThenEvoLevel(a: IHasName & IHasEvoLevel & IHasRarity, b: IHasName & IHasEvoLevel & IHasRarity): number {
+			export function byRarityThenNameThenEvoLevel(a: IHasName & IHasEvoLevel & IHasRarityType, b: IHasName & IHasEvoLevel & IHasRarityType): number {
 				return byRarity(a, b) || byName(a, b) || byEvoLevel(a, b);
 			}
 

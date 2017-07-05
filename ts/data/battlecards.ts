@@ -21,8 +21,8 @@ namespace bh {
 					return _cards.find(card => card.name == name);
 				}
 
-				export function getMaxEvo(rarity: GameRarity): number {
-					return <any>RarityType[<any>rarity.replace(/ /, "")] + 1;
+				export function getMaxEvo(rarityType: RarityType): number {
+					return rarityType + 1;
 				}
 				export function isMaxLevel(rarity: GameRarity, level: number): boolean {
 					return level == [10,20,35,50,50][<any>RarityType[<any>(rarity||"").replace(/ /, "")]];
@@ -31,7 +31,7 @@ namespace bh {
 				export function calculateValue(playerCard: IPlayer.PlayerCard): number {
 					var card = find(playerCard.configId),
 						delta = card && card.delta || 0,
-						levels = !card ? 0 : card.rarity == "Common" ? 9 : card.rarity == "Uncommon" ? 19 : card.rarity == "Rare" ? 34 : 49,
+						levels = !card ? 0 : card.rarityType == RarityType.Common ? 9 : card.rarityType == RarityType.Uncommon ? 19 : card.rarityType == RarityType.Rare ? 34 : 49,
 						value = card && card.base || 0;
 					if (0 < playerCard.evolutionLevel) { value = (value + levels * delta) * 0.80; }
 					if (1 < playerCard.evolutionLevel) { value = (value + levels * delta) * 0.85; }
@@ -57,12 +57,7 @@ namespace bh {
 					return _init;
 				}
 				function parseTSV(tsv: string) {
-					_cards = Repo.mapTsv<IDataBattleCard>(tsv);
-					_cards.forEach(card => {
-						card.elementType = <any>ElementType[(<any>card).element];
-						delete (<any>card).element;
-					})
-					return _cards;
+					return _cards = Repo.mapTsv<IDataBattleCard>(tsv);
 				}
 
 			}

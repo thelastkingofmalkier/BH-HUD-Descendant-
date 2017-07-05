@@ -7,10 +7,10 @@ namespace bh {
 		public maxGold: number;
 
 		public constructor(card: PlayerBattleCard, evo: number) {
-			this.wildCards = data.wildsForEvo(card.rarity, evo);
-			this.minSot = data.getMinSotNeeded(card.rarity, evo);
-			this.maxSot = data.getMaxSotNeeded(card.rarity, evo);
-			this.minGold = data.getMinGoldNeeded(card.rarity, evo);
+			this.wildCards = data.wildsForEvo(card.rarityType, evo);
+			this.minSot = data.getMinSotNeeded(card.rarityType, evo);
+			this.maxSot = data.getMaxSotNeeded(card.rarityType, evo);
+			this.minGold = data.getMinGoldNeeded(card.rarityType, evo);
 			// this.maxGold = data.getMaxGoldNeeded(card.playerCard, evo);
 		}
 	}
@@ -26,7 +26,7 @@ namespace bh {
 
 		public constructor(card: PlayerBattleCard) {
 			var evo = card.evo,
-				max = data.cards.battle.getMaxEvo(card.rarity);
+				max = data.cards.battle.getMaxEvo(card.rarityType);
 			for (var i = evo; i < max; i++) {
 				this.reports.push(new EvoReport(card, i));
 			}

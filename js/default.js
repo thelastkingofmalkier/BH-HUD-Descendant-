@@ -19,6 +19,12 @@ var bh;
         ElementType[ElementType["Water"] = 4] = "Water";
         ElementType[ElementType["Neutral"] = 5] = "Neutral";
     })(ElementType = bh.ElementType || (bh.ElementType = {}));
+    var ItemType;
+    (function (ItemType) {
+        ItemType[ItemType["EvoJar"] = 0] = "EvoJar";
+        ItemType[ItemType["Crystal"] = 1] = "Crystal";
+        ItemType[ItemType["Rune"] = 2] = "Rune";
+    })(ItemType = bh.ItemType || (bh.ItemType = {}));
     var KlassType;
     (function (KlassType) {
         KlassType[KlassType["Magic"] = 0] = "Magic";
@@ -45,10 +51,10 @@ var bh;
 (function (bh) {
     var EvoReport = (function () {
         function EvoReport(card, evo) {
-            this.wildCards = bh.data.wildsForEvo(card.rarity, evo);
-            this.minSot = bh.data.getMinSotNeeded(card.rarity, evo);
-            this.maxSot = bh.data.getMaxSotNeeded(card.rarity, evo);
-            this.minGold = bh.data.getMinGoldNeeded(card.rarity, evo);
+            this.wildCards = bh.data.wildsForEvo(card.rarityType, evo);
+            this.minSot = bh.data.getMinSotNeeded(card.rarityType, evo);
+            this.maxSot = bh.data.getMaxSotNeeded(card.rarityType, evo);
+            this.minGold = bh.data.getMinGoldNeeded(card.rarityType, evo);
         }
         return EvoReport;
     }());
@@ -56,7 +62,7 @@ var bh;
     var EvoReportCard = (function () {
         function EvoReportCard(card) {
             this.reports = [];
-            var evo = card.evo, max = bh.data.cards.battle.getMaxEvo(card.rarity);
+            var evo = card.evo, max = bh.data.cards.battle.getMaxEvo(card.rarityType);
             for (var i = evo; i < max; i++) {
                 this.reports.push(new EvoReport(card, i));
             }
@@ -111,8 +117,8 @@ var bh;
             var values = line.split(/\t/).map(function (s) { return s.trim(); });
             this.guid = values.shift();
             this.name = values.shift();
-            this.element = values.shift();
-            this.klass = values.shift();
+            this.elementType = bh.ElementType[values.shift()];
+            this.klassType = bh.KlassType[values.shift()];
             this.trait = createHeroAbility(this, abilities.shift());
             this.active = createHeroAbility(this, abilities.shift());
             this.passive = createHeroAbility(this, abilities.shift());
@@ -120,16 +126,6 @@ var bh;
         }
         Object.defineProperty(Hero.prototype, "abilities", {
             get: function () { return [this.trait, this.active, this.passive]; },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(Hero.prototype, "elementType", {
-            get: function () { return bh.ElementType[this.element]; },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(Hero.prototype, "klassType", {
-            get: function () { return bh.KlassType[this.klass]; },
             enumerable: true,
             configurable: true
         });
@@ -151,7 +147,7 @@ var bh;
             configurable: true
         });
         Hero.filterCardsByHero = function (hero, cards) {
-            return cards.filter(function (card) { return card.klass == hero.klass && (card.elementType == bh.ElementType.Neutral || card.elementType == hero.elementType); });
+            return cards.filter(function (card) { return card.klassType === hero.klassType && (card.elementType == bh.ElementType.Neutral || card.elementType == hero.elementType); });
         };
         Hero.getHitPoints = function (hero, level) {
             switch (hero.name) {
@@ -269,11 +265,22 @@ var bh;
                 }
                 var parts = line.split(/\t/).map(function (s) { return s.trim(); }), value = {};
                 keys.forEach(function (key, index) {
-                    value[key] = key == "brag" ? !!parts[index].match(/\d+(,\d+)*/)
-                        : key == "turns" || key == "rating" ? +String(parts[index]).replace(",", "")
-                            : parts[index];
-                    if (key == "name")
-                        value["lower"] = parts[index].toLowerCase();
+                    if (key == "element") {
+                        value["elementType"] = bh.ElementType[parts[index]];
+                    }
+                    else if (key == "rarity") {
+                        value["rarityType"] = bh.RarityType[parts[index].replace(/ /g, "")];
+                    }
+                    else if (key == "klass") {
+                        value["klassType"] = bh.KlassType[parts[index]];
+                    }
+                    else {
+                        value[key] = key == "brag" ? !!parts[index].match(/\d+(,\d+)*/)
+                            : key == "turns" ? +parts[index]
+                                : parts[index];
+                        if (key == "name")
+                            value["lower"] = parts[index].toLowerCase();
+                    }
                 });
                 return value;
             })
@@ -331,9 +338,9 @@ var bh;
             var values = line.split(/\t/).map(function (s) { return s.trim(); });
             this.guid = values.shift();
             this.name = values.shift();
-            this.type = values.shift();
-            this.rarity = values.shift();
-            this.element = values.shift();
+            this.itemType = bh.ItemType[values.shift().replace(/ /g, "")];
+            this.rarityType = bh.RarityType[values.shift()];
+            this.elementType = bh.ElementType[values.shift()];
         }
         return InventoryItem;
     }());
@@ -355,21 +362,21 @@ var bh;
         };
         Object.defineProperty(ItemRepo.prototype, "evoJars", {
             get: function () {
-                return this.data.filter(function (item) { return item.type == "Evo Jar"; });
+                return this.data.filter(function (item) { return item.itemType === bh.ItemType.EvoJar; });
             },
             enumerable: true,
             configurable: true
         });
         Object.defineProperty(ItemRepo.prototype, "crystals", {
             get: function () {
-                return this.data.filter(function (item) { return item.type == "Crystal"; });
+                return this.data.filter(function (item) { return item.itemType === bh.ItemType.Crystal; });
             },
             enumerable: true,
             configurable: true
         });
         Object.defineProperty(ItemRepo.prototype, "runes", {
             get: function () {
-                return this.data.filter(function (item) { return item.type == "Rune"; });
+                return this.data.filter(function (item) { return item.itemType === bh.ItemType.Rune; });
             },
             enumerable: true,
             configurable: true
@@ -704,7 +711,7 @@ var bh;
             configurable: true
         });
         Object.defineProperty(Player.prototype, "wildCardRowHtml", {
-            get: function () { return this._pp ? formatRow("cardtypes", "WildCard", "Wild Cards", this.wildCards.map(function (wc) { return wc.rarity[0] + ":" + wc.count; }).join(" / ")) : ""; },
+            get: function () { return this._pp ? formatRow("cardtypes", "WildCard", "Wild Cards", this.wildCards.map(function (wc) { return bh.RarityType[wc.rarityType][0] + ":" + wc.count; }).join(" / ")) : ""; },
             enumerable: true,
             configurable: true
         });
@@ -721,11 +728,10 @@ var bh;
             args.forEach(function (arg) { return bh.isElement(arg) ? element = arg : bh.isRarity(arg) ? rarity = arg : name = arg; });
             if (name)
                 hero = bh.data.HeroRepo.find(name);
-            return this.activeBattleCards.filter(function (battleCard) { return (!element || battleCard.matchesElement(element)) && (!rarity || battleCard.rarity == rarity) && (!hero || (battleCard.elementType === hero.elementType && battleCard.klass == hero.klass)); });
+            return this.activeBattleCards.filter(function (battleCard) { return battleCard.matchesElement(element) && battleCard.matchesRarity(rarity) && battleCard.matchesHero(hero); });
         };
         Player.prototype.filterHeroes = function (elementOrName) {
-            var element = bh.isElement(elementOrName) ? elementOrName : null;
-            var name = !element ? elementOrName : null;
+            var element = bh.isElement(elementOrName) ? elementOrName : null, name = !element ? elementOrName : null;
             return this.heroes.filter(function (playerHero) { return playerHero && ((element && bh.ElementType[playerHero.elementType] == element) || (name && playerHero.name == name)); });
         };
         Player.prototype.findPlayerCard = function (guid) {
@@ -779,7 +785,7 @@ var bh;
         }
         PlayerBattleCard.prototype._rowHtml = function (badgeValue) {
             var badgeHtml = badgeValue ? "<span class=\"badge pull-right\">" + badgeValue + "</span>" : "";
-            return "<div data-element=\"" + bh.ElementType[this.elementType] + "\" data-rarity=\"" + this.rarity + "\" data-klass=\"" + this.klass + "\" data-brag=\"" + (this.brag ? "Brag" : "") + "\">" + this.fullHtml + badgeHtml + "</div>";
+            return "<div data-element-type=\"" + this.elementType + "\" data-rarity-type=\"" + this.rarityType + "\" data-klass-type=\"" + this.klassType + "\" data-brag=\"" + (this.brag ? "Brag" : "") + "\">" + this.fullHtml + badgeHtml + "</div>";
         };
         Object.defineProperty(PlayerBattleCard.prototype, "brag", {
             get: function () { return this._bc && this._bc.brag || false; },
@@ -791,8 +797,8 @@ var bh;
             enumerable: true,
             configurable: true
         });
-        Object.defineProperty(PlayerBattleCard.prototype, "klass", {
-            get: function () { return this._bc && this._bc.klass; },
+        Object.defineProperty(PlayerBattleCard.prototype, "klassType", {
+            get: function () { return this._bc ? this._bc.klassType : null; },
             enumerable: true,
             configurable: true
         });
@@ -801,13 +807,8 @@ var bh;
             enumerable: true,
             configurable: true
         });
-        Object.defineProperty(PlayerBattleCard.prototype, "rarity", {
-            get: function () { return this._bc && this._bc.rarity || null; },
-            enumerable: true,
-            configurable: true
-        });
         Object.defineProperty(PlayerBattleCard.prototype, "rarityType", {
-            get: function () { return this._bc && this._bc.rarity ? bh.RarityType[this._bc.rarity.replace(/ /, "")] : null; },
+            get: function () { return this._bc ? this._bc.rarityType : null; },
             enumerable: true,
             configurable: true
         });
@@ -853,7 +854,7 @@ var bh;
         });
         Object.defineProperty(PlayerBattleCard.prototype, "fullHtml", {
             get: function () {
-                var count = this.count > 1 ? "x" + this.count : "", typeAndValue = this.value ? " (" + this.typeImage + " " + this.formattedValue : "", stars = bh.utils.evoToStars(this.rarity, this.evoLevel), name = this.name.replace(/Mischievous/, "Misch.").replace(/Protection/, "Prot."), logoValue = "";
+                var count = this.count > 1 ? "x" + this.count : "", typeAndValue = this.value ? " (" + this.typeImage + " " + this.formattedValue : "", stars = bh.utils.evoToStars(this.rarityType, this.evoLevel), name = this.name.replace(/Mischievous/, "Misch.").replace(/Protection/, "Prot."), logoValue = "";
                 return this.battleOrBragImage + " " + this.evoLevel + " <small>" + stars + "</small> " + name + " " + count + " " + logoValue;
             },
             enumerable: true,
@@ -885,7 +886,7 @@ var bh;
             configurable: true
         });
         Object.defineProperty(PlayerBattleCard.prototype, "nextMaxSotNeeded", {
-            get: function () { return bh.data.getMaxSotNeeded(this.rarity, this.evo) * this.count; },
+            get: function () { return bh.data.getMaxSotNeeded(this.rarityType, this.evo) * this.count; },
             enumerable: true,
             configurable: true
         });
@@ -895,7 +896,7 @@ var bh;
             configurable: true
         });
         Object.defineProperty(PlayerBattleCard.prototype, "nextMaxGoldNeeded", {
-            get: function () { return bh.data.getMaxGoldNeeded(this.rarity, this.evo) * this.count; },
+            get: function () { return bh.data.getMaxGoldNeeded(this.rarityType, this.evo) * this.count; },
             enumerable: true,
             configurable: true
         });
@@ -905,7 +906,7 @@ var bh;
             configurable: true
         });
         Object.defineProperty(PlayerBattleCard.prototype, "rarityEvoLevel", {
-            get: function () { return this.rarity[0] + "." + this.evoLevel; },
+            get: function () { return bh.RarityType[this.rarityType][0] + "." + this.evoLevel; },
             enumerable: true,
             configurable: true
         });
@@ -951,7 +952,9 @@ var bh;
         });
         ;
         PlayerBattleCard.prototype.matches = function (other) { return this._bc && other._bc && this._bc.guid == other._bc.guid && this.evoLevel == other.evoLevel; };
-        PlayerBattleCard.prototype.matchesElement = function (element) { return element && this.elementType === bh.ElementType[element]; };
+        PlayerBattleCard.prototype.matchesElement = function (element) { return !element || this.elementType === bh.ElementType[element]; };
+        PlayerBattleCard.prototype.matchesHero = function (hero) { return !hero || (this.matchesElement(bh.ElementType[hero.elementType]) && this.klassType === hero.klassType); };
+        PlayerBattleCard.prototype.matchesRarity = function (rarity) { return !rarity || this.rarityType === bh.RarityType[rarity]; };
         return PlayerBattleCard;
     }());
     bh.PlayerBattleCard = PlayerBattleCard;
@@ -985,13 +988,13 @@ var bh;
             enumerable: true,
             configurable: true
         });
-        Object.defineProperty(PlayerBoosterCard.prototype, "rarity", {
-            get: function () { return this._.rarity; },
+        Object.defineProperty(PlayerBoosterCard.prototype, "rarityType", {
+            get: function () { return this._.rarityType; },
             enumerable: true,
             configurable: true
         });
         Object.defineProperty(PlayerBoosterCard.prototype, "rowHtml", {
-            get: function () { return "<div data-element=\"" + bh.ElementType[this.elementType] + "\" data-type=\"" + this.type + "\" data-rarity=\"" + this.rarity + "\">" + bh.getImg20("misc", "Boosters") + " " + this.rarity[0] + (this.challenge ? "*" : "") + " " + this.name + " <span class=\"badge pull-right\">" + this.count + "</span></div>"; },
+            get: function () { return "<div data-element-type=\"" + this.elementType + "\" data-type=\"" + this.type + "\" data-rarity-type=\"" + this.rarityType + "\">" + bh.getImg20("misc", "Boosters") + " " + bh.RarityType[this.rarityType][0] + (this.challenge ? "*" : "") + " " + this.name + " <span class=\"badge pull-right\">" + this.count + "</span></div>"; },
             enumerable: true,
             configurable: true
         });
@@ -1030,11 +1033,6 @@ var bh;
         });
         Object.defineProperty(PlayerHero.prototype, "elementType", {
             get: function () { return this.hero.elementType; },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(PlayerHero.prototype, "klass", {
-            get: function () { return this.hero.klass; },
             enumerable: true,
             configurable: true
         });
@@ -1483,13 +1481,8 @@ var bh;
             this.item = item;
             this.count = count;
         }
-        Object.defineProperty(PlayerInventoryItem.prototype, "element", {
-            get: function () { return this.item.element; },
-            enumerable: true,
-            configurable: true
-        });
         Object.defineProperty(PlayerInventoryItem.prototype, "elementType", {
-            get: function () { return bh.ElementType[this.item.element]; },
+            get: function () { return this.item.elementType; },
             enumerable: true,
             configurable: true
         });
@@ -1498,25 +1491,45 @@ var bh;
             enumerable: true,
             configurable: true
         });
+        Object.defineProperty(PlayerInventoryItem.prototype, "itemType", {
+            get: function () { return this.item.itemType; },
+            enumerable: true,
+            configurable: true
+        });
         Object.defineProperty(PlayerInventoryItem.prototype, "name", {
             get: function () { return this.item.name; },
             enumerable: true,
             configurable: true
         });
-        Object.defineProperty(PlayerInventoryItem.prototype, "rarity", {
-            get: function () { return this.item.rarity; },
+        Object.defineProperty(PlayerInventoryItem.prototype, "rarityType", {
+            get: function () { return this.item.rarityType; },
             enumerable: true,
             configurable: true
         });
-        Object.defineProperty(PlayerInventoryItem.prototype, "type", {
-            get: function () { return this.item.type; },
+        Object.defineProperty(PlayerInventoryItem.prototype, "isCrystal", {
+            get: function () { return this.itemType === bh.ItemType.Crystal; },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(PlayerInventoryItem.prototype, "isEvoJar", {
+            get: function () { return this.itemType === bh.ItemType.EvoJar; },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(PlayerInventoryItem.prototype, "isSandsOfTime", {
+            get: function () { return this.name === "Sands of Time"; },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(PlayerInventoryItem.prototype, "isRune", {
+            get: function () { return this.itemType === bh.ItemType.Rune; },
             enumerable: true,
             configurable: true
         });
         Object.defineProperty(PlayerInventoryItem.prototype, "needed", {
             get: function () {
                 var needed = 0;
-                if (this.type == "Rune") {
+                if (this.isRune) {
                     var heroName = this.name.split("'")[0];
                     this.player
                         .filterHeroes(heroName)
@@ -1525,15 +1538,15 @@ var bh;
                         .filterActiveBattleCards(heroName, "Legendary")
                         .forEach(function (battleCard) { return needed += battleCard.count * 60; });
                 }
-                if (this.type == "Crystal") {
+                if (this.isCrystal) {
                     this.player
-                        .filterHeroes(this.element)
+                        .filterHeroes(bh.ElementType[this.elementType])
                         .forEach(function (playerHero) { return needed += (playerHero.active.maxMaterialCount || 0) + (playerHero.passive.maxMaterialCount || 0); });
                     this.player
-                        .filterActiveBattleCards(this.element, "Legendary")
+                        .filterActiveBattleCards(bh.ElementType[this.elementType], "Legendary")
                         .forEach(function (battleCard) { return needed += battleCard.count * 60; });
                 }
-                if (this.name == "Sands of Time") {
+                if (this.isSandsOfTime) {
                     this.player.activeBattleCards.forEach(function (playerBattleCard) { return needed += playerBattleCard.maxMaxSotNeeded; });
                 }
                 return needed;
@@ -1543,17 +1556,17 @@ var bh;
         });
         Object.defineProperty(PlayerInventoryItem.prototype, "rowHtml", {
             get: function () {
-                var folder = this.type == "Evo Jar" ? "evojars" : this.type == "Crystal" ? "crystals" : "runes", name = this.type == "Evo Jar" ? this.name.replace(/\W/g, "") : this.type == "Crystal" ? this.name.split(/ /)[0] : bh.data.HeroRepo.find(this.name.split("'")[0]).abilities[0].name.replace(/\W/g, ""), image = bh.getImg20(folder, name), needed = this.needed, ofContent = needed ? " / " + bh.utils.formatNumber(needed) : "", hud = this.name == "Sands of Time", badge = "<span class=\"badge pull-right\">" + this.count + ofContent + "</span>", children = "";
-                if (needed && (this.type == "Crystal" || this.type == "Rune" || this.name == "Sands of Time")) {
-                    if (this.type == "Crystal") {
+                var folder = bh.ItemType[this.itemType].toLowerCase() + "s", name = this.isEvoJar ? this.name.replace(/\W/g, "") : this.isCrystal ? this.name.split(/ /)[0] : bh.data.HeroRepo.find(this.name.split("'")[0]).abilities[0].name.replace(/\W/g, ""), image = bh.getImg20(folder, name), needed = this.needed, ofContent = needed ? " / " + bh.utils.formatNumber(needed) : "", hud = this.isSandsOfTime, badge = "<span class=\"badge pull-right\">" + this.count + ofContent + "</span>", children = "";
+                if (needed && (this.isCrystal || this.isRune || this.isSandsOfTime)) {
+                    if (this.isCrystal) {
                         this.player
-                            .filterHeroes(this.element)
+                            .filterHeroes(bh.ElementType[this.elementType])
                             .forEach(function (playerHero) { return children += playerHero.active.evoHtml + playerHero.passive.evoHtml; });
                         this.player
-                            .filterActiveBattleCards(this.element, "Legendary")
+                            .filterActiveBattleCards(bh.ElementType[this.elementType], "Legendary")
                             .forEach(function (battleCard) { return children += battleCard.evoHtml; });
                     }
-                    if (this.type == "Rune") {
+                    if (this.isRune) {
                         var heroName = this.name.split("'")[0];
                         this.player
                             .filterHeroes(heroName)
@@ -1562,13 +1575,13 @@ var bh;
                             .filterActiveBattleCards(heroName, "Legendary")
                             .forEach(function (battleCard) { return children += battleCard.evoHtml; });
                     }
-                    if (this.name == "Sands of Time") {
+                    if (this.isSandsOfTime) {
                         this.player
                             .activeBattleCards
                             .forEach(function (playerBattleCard) { return children += playerBattleCard.sotHtml; });
                     }
                 }
-                return "<div data-element=\"" + this.element + "\" data-rarity=\"" + this.rarity + "\" data-type=\"" + this.type + "\" data-hud=\"" + hud + "\">" + renderExpandable(this.guid, image + " " + this.name + " " + badge, children) + "</div>";
+                return "<div data-element-type=\"" + this.elementType + "\" data-rarity-type=\"" + this.rarityType + "\" data-item-type=\"" + this.itemType + "\" data-hud=\"" + hud + "\">" + renderExpandable(this.guid, image + " " + this.name + " " + badge, children) + "</div>";
             },
             enumerable: true,
             configurable: true
@@ -1619,15 +1632,15 @@ var bh;
             get: function () {
                 var needed = 0;
                 this.player
-                    .filterActiveBattleCards(this.rarity)
+                    .filterActiveBattleCards(bh.RarityType[this.rarityType])
                     .forEach(function (playerBattleCard) { return needed += playerBattleCard.maxWildCardsNeeded; });
                 return needed;
             },
             enumerable: true,
             configurable: true
         });
-        Object.defineProperty(PlayerWildCard.prototype, "rarity", {
-            get: function () { return this._.name; },
+        Object.defineProperty(PlayerWildCard.prototype, "rarityType", {
+            get: function () { return bh.RarityType[this._.name.replace(/ /g, "")]; },
             enumerable: true,
             configurable: true
         });
@@ -1638,11 +1651,11 @@ var bh;
                     expander = "<button class=\"bs-btn bs-btn-link bs-btn-xs brain-hud-button\" type=\"button\" data-action=\"toggle-child\" data-guid=\"" + this.guid + "\">[+]</button>";
                     children = "<div class=\"brain-hud-child-scroller\" data-parent-guid=\"" + this.guid + "\">";
                     this.player
-                        .filterActiveBattleCards(this.rarity)
+                        .filterActiveBattleCards(bh.RarityType[this.rarityType])
                         .forEach(function (playerBattleCard) { return children += playerBattleCard.wcHtml; });
                     children += "</div>";
                 }
-                return "<div data-type=\"" + this.type + "\" data-rarity=\"" + this.rarity + "\"><div>" + html + " " + expander + "</div>" + children + "</div>";
+                return "<div data-type=\"" + this.type + "\" data-rarity-type=\"" + this.rarityType + "\"><div>" + html + " " + expander + "</div>" + children + "</div>";
             },
             enumerable: true,
             configurable: true
@@ -1679,8 +1692,8 @@ var bh;
             default: return 0;
         }
     }
-    function calculateCardScore(rarity, evoLevel, level, multiplier) {
-        return CardMultiplier * (evoLevel * RarityMultipliers[rarity.replace(/ /, "")] + level) * multiplier;
+    function calculateCardScore(rarityType, evoLevel, level, multiplier) {
+        return CardMultiplier * (evoLevel * RarityMultipliers[bh.RarityType[rarityType]] + level) * multiplier;
     }
     var PowerRating = (function () {
         function PowerRating() {
@@ -1695,11 +1708,11 @@ var bh;
             return score;
         };
         PowerRating.rateMaxedBattleCard = function (battleCard) {
-            var key = battleCard.rarity.replace(/ /g, ""), evo = RarityEvolutions[key], level = RarityLevels[key];
+            var key = bh.RarityType[battleCard.rarityType], evo = RarityEvolutions[key], level = RarityLevels[key];
             return PowerRating.ratePlayerCard({ configId: battleCard.guid, evolutionLevel: evo, level: level - 1 });
         };
         PowerRating.ratePlayerCard = function (playerCard) {
-            var card = bh.data.cards.battle.find(playerCard.configId), multiplier = PowerRating.tierToMultiplier(card.tier), score = calculateCardScore(card && card.rarity || "Legendary", playerCard.evolutionLevel, playerCard.level + 1, multiplier);
+            var card = bh.data.cards.battle.find(playerCard.configId), multiplier = PowerRating.tierToMultiplier(card.tier), score = calculateCardScore(card.rarityType, playerCard.evolutionLevel, playerCard.level + 1, multiplier);
             return score;
         };
         PowerRating.ratePlayerHeroAbility = function (playerHeroAbility) {
@@ -1741,8 +1754,8 @@ var bh;
                     return _cards.find(function (card) { return card.name == name; });
                 }
                 battle.findByName = findByName;
-                function getMaxEvo(rarity) {
-                    return bh.RarityType[rarity.replace(/ /, "")] + 1;
+                function getMaxEvo(rarityType) {
+                    return rarityType + 1;
                 }
                 battle.getMaxEvo = getMaxEvo;
                 function isMaxLevel(rarity, level) {
@@ -1750,7 +1763,7 @@ var bh;
                 }
                 battle.isMaxLevel = isMaxLevel;
                 function calculateValue(playerCard) {
-                    var card = find(playerCard.configId), delta = card && card.delta || 0, levels = !card ? 0 : card.rarity == "Common" ? 9 : card.rarity == "Uncommon" ? 19 : card.rarity == "Rare" ? 34 : 49, value = card && card.base || 0;
+                    var card = find(playerCard.configId), delta = card && card.delta || 0, levels = !card ? 0 : card.rarityType == bh.RarityType.Common ? 9 : card.rarityType == bh.RarityType.Uncommon ? 19 : card.rarityType == bh.RarityType.Rare ? 34 : 49, value = card && card.base || 0;
                     if (0 < playerCard.evolutionLevel) {
                         value = (value + levels * delta) * 0.80;
                     }
@@ -1787,12 +1800,7 @@ var bh;
                 }
                 battle.init = init;
                 function parseTSV(tsv) {
-                    _cards = bh.Repo.mapTsv(tsv);
-                    _cards.forEach(function (card) {
-                        card.elementType = bh.ElementType[card.element];
-                        delete card.element;
-                    });
-                    return _cards;
+                    return _cards = bh.Repo.mapTsv(tsv);
                 }
             })(battle = cards_1.battle || (cards_1.battle = {}));
         })(cards = data.cards || (data.cards = {}));
@@ -1929,124 +1937,94 @@ var bh;
         }
         data.updateRecipes = updateRecipes;
         function listEvoRecipes(rarity) {
-            var battleCards = data.cards.battle.getAll().filter(function (c) { return c.rarity == rarity; }).sort(bh.utils.sort.byName), lines = battleCards.map(function (c) { return c.name + "\t" + c.klass + "\t" + bh.ElementType[c.elementType] + "\t" + c.rarity + "\t" + (data.Recipes[c.guid].evos[0].materials[0] && data.Recipes[c.guid].evos[0].materials[0].material || ""); });
+            var battleCards = data.cards.battle.getAll().filter(function (c) { return c.rarityType == bh.RarityType[rarity]; }).sort(bh.utils.sort.byName), lines = battleCards.map(function (c) { return c.name + "\t" + bh.KlassType[c.klassType] + "\t" + bh.ElementType[c.elementType] + "\t" + bh.RarityType[c.rarityType] + "\t" + (data.Recipes[c.guid].evos[0].materials[0] && data.Recipes[c.guid].evos[0].materials[0].material || ""); });
             console.log(data.Recipes[battleCards[1].guid]);
             bh.$("textarea").val(lines.join("\n"));
         }
         data.listEvoRecipes = listEvoRecipes;
-        function wildsForEvo(rarity, currentEvoLevel) {
-            switch (rarity) {
-                case "Common": return [1][currentEvoLevel];
-                case "Uncommon": return [1, 2][currentEvoLevel];
-                case "Rare": return [1, 2, 4][currentEvoLevel];
-                case "Super Rare": return [1, 2, 4, 5][currentEvoLevel];
-                case "Legendary": return [1, 2, 3, 4, 5][currentEvoLevel];
-            }
+        function wildsForEvo(rarityType, currentEvoLevel) {
+            return [[1], [1, 2], [1, 2, 4], [1, 2, 4, 5], [1, 2, 3, 4, 5]][rarityType][currentEvoLevel];
         }
         data.wildsForEvo = wildsForEvo;
-        function getMinGoldNeeded(rarity, currentEvoLevel) {
-            switch (rarity) {
-                case "Common": return [1000][currentEvoLevel];
-                case "Uncommon": return [5300, 15300][currentEvoLevel];
-                case "Rare": return [8200, 27200, 65000][currentEvoLevel];
-                case "Super Rare": return [33000, 60000, 94000, 187000][currentEvoLevel];
-                case "Legendary": return [-1, 114000][currentEvoLevel];
-            }
+        function getMinGoldNeeded(rarityType, currentEvoLevel) {
+            return [[1000], [5300, 15300], [8200, 27200, 65000], [33000, 60000, 94000, 187000], [-1, 114000]][rarityType][currentEvoLevel];
         }
         data.getMinGoldNeeded = getMinGoldNeeded;
-        function getMinSotNeeded(rarity, currentEvoLevel) {
-            switch (rarity) {
-                case "Common": return [0][currentEvoLevel];
-                case "Uncommon": return [2, 5][currentEvoLevel];
-                case "Rare": return [5, 10, 20][currentEvoLevel];
-                case "Super Rare": return [10, 20, 30, 40][currentEvoLevel];
-                case "Legendary": return [20, 30, 40, 60, 60][currentEvoLevel];
-            }
+        function getMinSotNeeded(rarityType, currentEvoLevel) {
+            return [[0], [2, 5], [5, 10, 20], [10, 20, 30, 40], [20, 30, 40, 60, 60]][rarityType][currentEvoLevel];
         }
         data.getMinSotNeeded = getMinSotNeeded;
-        function getMinCrystalsNeeded(rarity, currentEvoLevel) {
-            return rarity == "Legendary" && currentEvoLevel == 4 ? 30 : 0;
+        function getMinCrystalsNeeded(rarityType, currentEvoLevel) {
+            return rarityType == bh.RarityType.Legendary && currentEvoLevel == 4 ? 30 : 0;
         }
         data.getMinCrystalsNeeded = getMinCrystalsNeeded;
-        function getMinRunesNeeded(rarity, currentEvoLevel) {
-            return rarity == "Legendary" && currentEvoLevel == 4 ? 30 : 0;
+        function getMinRunesNeeded(rarityType, currentEvoLevel) {
+            return rarityType == bh.RarityType.Legendary && currentEvoLevel == 4 ? 30 : 0;
         }
         data.getMinRunesNeeded = getMinRunesNeeded;
         function getNextWildCardsNeeded(playerCard) {
-            return wildsForEvo(playerCard.rarity, playerCard.evo);
+            return wildsForEvo(playerCard.rarityType, playerCard.evo);
         }
         data.getNextWildCardsNeeded = getNextWildCardsNeeded;
         function getMaxWildCardsNeeded(playerCard) {
-            var rarity = playerCard.rarity, max = data.cards.battle.getMaxEvo(rarity), needed = 0;
+            var max = data.cards.battle.getMaxEvo(playerCard.rarityType), needed = 0;
             for (var evo = playerCard.evo; evo < max; evo++) {
-                needed += wildsForEvo(rarity, evo);
+                needed += wildsForEvo(playerCard.rarityType, evo);
             }
             return needed;
         }
         data.getMaxWildCardsNeeded = getMaxWildCardsNeeded;
-        function getMaxGoldNeeded(playerCardOrRarity, evoInfo) {
+        function getMaxGoldNeeded(playerCardOrRarityType, evoInfo) {
             if (typeof evoInfo == "string") {
-                var sotNeeded = 0, evoParts = evoInfo.split(/\./), evo = +evoParts[0], level = +evoParts[1], card = data.cards.battle.find(playerCardOrRarity.configId), rarity = card && card.rarity || String(playerCardOrRarity), evoCap = bh.data.cards.battle.getMaxEvo(rarity);
+                var sotNeeded = 0, evoParts = evoInfo.split(/\./), evo = +evoParts[0], level = +evoParts[1], card = data.cards.battle.find(playerCardOrRarityType.configId), rarityType = card ? card.rarityType : playerCardOrRarityType, evoCap = bh.data.cards.battle.getMaxEvo(rarityType);
                 for (var i = evo; i < evoCap; i++) {
-                    sotNeeded += data.getMaxGoldNeeded(rarity, i);
+                    sotNeeded += data.getMaxGoldNeeded(rarityType, i);
                 }
                 return sotNeeded;
             }
             else {
                 var currentEvoLevel = evoInfo;
-                switch (playerCardOrRarity) {
-                    case "Common": return [12600][currentEvoLevel];
-                    case "Uncommon": return [18500, 34700][currentEvoLevel];
-                    case "Rare": return [22000, 57000, 114200][currentEvoLevel];
-                    case "Super Rare": return [56600, 114000, 170800, 289800][currentEvoLevel];
-                    case "Legendary": return [-1, 190800][currentEvoLevel];
-                }
+                return [[12600], [18500, 34700], [22000, 57000, 114200], [56600, 114000, 170800, 289800], [-1, 190800]][playerCardOrRarityType][currentEvoLevel];
             }
         }
         data.getMaxGoldNeeded = getMaxGoldNeeded;
-        function getMaxSotNeeded(playerCardOrRarity, evoInfo) {
+        function getMaxSotNeeded(playerCardOrRarityType, evoInfo) {
             if (typeof evoInfo == "string") {
-                var sotNeeded = 0, evoParts = evoInfo.split(/\./), evo = +evoParts[0], level = +evoParts[1], card = data.cards.battle.find(playerCardOrRarity.configId), rarity = card && card.rarity || String(playerCardOrRarity), evoCap = bh.data.cards.battle.getMaxEvo(rarity);
+                var sotNeeded = 0, evoParts = evoInfo.split(/\./), evo = +evoParts[0], level = +evoParts[1], card = data.cards.battle.find(playerCardOrRarityType.configId), rarityType = card ? card.rarityType : playerCardOrRarityType, evoCap = bh.data.cards.battle.getMaxEvo(rarityType);
                 for (var i = evo; i < evoCap; i++) {
-                    sotNeeded += data.getMaxSotNeeded(rarity, i);
+                    sotNeeded += data.getMaxSotNeeded(rarityType, i);
                 }
                 return sotNeeded;
             }
             else {
                 var currentEvoLevel = evoInfo;
-                switch (playerCardOrRarity) {
-                    case "Common": return [10][currentEvoLevel];
-                    case "Uncommon": return [12, 15][currentEvoLevel];
-                    case "Rare": return [15, 20, 30][currentEvoLevel];
-                    case "Super Rare": return [20, 30, 40, 60][currentEvoLevel];
-                    case "Legendary": return [30, 40, 60, 80, 100][currentEvoLevel];
-                }
+                return [[10], [12, 15], [15, 20, 30], [20, 30, 40, 60], [30, 40, 60, 80, 100]][playerCardOrRarityType][currentEvoLevel];
             }
         }
         data.getMaxSotNeeded = getMaxSotNeeded;
-        function getMaxCrystalsNeeded(playerCardOrRarity, evoInfo) {
+        function getMaxCrystalsNeeded(playerCardOrRarityType, evoInfo) {
             if (typeof evoInfo == "string") {
-                var sotNeeded = 0, evoParts = evoInfo.split(/\./), evo = +evoParts[0], level = +evoParts[1], card = data.cards.battle.find(playerCardOrRarity.configId), rarity = card && card.rarity || playerCardOrRarity, evoCap = bh.data.cards.battle.getMaxEvo(rarity);
+                var sotNeeded = 0, evoParts = evoInfo.split(/\./), evo = +evoParts[0], level = +evoParts[1], card = data.cards.battle.find(playerCardOrRarityType.configId), rarityType = card ? card.rarityType : playerCardOrRarityType, evoCap = bh.data.cards.battle.getMaxEvo(rarityType);
                 for (var i = evo; i < evoCap; i++) {
-                    sotNeeded += data.getMaxCrystalsNeeded(rarity, i);
+                    sotNeeded += data.getMaxCrystalsNeeded(rarityType, i);
                 }
                 return sotNeeded;
             }
             else {
-                return playerCardOrRarity == "Legendary" && evoInfo == 4 ? 60 : 0;
+                return playerCardOrRarityType == bh.RarityType.Legendary && evoInfo == 4 ? 60 : 0;
             }
         }
         data.getMaxCrystalsNeeded = getMaxCrystalsNeeded;
-        function getMaxRunesNeeded(playerCardOrRarity, evoInfo) {
+        function getMaxRunesNeeded(playerCardOrRarityType, evoInfo) {
             if (typeof evoInfo == "string") {
-                var sotNeeded = 0, evoParts = evoInfo.split(/\./), evo = +evoParts[0], level = +evoParts[1], card = data.cards.battle.find(playerCardOrRarity.configId), rarity = card && card.rarity || playerCardOrRarity, evoCap = bh.data.cards.battle.getMaxEvo(rarity);
+                var sotNeeded = 0, evoParts = evoInfo.split(/\./), evo = +evoParts[0], level = +evoParts[1], card = data.cards.battle.find(playerCardOrRarityType.configId), rarityType = card ? card.rarityType : playerCardOrRarityType, evoCap = bh.data.cards.battle.getMaxEvo(rarityType);
                 for (var i = evo; i < evoCap; i++) {
-                    sotNeeded += data.getMaxCrystalsNeeded(rarity, i);
+                    sotNeeded += data.getMaxCrystalsNeeded(rarityType, i);
                 }
                 return sotNeeded;
             }
             else {
-                return playerCardOrRarity == "Legendary" && evoInfo == 4 ? 60 : 0;
+                return playerCardOrRarityType == bh.RarityType.Legendary && evoInfo == 4 ? 60 : 0;
             }
         }
         data.getMaxRunesNeeded = getMaxRunesNeeded;
@@ -2305,7 +2283,7 @@ var bh;
         }
         events.init = init;
         function toggle(key, value) {
-            if (key && value) {
+            if (key && String(value).length) {
                 $(".brain-hud-inventory-buttons > button[data-action=\"toggle-" + key + "\"][data-" + key + "=\"" + value + "\"]").toggleClass("active");
             }
             var elements = $(".brain-hud-inventory-buttons > [data-action=\"toggle-element\"].active").toArray().map(function (el) { return el.getAttribute("data-element"); }), klasses = $(".brain-hud-inventory-buttons > [data-action=\"toggle-klass\"].active").toArray().map(function (el) { return el.getAttribute("data-klass"); }), types = $(".brain-hud-inventory-buttons > [data-action=\"toggle-type\"].active").toArray().map(function (el) { return el.getAttribute("data-type"); });
@@ -2315,7 +2293,7 @@ var bh;
             }
             else {
                 $("#brain-hud-inventory-items-container > div").each(function (i, elem) {
-                    var el = $(elem), element = !elements.length || elements.includes(el.data("element")), klass = !klasses.length || klasses.includes(el.data("klass")) || klasses.includes(el.data("brag")), type = !types.length || types.includes(el.data("type"));
+                    var el = $(elem), element = !elements.length || elements.includes(String(el.data("elementType"))), klass = !klasses.length || klasses.includes(String(el.data("klassType"))) || klasses.includes(el.data("brag")), type = !types.length || types.includes(el.data("type")) || types.includes(String(el.data("itemType")));
                     if (element && klass && type) {
                         el.show();
                     }
@@ -2886,7 +2864,7 @@ var bh;
             return "<button class=\"bs-btn bs-btn-default brain-hud-button\" type=\"button\" data-action=\"toggle-" + type + "\" data-" + type + "=\"" + typeValue + "\">" + bh.getImg(imgType, imgName || typeValue) + "</button>";
         }
         function renderHtml() {
-            var html = "<div class=\"brain-hud-header\">\n\t<button class=\"bs-btn bs-btn-link bs-btn-xs brain-hud-toggle pull-right\" data-action=\"toggle-hud\">[-]</button>\n\t<span class=\"header\">The Brain BattleHand HUD</span>\n</div>\n<div class=\"brain-hud-main-container active\">\n\t<div class=\"brain-hud-scouter-player-container\">\n\t\t<button class=\"bs-btn bs-btn-link bs-btn-xs brain-hud-toggle pull-right\" data-action=\"toggle-player-scouter\">[-]</button>\n\t\t<button class=\"bs-btn bs-btn-link bs-btn-xs brain-hud-toggle pull-right\" data-action=\"refresh-player\">" + bh.getImg12("icons", "glyphicons-82-refresh") + "</button>\n\t\t<select id=\"brain-hud-scouter-player-target\" data-action=\"toggle-scouter-player\"></select>\n\t\t<div id=\"brain-hud-scouter-player-report\" class=\"brain-hud-scouter-player-report active\"></div>\n\t</div>\n\t<div id=\"brain-hud-inventory\" class=\"brain-hud-inventory\">\n\t\t<strong>Inventory</strong>\n\t\t<button class=\"bs-btn bs-btn-link bs-btn-xs brain-hud-toggle pull-right\" data-action=\"toggle-inventory\">[-]</button>\n\t\t<div class=\"brain-hud-inventory-container active\">\n\t\t\t<div class=\"text-center\">\n\t\t\t\t<div class=\"bs-btn-group bs-btn-group-xs brain-hud-inventory-buttons\" role=\"group\">\n\t\t\t\t\t" + inventoryButton("element", "Air", "elements") + "\n\t\t\t\t\t" + inventoryButton("element", "Earth", "elements") + "\n\t\t\t\t\t" + inventoryButton("element", "Fire", "elements") + "\n\t\t\t\t\t" + inventoryButton("element", "Spirit", "elements") + "\n\t\t\t\t\t" + inventoryButton("element", "Water", "elements") + "\n\t\t\t\t\t" + inventoryButton("element", "Neutral", "elements", "Loop") + "\n\t\t\t\t</div>\n\t\t\t\t<div class=\"bs-btn-group bs-btn-group-xs brain-hud-inventory-buttons\">\n\t\t\t\t\t" + inventoryButton("klass", "Magic", "classes") + "\n\t\t\t\t\t" + inventoryButton("klass", "Might", "classes") + "\n\t\t\t\t\t" + inventoryButton("klass", "Skill", "classes") + "\n\t\t\t\t\t" + inventoryButton("klass", "Brag", "cardtypes") + "\n\t\t\t\t\t" + inventoryButton("type", "Rune", "runes", "Meteor") + "\n\t\t\t\t\t" + inventoryButton("type", "Crystal", "crystals", "Neutral") + "\n\t\t\t\t</div>\n\t\t\t\t<div class=\"bs-btn-group bs-btn-group-xs brain-hud-inventory-buttons\">\n\t\t\t\t\t" + inventoryButton("type", "BoosterCard", "misc", "Boosters") + "\n\t\t\t\t\t" + inventoryButton("type", "WildCard", "cardtypes", "WildCard") + "\n\t\t\t\t\t" + inventoryButton("type", "Evo Jar", "misc", "EvoJars") + "\n\t\t\t\t</div>\n\t\t\t</div>\n\t\t\t<div id=\"brain-hud-inventory-items-container\" class=\"brain-hud-inventory-items-container\"></div>\n\t\t</div>\n\t</div>\n</div>";
+            var html = "<div class=\"brain-hud-header\">\n\t<button class=\"bs-btn bs-btn-link bs-btn-xs brain-hud-toggle pull-right\" data-action=\"toggle-hud\">[-]</button>\n\t<span class=\"header\">The Brain BattleHand HUD</span>\n</div>\n<div class=\"brain-hud-main-container active\">\n\t<div class=\"brain-hud-scouter-player-container\">\n\t\t<button class=\"bs-btn bs-btn-link bs-btn-xs brain-hud-toggle pull-right\" data-action=\"toggle-player-scouter\">[-]</button>\n\t\t<button class=\"bs-btn bs-btn-link bs-btn-xs brain-hud-toggle pull-right\" data-action=\"refresh-player\">" + bh.getImg12("icons", "glyphicons-82-refresh") + "</button>\n\t\t<select id=\"brain-hud-scouter-player-target\" data-action=\"toggle-scouter-player\"></select>\n\t\t<div id=\"brain-hud-scouter-player-report\" class=\"brain-hud-scouter-player-report active\"></div>\n\t</div>\n\t<div id=\"brain-hud-inventory\" class=\"brain-hud-inventory\">\n\t\t<strong>Inventory</strong>\n\t\t<button class=\"bs-btn bs-btn-link bs-btn-xs brain-hud-toggle pull-right\" data-action=\"toggle-inventory\">[-]</button>\n\t\t<div class=\"brain-hud-inventory-container active\">\n\t\t\t<div class=\"text-center\">\n\t\t\t\t<div class=\"bs-btn-group bs-btn-group-xs brain-hud-inventory-buttons\" role=\"group\">\n\t\t\t\t\t" + inventoryButton("element", bh.ElementType.Air, "elements", "Air") + "\n\t\t\t\t\t" + inventoryButton("element", bh.ElementType.Earth, "elements", "Earth") + "\n\t\t\t\t\t" + inventoryButton("element", bh.ElementType.Fire, "elements", "Fire") + "\n\t\t\t\t\t" + inventoryButton("element", bh.ElementType.Spirit, "elements", "Spirit") + "\n\t\t\t\t\t" + inventoryButton("element", bh.ElementType.Water, "elements", "Water") + "\n\t\t\t\t\t" + inventoryButton("element", bh.ElementType.Neutral, "elements", "Loop") + "\n\t\t\t\t</div>\n\t\t\t\t<div class=\"bs-btn-group bs-btn-group-xs brain-hud-inventory-buttons\">\n\t\t\t\t\t" + inventoryButton("klass", bh.KlassType.Magic, "classes", "Magic") + "\n\t\t\t\t\t" + inventoryButton("klass", bh.KlassType.Might, "classes", "Might") + "\n\t\t\t\t\t" + inventoryButton("klass", bh.KlassType.Skill, "classes", "Skill") + "\n\t\t\t\t\t" + inventoryButton("klass", "Brag", "cardtypes") + "\n\t\t\t\t\t" + inventoryButton("type", bh.ItemType.Rune, "runes", "Meteor") + "\n\t\t\t\t\t" + inventoryButton("type", bh.ItemType.Crystal, "crystals", "Neutral") + "\n\t\t\t\t</div>\n\t\t\t\t<div class=\"bs-btn-group bs-btn-group-xs brain-hud-inventory-buttons\">\n\t\t\t\t\t" + inventoryButton("type", "BoosterCard", "misc", "Boosters") + "\n\t\t\t\t\t" + inventoryButton("type", "WildCard", "cardtypes", "WildCard") + "\n\t\t\t\t\t" + inventoryButton("type", bh.ItemType.EvoJar, "misc", "EvoJars") + "\n\t\t\t\t</div>\n\t\t\t</div>\n\t\t\t<div id=\"brain-hud-inventory-items-container\" class=\"brain-hud-inventory-items-container\"></div>\n\t\t</div>\n\t</div>\n</div>";
             bh.$("body").append("<div id=\"brain-hud-container\" class=\"brain-hud-container\">" + html + "</div>");
         }
     })(hud = bh.hud || (bh.hud = {}));
@@ -2963,7 +2941,7 @@ var bh;
             }
             sort.byElementThenRarityThenName = byElementThenRarityThenName;
             function byKlass(a, b) {
-                return a.klass == b.klass ? 0 : a.klass < b.klass ? -1 : 1;
+                return a.klassType == b.klassType ? 0 : a.klassType < b.klassType ? -1 : 1;
             }
             sort.byKlass = byKlass;
             function byEvoLevel(a, b) {
@@ -2989,8 +2967,7 @@ var bh;
             }
             sort.byPositionThenName = byPositionThenName;
             function byRarity(a, b) {
-                var aStars = utils.rarityToStars(a.rarity).length, bStars = utils.rarityToStars(b.rarity).length;
-                return aStars == bStars ? 0 : aStars < bStars ? -1 : 1;
+                return a.rarityType == b.rarityType ? 0 : a.rarityType < b.rarityType ? -1 : 1;
             }
             sort.byRarity = byRarity;
             function byRarityThenName(a, b) {
@@ -3056,11 +3033,13 @@ var bh;
         utils.rarityToType = rarityToType;
         function typeToElement(elementType) { return bh.ElementType[elementType]; }
         utils.typeToElement = typeToElement;
+        function typeToRarity(rarityType) { return bh.RarityType[rarityType]; }
+        utils.typeToRarity = typeToRarity;
         function guessMinRarity(evoLevel, level) {
             if (4 < evoLevel)
                 return "Legendary";
             if (34 < level || 3 < evoLevel)
-                return "Super Rare";
+                return "SuperRare";
             if (19 < level || 2 < evoLevel)
                 return "Rare";
             if (9 < level || 1 < evoLevel)
@@ -3068,12 +3047,12 @@ var bh;
             return "Common";
         }
         utils.guessMinRarity = guessMinRarity;
-        function rarityToStars(rarity) {
-            return "<small class='evo-star'>" + (new Array(rarityToType(rarity))).fill("&#9733;").join("") + "</small>";
+        function rarityToStars(rarityType) {
+            return "<small class='evo-star'>" + (new Array(rarityType)).fill("&#9733;").join("") + "</small>";
         }
         utils.rarityToStars = rarityToStars;
-        function evoToStars(rarity, evoLevel) {
-            var evo = +evoLevel.split(".")[0], level = +evoLevel.split(".")[1], rarity = rarity || guessMinRarity(evo, level - 1), stars = rarityToType(rarity), count = 0, value = "";
+        function evoToStars(rarityType, evoLevel) {
+            var evo = +evoLevel.split(".")[0], level = +evoLevel.split(".")[1], stars = rarityType, count = 0, value = "";
             while (evo--) {
                 count++;
                 value += "<span class='evo-star'>&#9733;</span>";

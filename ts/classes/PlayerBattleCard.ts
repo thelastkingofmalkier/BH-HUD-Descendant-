@@ -4,7 +4,7 @@ namespace bh {
 
 		private _rowHtml(badgeValue?: number) {
 			var badgeHtml = badgeValue ? `<span class="badge pull-right">${badgeValue}</span>` : ``;
-			return `<div data-element="${ElementType[this.elementType]}" data-rarity="${this.rarity}" data-klass="${this.klass}" data-brag="${this.brag ? "Brag" : ""}">${this.fullHtml}${badgeHtml}</div>`;
+			return `<div data-element-type="${this.elementType}" data-rarity-type="${this.rarityType}" data-klass-type="${this.klassType}" data-brag="${this.brag ? "Brag" : ""}">${this.fullHtml}${badgeHtml}</div>`;
 		}
 
 		public constructor(public playerCard: IPlayer.PlayerCard) {
@@ -16,10 +16,9 @@ namespace bh {
 		// BattleCard pass-through
 		public get brag() { return this._bc && this._bc.brag || false; }
 		public get elementType() { return this._bc ? this._bc.elementType : null; }
-		public get klass() { return this._bc && this._bc.klass; }
+		public get klassType() { return this._bc ? this._bc.klassType : null; }
 		public get name() { return this._bc && this._bc.name || this.playerCard && this.playerCard.configId; }
-		public get rarity() { return this._bc && this._bc.rarity || null; }
-		public get rarityType(): RarityType { return this._bc && this._bc.rarity ? <any>RarityType[<any>this._bc.rarity.replace(/ /, "")] : null; }
+		public get rarityType() { return this._bc ? this._bc.rarityType : null; }
 		public get type() { return this._bc && this._bc.type || null; }
 		public get tier() { return this._bc && this._bc.tier || null; }
 
@@ -36,7 +35,7 @@ namespace bh {
 		public get fullHtml() {
 			var count = this.count > 1 ? `x${this.count}` : ``,
 				typeAndValue = this.value ? ` (${this.typeImage} ${this.formattedValue}` : ``,
-				stars = utils.evoToStars(this.rarity, this.evoLevel),
+				stars = utils.evoToStars(this.rarityType, this.evoLevel),
 				name = this.name.replace(/Mischievous/, "Misch.").replace(/Protection/, "Prot."),
 				logoValue = "";
 			return `${this.battleOrBragImage} ${this.evoLevel} <small>${stars}</small> ${name} ${count} ${logoValue}`;
@@ -46,11 +45,11 @@ namespace bh {
 		public get maxWildCardsNeeded() { return data.getMaxWildCardsNeeded(this) * this.count; }
 		public get nextWildCardsNeeded() { return data.getNextWildCardsNeeded(this) * this.count; }
 		public get maxMaxSotNeeded() { return data.getMaxSotNeeded(this.playerCard, this.evoLevel) * this.count; }
-		public get nextMaxSotNeeded() { return data.getMaxSotNeeded(this.rarity, this.evo) * this.count; }
+		public get nextMaxSotNeeded() { return data.getMaxSotNeeded(this.rarityType, this.evo) * this.count; }
 		public get maxMaxGoldNeeded() { return data.getMaxGoldNeeded(this.playerCard, this.evoLevel) * this.count; }
-		public get nextMaxGoldNeeded() { return data.getMaxGoldNeeded(this.rarity, this.evo) * this.count; }
+		public get nextMaxGoldNeeded() { return data.getMaxGoldNeeded(this.rarityType, this.evo) * this.count; }
 		public get powerRating() { return PowerRating.ratePlayerCard(this.playerCard); }
-		public get rarityEvoLevel() { return `${this.rarity[0]}.${this.evoLevel}`; }
+		public get rarityEvoLevel() { return `${RarityType[this.rarityType][0]}.${this.evoLevel}`; }
 		public get rowHtml() { return this._rowHtml();  }
 		public get evoHtml() { return this._rowHtml(this.count * 60);  }
 		public get goldHtml() { return this._rowHtml(this.maxMaxGoldNeeded);  }
@@ -61,6 +60,8 @@ namespace bh {
 		public get value() { return this.playerCard && data.cards.battle.calculateValue(this.playerCard) || 0; };
 
 		public matches(other: PlayerBattleCard): boolean { return this._bc && other._bc && this._bc.guid == other._bc.guid && this.evoLevel == other.evoLevel; }
-		public matchesElement(element: string) { return element && this.elementType === <any>ElementType[<any>element]; }
+		public matchesElement(element: GameElement) { return !element || this.elementType === ElementType[element]; }
+		public matchesHero(hero: Hero) { return !hero || (this.matchesElement(<GameElement>ElementType[hero.elementType]) && this.klassType === hero.klassType); }
+		public matchesRarity(rarity: GameRarity) { return !rarity || this.rarityType === RarityType[rarity]; }
 	}
 }

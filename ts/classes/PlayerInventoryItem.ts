@@ -4,17 +4,20 @@ namespace bh {
 		public constructor(public player: Player, public item: InventoryItem, public count = 0) { }
 
 		// Passthrough for InventoryItem
-		public get element() { return this.item.element; }
-		public get elementType() { return ElementType[this.item.element] }
+		public get elementType() { return this.item.elementType; }
 		public get guid() { return this.item.guid; }
+		public get itemType() { return this.item.itemType; }
 		public get name() { return this.item.name; }
-		public get rarity() { return this.item.rarity; }
-		public get type() { return this.item.type; }
+		public get rarityType() { return this.item.rarityType; }
 
 		// New to PlayerInventoryItem
+		public get isCrystal() { return this.itemType === ItemType.Crystal; }
+		public get isEvoJar() { return this.itemType === ItemType.EvoJar; }
+		public get isSandsOfTime() { return this.name === "Sands of Time"; }
+		public get isRune() { return this.itemType === ItemType.Rune; }
 		public get needed() {
 			var needed = 0;
-			if (this.type == "Rune") {
+			if (this.isRune) {
 				var heroName = this.name.split(`'`)[0];
 				this.player
 					.filterHeroes(heroName)
@@ -23,38 +26,38 @@ namespace bh {
 					.filterActiveBattleCards(heroName, "Legendary")
 					.forEach(battleCard => needed += battleCard.count * 60);
 			}
-			if (this.type == "Crystal") {
+			if (this.isCrystal) {
 				this.player
-					.filterHeroes(this.element)
+					.filterHeroes(ElementType[this.elementType])
 					.forEach(playerHero => needed += (playerHero.active.maxMaterialCount || 0) + (playerHero.passive.maxMaterialCount || 0));
 				this.player
-					.filterActiveBattleCards(this.element, "Legendary")
+					.filterActiveBattleCards(ElementType[this.elementType], "Legendary")
 					.forEach(battleCard => needed += battleCard.count * 60);
 			}
-			if (this.name == "Sands of Time") {
+			if (this.isSandsOfTime) {
 				this.player.activeBattleCards.forEach(playerBattleCard => needed += playerBattleCard.maxMaxSotNeeded);
 			}
 			return needed;
 		}
 		public get rowHtml() {
-			var folder = this.type == "Evo Jar" ? "evojars" : this.type == "Crystal" ? "crystals" : "runes",
-				name = this.type == "Evo Jar" ? this.name.replace(/\W/g, "") : this.type == "Crystal" ? this.name.split(/ /)[0] : data.HeroRepo.find(this.name.split("'")[0]).abilities[0].name.replace(/\W/g, ""),
+			var folder = ItemType[this.itemType].toLowerCase() + "s",
+				name = this.isEvoJar ? this.name.replace(/\W/g, "") : this.isCrystal ? this.name.split(/ /)[0] : data.HeroRepo.find(this.name.split("'")[0]).abilities[0].name.replace(/\W/g, ""),
 				image = getImg20(folder, name),
 				needed = this.needed,
 				ofContent = needed ? ` / ${utils.formatNumber(needed)}` : "",
-				hud = this.name == "Sands of Time",
+				hud = this.isSandsOfTime,
 				badge = `<span class="badge pull-right">${this.count}${ofContent}</span>`,
 				children = "";
-			if (needed && (this.type == "Crystal" || this.type == "Rune" || this.name == "Sands of Time")) {
-				if (this.type == "Crystal") {
+			if (needed && (this.isCrystal || this.isRune || this.isSandsOfTime)) {
+				if (this.isCrystal) {
 					this.player
-						.filterHeroes(this.element)
+						.filterHeroes(ElementType[this.elementType])
 						.forEach(playerHero => children += playerHero.active.evoHtml + playerHero.passive.evoHtml);
 					this.player
-						.filterActiveBattleCards(this.element, "Legendary")
+						.filterActiveBattleCards(ElementType[this.elementType], "Legendary")
 						.forEach(battleCard => children += battleCard.evoHtml);
 				}
-				if (this.type == "Rune") {
+				if (this.isRune) {
 					var heroName = this.name.split(`'`)[0];
 					this.player
 						.filterHeroes(heroName)
@@ -63,13 +66,13 @@ namespace bh {
 						.filterActiveBattleCards(heroName, "Legendary")
 						.forEach(battleCard => children += battleCard.evoHtml);
 				}
-				if (this.name == "Sands of Time") {
+				if (this.isSandsOfTime) {
 					this.player
 						.activeBattleCards
 						.forEach(playerBattleCard => children += playerBattleCard.sotHtml);
 				}
 			}
-			return `<div data-element="${this.element}" data-rarity="${this.rarity}" data-type="${this.type}" data-hud="${hud}">${renderExpandable(this.guid, `${image} ${this.name} ${badge}`, children)}</div>`;
+			return `<div data-element-type="${this.elementType}" data-rarity-type="${this.rarityType}" data-item-type="${this.itemType}" data-hud="${hud}">${renderExpandable(this.guid, `${image} ${this.name} ${badge}`, children)}</div>`;
 		}
 	}
 	export function renderExpandable(guid: string, text: string, children: string) {

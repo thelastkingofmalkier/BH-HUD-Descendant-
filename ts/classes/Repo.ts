@@ -79,10 +79,21 @@ namespace bh {
 					var parts = line.split(/\t/).map(s => s.trim()),
 						value: { [key: string]: string | boolean | number; } = { };
 					keys.forEach((key, index) => {
-						value[key] = key == "brag" ? !!parts[index].match(/\d+(,\d+)*/) //utils.parseBoolean(parts[index])
-									: key == "turns" || key == "rating" ? +String(parts[index]).replace(",", "")
-									: parts[index];
-						if (key == "name") value["lower"] = parts[index].toLowerCase();
+						if (key == "element") {
+							value["elementType"] = ElementType[<GameElement>parts[index]];
+
+						}else if (key == "rarity") {
+							value["rarityType"] = RarityType[<GameRarity>parts[index].replace(/ /g, "")];
+
+						}else if (key == "klass") {
+							value["klassType"] = KlassType[<GameKlass>parts[index]];
+
+						}else {
+							value[key] = key == "brag" ? !!parts[index].match(/\d+(,\d+)*/) //utils.parseBoolean(parts[index])
+										: key == "turns" ? +parts[index]
+										: parts[index];
+							if (key == "name") value["lower"] = parts[index].toLowerCase();
+						}
 					});
 					return <T><any>value;
 				})

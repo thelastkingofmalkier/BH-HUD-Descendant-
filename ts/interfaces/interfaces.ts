@@ -11,17 +11,17 @@ type GameBoosterCardChallenge = "Halloween" | "Christmas";
 type GameElement = "Air" | "Earth" | "Fire" | "Water" | "Spirit" | "Neutral";
 type GameGuildPosition = "Member" | "Elder" | "CoLeader" | "Leader";
 type GameGuildWarAccessType = "InviteOnly" | "Open" | "Closed";
-type GameItemType = "Evo Jar" | "Crystal" | "Rune";
+type GameItemType = "EvoJar" | "Crystal" | "Rune";
 type GameKlass = "Magic" | "Might" | "Skill";
 type GamePowerRatingAbilityType = "HP" | "Trait" | "Active" | "Passive";
-type GameRarity = "Common" | "Uncommon" | "Rare" | "Super Rare" | "Legendary";
+type GameRarity = "Common" | "Uncommon" | "Rare" | "SuperRare" | "Legendary";
 
 interface IHasGuid { guid: string; }
 interface IHasElementType { elementType: bh.ElementType; }
-interface IHasKlass { klass: GameKlass; }
+interface IHasKlassType { klassType: bh.KlassType; }
 interface IHasName { name: string; lower?: string; }
 interface IHasPosition { position: GameGuildPosition; }
-interface IHasRarity { rarity: GameRarity; }
+interface IHasRarityType { rarityType: bh.RarityType; }
 interface IHasEvoLevel { evoLevel: string; }
 
 interface IHasGuidAndName extends IHasGuid, IHasName { }
@@ -31,8 +31,7 @@ interface IDataAbility extends IHasGuid, IHasName {
 	type: GameAbilityType;
 }
 
-interface IDataBattleCard extends IHasGuid, IHasName, IHasElementType, IHasKlass, IHasRarity {
-	element: GameElement;
+interface IDataBattleCard extends IHasGuid, IHasName, IHasElementType, IHasKlassType, IHasRarityType {
 	turns: number;
 	type: GameBattleCardType;
 	target: GameBattleCardTarget;
@@ -41,7 +40,7 @@ interface IDataBattleCard extends IHasGuid, IHasName, IHasElementType, IHasKlass
 	delta: number;
 	tier: GameBattleCardTier;
 }
-interface IDataBoosterCard extends IHasGuid, IHasName, IHasElementType, IHasRarity {
+interface IDataBoosterCard extends IHasGuid, IHasName, IHasElementType, IHasRarityType {
 	challenge?: GameBoosterCardChallenge;
 }
 interface IDataWildCard extends IHasGuidAndName { }

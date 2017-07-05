@@ -1,5 +1,5 @@
 namespace bh {
-	export class PlayerWildCard implements IHasRarity {
+	export class PlayerWildCard {
 		private _: IDataWildCard;
 
 		public constructor(public player: Player, guid: string) {
@@ -18,11 +18,11 @@ namespace bh {
 		public get needed() {
 			var needed = 0;
 			this.player
-				.filterActiveBattleCards(this.rarity)
+				.filterActiveBattleCards(RarityType[<any>this.rarityType])
 				.forEach(playerBattleCard => needed += playerBattleCard.maxWildCardsNeeded);
 			return needed;
 		}
-		public get rarity(): GameRarity { return <any>this._.name; }
+		public get rarityType() { return RarityType[<GameRarity>this._.name.replace(/ /g, "")]; }
 		public get rowHtml() {
 			var html = this.html,
 				expander = "",
@@ -31,11 +31,11 @@ namespace bh {
 				expander = `<button class="bs-btn bs-btn-link bs-btn-xs brain-hud-button" type="button" data-action="toggle-child" data-guid="${this.guid}">[+]</button>`;
 				children = `<div class="brain-hud-child-scroller" data-parent-guid="${this.guid}">`;
 				this.player
-					.filterActiveBattleCards(this.rarity)
+					.filterActiveBattleCards(RarityType[<any>this.rarityType])
 					.forEach(playerBattleCard => children += playerBattleCard.wcHtml);
 				children += "</div>";
 			}
-			return `<div data-type="${this.type}" data-rarity="${this.rarity}"><div>${html} ${expander}</div>${children}</div>`;
+			return `<div data-type="${this.type}" data-rarity-type="${this.rarityType}"><div>${html} ${expander}</div>${children}</div>`;
 		}
 		public type = "WildCard";
 	}

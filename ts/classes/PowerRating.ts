@@ -28,8 +28,8 @@ namespace bh {
 			default: return 0;
 		}
 	}
-	function calculateCardScore(rarity: string, evoLevel: number, level: number, multiplier: number): number {
-		return CardMultiplier * (evoLevel * RarityMultipliers[rarity.replace(/ /, "")] + level) * multiplier;
+	function calculateCardScore(rarityType: RarityType, evoLevel: number, level: number, multiplier: number): number {
+		return CardMultiplier * (evoLevel * RarityMultipliers[RarityType[rarityType]] + level) * multiplier;
 	}
 
 	export class PowerRating {
@@ -50,7 +50,7 @@ namespace bh {
 			return score;
 		}
 		public static rateMaxedBattleCard(battleCard: IDataBattleCard) {
-			var key = battleCard.rarity.replace(/ /g, ""),
+			var key = RarityType[battleCard.rarityType],
 				evo = RarityEvolutions[key],
 				level = RarityLevels[key];
 			return PowerRating.ratePlayerCard(<any>{ configId:battleCard.guid, evolutionLevel:evo, level:level-1 });
@@ -58,7 +58,7 @@ namespace bh {
 		public static ratePlayerCard(playerCard: IPlayer.PlayerCard) {
 			var card = data.cards.battle.find(playerCard.configId),
 				multiplier = PowerRating.tierToMultiplier(card.tier),
-				score = calculateCardScore(card && card.rarity || "Legendary", playerCard.evolutionLevel, playerCard.level + 1, multiplier);
+				score = calculateCardScore(card.rarityType, playerCard.evolutionLevel, playerCard.level + 1, multiplier);
 			return score;
 		}
 		public static ratePlayerHeroAbility(playerHeroAbility: PlayerHeroAbility) {

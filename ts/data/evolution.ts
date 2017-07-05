@@ -46,148 +46,117 @@ namespace bh {
 				return mat;
 			}
 		}
-		export function listEvoRecipes(rarity: string) {
-			var battleCards=cards.battle.getAll().filter(c=>c.rarity==rarity).sort(utils.sort.byName),
-				lines=battleCards.map(c=>`${c.name}\t${c.klass}\t${ElementType[c.elementType]}\t${c.rarity}\t${Recipes[c.guid].evos[0].materials[0]&&Recipes[c.guid].evos[0].materials[0].material||""}`);
+		export function listEvoRecipes(rarity: GameRarity) {
+			var battleCards=cards.battle.getAll().filter(c=>c.rarityType==RarityType[rarity]).sort(utils.sort.byName),
+				lines=battleCards.map(c=>`${c.name}\t${KlassType[c.klassType]}\t${ElementType[c.elementType]}\t${RarityType[c.rarityType]}\t${Recipes[c.guid].evos[0].materials[0]&&Recipes[c.guid].evos[0].materials[0].material||""}`);
 				console.log(Recipes[battleCards[1].guid])
 			$("textarea").val(lines.join("\n"))
 		}
-		export function wildsForEvo(rarity: string, currentEvoLevel: number) {
-			switch (rarity) {
-				case "Common":     return [1][currentEvoLevel];
-				case "Uncommon":   return [1,2][currentEvoLevel];
-				case "Rare":       return [1,2,4][currentEvoLevel];
-				case "Super Rare": return [1,2,4,5][currentEvoLevel];
-				case "Legendary":  return [1,2,3,4,5][currentEvoLevel];
-			}
+		export function wildsForEvo(rarityType: RarityType, currentEvoLevel: number) {
+			return [[1], [1,2], [1,2,4], [1,2,4,5], [1,2,3,4,5]][rarityType][currentEvoLevel];
 		}
-		export function getMinGoldNeeded(rarity: string, currentEvoLevel: number): number {
+		export function getMinGoldNeeded(rarityType: RarityType, currentEvoLevel: number): number {
+			return [[1000], [5300,15300], [8200,27200,65000], [33000,60000,94000,187000], [-1,114000]][rarityType][currentEvoLevel];
 			/*
 				C1:  base (1k) + sot_count * u_value (800) + c_count * c_value (300) >> 1000 - 12600
 			*/
-			switch (rarity) {
-				case "Common":     return [1000][currentEvoLevel];
-				case "Uncommon":   return [5300,15300][currentEvoLevel];
-				case "Rare":       return [8200,27200,65000][currentEvoLevel];
-				case "Super Rare": return [33000,60000,94000,187000][currentEvoLevel];
-				case "Legendary":  return [-1,114000][currentEvoLevel];
-			}
 		}
-		export function getMinSotNeeded(rarity: string, currentEvoLevel: number): number {
-			switch (rarity) {
-				case "Common":     return [0][currentEvoLevel];
-				case "Uncommon":   return [2,5][currentEvoLevel];
-				case "Rare":       return [5,10,20][currentEvoLevel];
-				case "Super Rare": return [10,20,30,40][currentEvoLevel];
-				case "Legendary":  return [20,30,40,60,60][currentEvoLevel];
-			}
+		export function getMinSotNeeded(rarityType: RarityType, currentEvoLevel: number): number {
+			return [[0], [2,5], [5,10,20], [10,20,30,40], [20,30,40,60,60]][rarityType][currentEvoLevel];
 		}
-		export function getMinCrystalsNeeded(rarity: string, currentEvoLevel: number) {
-			return rarity == "Legendary" && currentEvoLevel == 4 ? 30 : 0;
+		export function getMinCrystalsNeeded(rarityType: RarityType, currentEvoLevel: number) {
+			return rarityType == RarityType.Legendary && currentEvoLevel == 4 ? 30 : 0;
 		}
-		export function getMinRunesNeeded(rarity: string, currentEvoLevel: number) {
-			return rarity == "Legendary" && currentEvoLevel == 4 ? 30 : 0;
+		export function getMinRunesNeeded(rarityType: RarityType, currentEvoLevel: number) {
+			return rarityType == RarityType.Legendary && currentEvoLevel == 4 ? 30 : 0;
 		}
 		export function getNextWildCardsNeeded(playerCard: PlayerBattleCard) {
-			return wildsForEvo(playerCard.rarity, playerCard.evo);
+			return wildsForEvo(playerCard.rarityType, playerCard.evo);
 		}
 		export function getMaxWildCardsNeeded(playerCard: PlayerBattleCard) {
-			var rarity = playerCard.rarity,
-				max = cards.battle.getMaxEvo(rarity),
+			var max = cards.battle.getMaxEvo(playerCard.rarityType),
 				needed = 0;
 			for (var evo = playerCard.evo; evo < max; evo++) {
-				needed += wildsForEvo(rarity, evo);
+				needed += wildsForEvo(playerCard.rarityType, evo);
 			}
 			return needed;
 		}
-		export function getMaxGoldNeeded(rarity: string, currentEvoLevel: number): number;
+		export function getMaxGoldNeeded(rarityType: RarityType, currentEvoLevel: number): number;
 		export function getMaxGoldNeeded(playerCard: IPlayer.PlayerCard, evoAndLevel: string): number;
-		export function getMaxGoldNeeded(playerCardOrRarity: IPlayer.PlayerCard | string, evoInfo: number | string): number {
+		export function getMaxGoldNeeded(playerCardOrRarityType: IPlayer.PlayerCard | RarityType, evoInfo: number | string): number {
 			if (typeof evoInfo == "string") {
 				var sotNeeded = 0,
 					evoParts = evoInfo.split(/\./),
 					evo = +evoParts[0],
 					level = +evoParts[1],
-					card = cards.battle.find((<IPlayer.PlayerCard>playerCardOrRarity).configId),
-					rarity = card && card.rarity || String(playerCardOrRarity),
-					evoCap = bh.data.cards.battle.getMaxEvo(<any>rarity);
+					card = cards.battle.find((<IPlayer.PlayerCard>playerCardOrRarityType).configId),
+					rarityType = card ? card.rarityType : <RarityType>playerCardOrRarityType,
+					evoCap = bh.data.cards.battle.getMaxEvo(rarityType);
 				for (var i = evo; i < evoCap; i++) {
-					sotNeeded += data.getMaxGoldNeeded(rarity, i);
+					sotNeeded += data.getMaxGoldNeeded(rarityType, i);
 				}
 				return sotNeeded;
 			}else {
 				var currentEvoLevel = evoInfo;
-				switch (<string>playerCardOrRarity) {
-					case "Common":     return [12600][currentEvoLevel];
-					case "Uncommon":   return [18500,34700][currentEvoLevel];
-					case "Rare":       return [22000,57000,114200][currentEvoLevel];
-					case "Super Rare": return [56600,114000,170800,289800][currentEvoLevel];
-					case "Legendary":  return [-1,190800][currentEvoLevel];
-				}
+				return [[12600], [18500,34700], [22000,57000,114200], [56600,114000,170800,289800], [-1,190800]][<RarityType>playerCardOrRarityType][currentEvoLevel];
 			}
 		}
-		export function getMaxSotNeeded(rarity: string, currentEvoLevel: number): number;
+		export function getMaxSotNeeded(rarityType: RarityType, currentEvoLevel: number): number;
 		export function getMaxSotNeeded(playerCard: IPlayer.PlayerCard, evoAndLevel: string): number;
-		export function getMaxSotNeeded(playerCardOrRarity: IPlayer.PlayerCard | string, evoInfo: number | string): number {
+		export function getMaxSotNeeded(playerCardOrRarityType: IPlayer.PlayerCard | RarityType, evoInfo: number | string): number {
 			if (typeof evoInfo == "string") {
 				var sotNeeded = 0,
 					evoParts = evoInfo.split(/\./),
 					evo = +evoParts[0],
 					level = +evoParts[1],
-					card = cards.battle.find((<IPlayer.PlayerCard>playerCardOrRarity).configId),
-					rarity = card && card.rarity || String(playerCardOrRarity),
-					evoCap = bh.data.cards.battle.getMaxEvo(<any>rarity);
+					card = cards.battle.find((<IPlayer.PlayerCard>playerCardOrRarityType).configId),
+					rarityType = card ? card.rarityType : <RarityType>playerCardOrRarityType,
+					evoCap = bh.data.cards.battle.getMaxEvo(rarityType);
 				for (var i = evo; i < evoCap; i++) {
-					sotNeeded += data.getMaxSotNeeded(rarity, i);
+					sotNeeded += data.getMaxSotNeeded(rarityType, i);
 				}
 				return sotNeeded;
 			}else {
 				var currentEvoLevel = evoInfo;
-				switch (<string>playerCardOrRarity) {
-					case "Common":     return [10][currentEvoLevel];
-					case "Uncommon":   return [12,15][currentEvoLevel];
-					case "Rare":       return [15,20,30][currentEvoLevel];
-					case "Super Rare": return [20,30,40,60][currentEvoLevel];
-					case "Legendary":  return [30,40,60,80,100][currentEvoLevel];
-				}
+				return [[10], [12,15], [15,20,30], [20,30,40,60], [30,40,60,80,100]][<RarityType>playerCardOrRarityType][currentEvoLevel];
 			}
 		}
-		export function getMaxCrystalsNeeded(rarity: string, currentEvoLevel: number): number;
+		export function getMaxCrystalsNeeded(rarityType: RarityType, currentEvoLevel: number): number;
 		export function getMaxCrystalsNeeded(playerCard: IPlayer.PlayerCard, evoAndLevel: string): number;
-		export function getMaxCrystalsNeeded(playerCardOrRarity: IPlayer.PlayerCard | string, evoInfo: number | string): number {
+		export function getMaxCrystalsNeeded(playerCardOrRarityType: IPlayer.PlayerCard | RarityType, evoInfo: number | string): number {
 			if (typeof evoInfo == "string") {
 				var sotNeeded = 0,
 					evoParts = evoInfo.split(/\./),
 					evo = +evoParts[0],
 					level = +evoParts[1],
-					card = cards.battle.find((<IPlayer.PlayerCard>playerCardOrRarity).configId),
-					rarity = card && card.rarity || <string>playerCardOrRarity,
-					evoCap = bh.data.cards.battle.getMaxEvo(<any>rarity);
+					card = cards.battle.find((<IPlayer.PlayerCard>playerCardOrRarityType).configId),
+					rarityType = card ? card.rarityType : <RarityType>playerCardOrRarityType,
+					evoCap = bh.data.cards.battle.getMaxEvo(rarityType);
 				for (var i = evo; i < evoCap; i++) {
-					sotNeeded += data.getMaxCrystalsNeeded(rarity, i);
+					sotNeeded += data.getMaxCrystalsNeeded(rarityType, i);
 				}
 				return sotNeeded;
 			}else {
-				return playerCardOrRarity == "Legendary" && evoInfo == 4 ? 60 : 0;
+				return playerCardOrRarityType == RarityType.Legendary && evoInfo == 4 ? 60 : 0;
 			}
 		}
-		export function getMaxRunesNeeded(rarity: string, currentEvoLevel: number): number;
+		export function getMaxRunesNeeded(rarityType: RarityType, currentEvoLevel: number): number;
 		export function getMaxRunesNeeded(playerCard: IPlayer.PlayerCard, evoAndLevel: string): number;
-		export function getMaxRunesNeeded(playerCardOrRarity: IPlayer.PlayerCard | string, evoInfo: number | string): number {
+		export function getMaxRunesNeeded(playerCardOrRarityType: IPlayer.PlayerCard | RarityType, evoInfo: number | string): number {
 			if (typeof evoInfo == "string") {
 				var sotNeeded = 0,
 					evoParts = evoInfo.split(/\./),
 					evo = +evoParts[0],
 					level = +evoParts[1],
-					card = cards.battle.find((<IPlayer.PlayerCard>playerCardOrRarity).configId),
-					rarity = card && card.rarity || <string>playerCardOrRarity,
-					evoCap = bh.data.cards.battle.getMaxEvo(<any>rarity);
+					card = cards.battle.find((<IPlayer.PlayerCard>playerCardOrRarityType).configId),
+					rarityType = card ? card.rarityType : <RarityType>playerCardOrRarityType,
+					evoCap = bh.data.cards.battle.getMaxEvo(rarityType);
 				for (var i = evo; i < evoCap; i++) {
-					sotNeeded += data.getMaxCrystalsNeeded(rarity, i);
+					sotNeeded += data.getMaxCrystalsNeeded(rarityType, i);
 				}
 				return sotNeeded;
 			}else {
-				return playerCardOrRarity == "Legendary" && evoInfo == 4 ? 60 : 0;
+				return playerCardOrRarityType == RarityType.Legendary && evoInfo == 4 ? 60 : 0;
 			}
 		}
 	}

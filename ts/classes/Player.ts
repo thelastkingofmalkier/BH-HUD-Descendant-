@@ -81,21 +81,21 @@ namespace bh {
 		public get boosterRowHtml() { return this._pp ? PlayerBoosterCard.rowHtml(this.boosterCount) : ""; }
 		public get inventory() { var mats = this._pp && this._pp.craftingMaterials, playerHeroes = this.heroes; return !mats ? [] : Object.keys(mats).map(guid => new PlayerInventoryItem(this, data.ItemRepo.find(guid), mats[guid])).sort(utils.sort.byRarityThenName); }
 		public get wildCards() { return !this._pp ? [] : Object.keys(this._pp.wildcards).map(guid => new PlayerWildCard(this, guid)).sort(utils.sort.byRarity); }
-		public get wildCardRowHtml() { return this._pp ? formatRow("cardtypes", "WildCard", "Wild Cards", this.wildCards.map(wc => wc.rarity[0] + ":" + wc.count).join(" / ")) : ""; }
+		public get wildCardRowHtml() { return this._pp ? formatRow("cardtypes", "WildCard", "Wild Cards", this.wildCards.map(wc => RarityType[wc.rarityType][0] + ":" + wc.count).join(" / ")) : ""; }
 
 		private battleCardToPlayerBattleInfo(guid: string) {
 			var playerCard = this._pp.playerCards.cards[guid];
 			return new PlayerBattleCard(playerCard);
 		}
 		public filterActiveBattleCards(...args: string[]) {
-			var element: string, rarity: string, name: string, hero: Hero;
-			args.forEach(arg => isElement(arg) ? element = arg : isRarity(arg) ? rarity = arg : name = arg);
+			var element: GameElement, rarity: GameRarity, name: string, hero: Hero;
+			args.forEach(arg => isElement(arg) ? element = <GameElement>arg : isRarity(arg) ? rarity = <GameRarity>arg : name = arg);
 			if (name) hero = data.HeroRepo.find(name);
-			return this.activeBattleCards.filter(battleCard => (!element || battleCard.matchesElement(element)) && (!rarity || battleCard.rarity == rarity) && (!hero || (battleCard.elementType === hero.elementType && battleCard.klass == hero.klass)));
+			return this.activeBattleCards.filter(battleCard => battleCard.matchesElement(element) && battleCard.matchesRarity(rarity) && battleCard.matchesHero(hero));
 		}
 		public filterHeroes(elementOrName: string) {
-			var element = isElement(elementOrName) ? elementOrName : null;
-			var name = !element ? elementOrName : null;
+			var element = isElement(elementOrName) ? <GameElement>elementOrName : null,
+				name = !element ? elementOrName : null;
 			return this.heroes.filter(playerHero => playerHero && ((element && ElementType[playerHero.elementType] == element) || (name && playerHero.name == name)));
 		}
 

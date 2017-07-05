@@ -11,13 +11,13 @@ namespace bh {
 			});
 		}
 		public get evoJars() {
-			return this.data.filter(item => item.type == "Evo Jar");
+			return this.data.filter(item => item.itemType === ItemType.EvoJar);
 		}
 		public get crystals() {
-			return this.data.filter(item => item.type == "Crystal");
+			return this.data.filter(item => item.itemType === ItemType.Crystal);
 		}
 		public get runes() {
-			return this.data.filter(item => item.type == "Rune");
+			return this.data.filter(item => item.itemType === ItemType.Rune);
 		}
 	}
 }

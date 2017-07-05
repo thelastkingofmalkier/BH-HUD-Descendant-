@@ -44,7 +44,7 @@ namespace bh {
 		}
 
 		export function toggle(key?: string, value?: string) {
-			if (key && value) {
+			if (key && String(value).length) {
 				$(`.brain-hud-inventory-buttons > button[data-action="toggle-${key}"][data-${key}="${value}"]`).toggleClass("active");
 			}
 			var elements = $(`.brain-hud-inventory-buttons > [data-action="toggle-element"].active`).toArray().map(el => el.getAttribute("data-element")),
@@ -57,9 +57,9 @@ namespace bh {
 			}else {
 				$("#brain-hud-inventory-items-container > div").each((i, elem) => {
 					var el = $(elem),
-						element = !elements.length || elements.includes(el.data("element")),
-						klass = !klasses.length || klasses.includes(el.data("klass")) || klasses.includes(el.data("brag")),
-						type = !types.length || types.includes(el.data("type"));
+						element = !elements.length || elements.includes(String(el.data("elementType"))),
+						klass = !klasses.length || klasses.includes(String(el.data("klassType"))) || klasses.includes(el.data("brag")),
+						type = !types.length || types.includes(el.data("type")) || types.includes(String(el.data("itemType")));
 					if (element && klass && type) {
 						el.show();
 					}

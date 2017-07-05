@@ -10,10 +10,8 @@ namespace bh {
 		public get abilities() { return [this.trait, this.active, this.passive]; }
 		public active: HeroAbility;
 		public guid: string;
-		public element: GameElement;
-		public get elementType() { return ElementType[this.element]; }
-		public klass: GameKlass;
-		public get klassType() { return KlassType[this.klass]; }
+		public elementType: ElementType;
+		public klassType: KlassType;
 		public lower: string;
 		public name: string;
 		public passive: HeroAbility;
@@ -23,8 +21,8 @@ namespace bh {
 			var values = line.split(/\t/).map(s => s.trim());
 			this.guid = values.shift();
 			this.name = values.shift();
-			this.element = <any>values.shift();
-			this.klass = <any>values.shift();
+			this.elementType = <any>ElementType[<any>values.shift()];
+			this.klassType = <any>KlassType[<any>values.shift()];
 			this.trait = createHeroAbility(this, abilities.shift());
 			this.active = createHeroAbility(this, abilities.shift());
 			this.passive = createHeroAbility(this, abilities.shift());
@@ -46,7 +44,7 @@ namespace bh {
 		public static filterCardsByHero(hero: Hero, cards: IDataBattleCard[]): IDataBattleCard[];
 		public static filterCardsByHero(hero: Hero, cards: PlayerBattleCard[]): PlayerBattleCard[];
 		public static filterCardsByHero(hero: Hero, cards: (IDataBattleCard | PlayerBattleCard)[]) {
-			return cards.filter(card => card.klass == hero.klass && (card.elementType == ElementType.Neutral || card.elementType == hero.elementType));
+			return cards.filter(card => card.klassType === hero.klassType && (card.elementType == ElementType.Neutral || card.elementType == hero.elementType));
 		}
 		public static getHitPoints(hero: Hero, level: number): number {
 			switch (hero.name) {

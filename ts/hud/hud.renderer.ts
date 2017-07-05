@@ -60,8 +60,8 @@ div.progress > div.progress-bar { line-height:10px; font-size:8px; font-weight:b
 				renderCss();
 			})
 		}
-		function inventoryButton(type: string, typeValue: string, imgType: string, imgName?: string) {
-			return `<button class="bs-btn bs-btn-default brain-hud-button" type="button" data-action="toggle-${type}" data-${type}="${typeValue}">${getImg(imgType, imgName || typeValue)}</button>`;
+		function inventoryButton(type: string, typeValue: string | number, imgType: string, imgName?: string) {
+			return `<button class="bs-btn bs-btn-default brain-hud-button" type="button" data-action="toggle-${type}" data-${type}="${typeValue}">${getImg(imgType, imgName || <string>typeValue)}</button>`;
 		}
 		function renderHtml() {
 			var html = `<div class="brain-hud-header">
@@ -81,25 +81,25 @@ div.progress > div.progress-bar { line-height:10px; font-size:8px; font-weight:b
 		<div class="brain-hud-inventory-container active">
 			<div class="text-center">
 				<div class="bs-btn-group bs-btn-group-xs brain-hud-inventory-buttons" role="group">
-					${inventoryButton("element", "Air", "elements")}
-					${inventoryButton("element", "Earth", "elements")}
-					${inventoryButton("element", "Fire", "elements")}
-					${inventoryButton("element", "Spirit", "elements")}
-					${inventoryButton("element", "Water", "elements")}
-					${inventoryButton("element", "Neutral", "elements", "Loop")}
+					${inventoryButton("element", ElementType.Air, "elements", "Air")}
+					${inventoryButton("element", ElementType.Earth, "elements", "Earth")}
+					${inventoryButton("element", ElementType.Fire, "elements", "Fire")}
+					${inventoryButton("element", ElementType.Spirit, "elements", "Spirit")}
+					${inventoryButton("element", ElementType.Water, "elements", "Water")}
+					${inventoryButton("element", ElementType.Neutral, "elements", "Loop")}
 				</div>
 				<div class="bs-btn-group bs-btn-group-xs brain-hud-inventory-buttons">
-					${inventoryButton("klass", "Magic", "classes")}
-					${inventoryButton("klass", "Might", "classes")}
-					${inventoryButton("klass", "Skill", "classes")}
+					${inventoryButton("klass", KlassType.Magic, "classes", "Magic")}
+					${inventoryButton("klass", KlassType.Might, "classes", "Might")}
+					${inventoryButton("klass", KlassType.Skill, "classes", "Skill")}
 					${inventoryButton("klass", "Brag", "cardtypes")}
-					${inventoryButton("type", "Rune", "runes", "Meteor")}
-					${inventoryButton("type", "Crystal", "crystals", "Neutral")}
+					${inventoryButton("type", ItemType.Rune, "runes", "Meteor")}
+					${inventoryButton("type", ItemType.Crystal, "crystals", "Neutral")}
 				</div>
 				<div class="bs-btn-group bs-btn-group-xs brain-hud-inventory-buttons">
 					${inventoryButton("type", "BoosterCard", "misc", "Boosters")}
 					${inventoryButton("type", "WildCard", "cardtypes", "WildCard")}
-					${inventoryButton("type", "Evo Jar", "misc", "EvoJars")}
+					${inventoryButton("type", ItemType.EvoJar, "misc", "EvoJars")}
 				</div>
 			</div>
 			<div id="brain-hud-inventory-items-container" class="brain-hud-inventory-items-container"></div>

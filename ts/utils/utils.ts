@@ -52,21 +52,22 @@ namespace bh {
 
 		export function typeToElement(elementType: ElementType): GameElement { return <any>ElementType[elementType]; }
 
+		export function typeToRarity(rarityType: RarityType): GameRarity { return <any>RarityType[rarityType]; }
+
 		export function guessMinRarity(evoLevel: number, level: number): GameRarity {
 			if (4 < evoLevel) return "Legendary";
-			if (34 < level || 3 < evoLevel) return "Super Rare";
+			if (34 < level || 3 < evoLevel) return "SuperRare";
 			if (19 < level || 2 < evoLevel) return "Rare";
 			if (9 < level || 1 < evoLevel) return "Uncommon";
 			return "Common";
 		}
-		export function rarityToStars(rarity: GameRarity): string {
-			return `<small class='evo-star'>${(new Array(rarityToType(rarity))).fill("&#9733;").join("")}</small>`;
+		export function rarityToStars(rarityType: RarityType): string {
+			return `<small class='evo-star'>${(new Array(rarityType)).fill("&#9733;").join("")}</small>`;
 		}
-		export function evoToStars(rarity: GameRarity, evoLevel: string): string {
+		export function evoToStars(rarityType: RarityType, evoLevel: string): string {
 			var evo = +evoLevel.split(".")[0],
 				level = +evoLevel.split(".")[1],
-				rarity = rarity || guessMinRarity(evo, level - 1),
-				stars: number = rarityToType(rarity),
+				stars: number = rarityType,
 				count = 0,
 				value = "";
 			while (evo--) {
