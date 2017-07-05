@@ -1,4 +1,5 @@
 namespace bh {
+
 	export class PlayerInventoryItem {
 
 		public constructor(public player: Player, public item: InventoryItem, public count = 0) { }
@@ -25,17 +26,27 @@ namespace bh {
 				this.player
 					.filterActiveBattleCards(heroName, "Legendary")
 					.forEach(battleCard => needed += battleCard.count * 60);
-			}
-			if (this.isCrystal) {
+
+			}else if (this.isCrystal) {
 				this.player
 					.filterHeroes(ElementType[this.elementType])
 					.forEach(playerHero => needed += (playerHero.active.maxMaterialCount || 0) + (playerHero.passive.maxMaterialCount || 0));
 				this.player
 					.filterActiveBattleCards(ElementType[this.elementType], "Legendary")
 					.forEach(battleCard => needed += battleCard.count * 60);
-			}
-			if (this.isSandsOfTime) {
+
+			}else if (this.isSandsOfTime) {
 				this.player.activeBattleCards.forEach(playerBattleCard => needed += playerBattleCard.maxMaxSotNeeded);
+
+			}else {
+				var activeRecipes = this.player.activeRecipes,
+					recipes = data.RecipeRepo.findByMaterial(this.name),
+					filtered = recipes.filter(recipe => activeRecipes.includes(recipe));
+				filtered.forEach(recipe => {
+					var item = recipe.getItemByName(this.name);
+					needed += item.max;
+				});
+
 			}
 			return needed;
 		}
@@ -46,9 +57,9 @@ namespace bh {
 				needed = this.needed,
 				ofContent = needed ? ` / ${utils.formatNumber(needed)}` : "",
 				hud = this.isSandsOfTime,
-				badge = `<span class="badge pull-right">${this.count}${ofContent}</span>`,
+				badge = `<span class="badge pull-right">${utils.formatNumber(this.count)}${ofContent}</span>`,
 				children = "";
-			if (needed && (this.isCrystal || this.isRune || this.isSandsOfTime)) {
+			if (needed) {
 				if (this.isCrystal) {
 					this.player
 						.filterHeroes(ElementType[this.elementType])
@@ -56,8 +67,8 @@ namespace bh {
 					this.player
 						.filterActiveBattleCards(ElementType[this.elementType], "Legendary")
 						.forEach(battleCard => children += battleCard.evoHtml);
-				}
-				if (this.isRune) {
+
+				}else if (this.isRune) {
 					var heroName = this.name.split(`'`)[0];
 					this.player
 						.filterHeroes(heroName)
@@ -65,11 +76,23 @@ namespace bh {
 					this.player
 						.filterActiveBattleCards(heroName, "Legendary")
 						.forEach(battleCard => children += battleCard.evoHtml);
-				}
-				if (this.isSandsOfTime) {
+
+				}else if (this.isSandsOfTime) {
 					this.player
 						.activeBattleCards
-						.forEach(playerBattleCard => children += playerBattleCard.sotHtml);
+						.forEach(playerBattleCard => children += playerBattleCard.toRowHtml(playerBattleCard.maxMaxSotNeeded));
+
+				}else {
+					var activeRecipes = this.player.activeRecipes,
+						recipes = data.RecipeRepo.findByMaterial(this.name),
+						filtered = recipes.filter(recipe => activeRecipes.includes(recipe));
+if (this.name == "Spindle Eggs") console.log(recipes)
+					filtered.forEach(recipe => {
+						var item = recipe.getItemByName(this.name),
+							playerBattleCard = this.player.activeBattleCards.find(bc => bc.name == recipe.name && bc.rarityType === recipe.rarityType);
+						children += playerBattleCard.toRowHtml(item.max);
+					});
+
 				}
 			}
 			return `<div data-element-type="${this.elementType}" data-rarity-type="${this.rarityType}" data-item-type="${this.itemType}" data-hud="${hud}">${renderExpandable(this.guid, `${image} ${this.name} ${badge}`, children)}</div>`;

@@ -67,7 +67,7 @@ namespace bh {
 		export function evoToStars(rarityType: RarityType, evoLevel: string): string {
 			var evo = +evoLevel.split(".")[0],
 				level = +evoLevel.split(".")[1],
-				stars: number = rarityType,
+				stars: number = rarityType + 1,
 				count = 0,
 				value = "";
 			while (evo--) {

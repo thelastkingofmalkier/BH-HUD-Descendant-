@@ -1,5 +1,6 @@
 /// <reference path="../classes/HeroRepo.ts"/>
 /// <reference path="../classes/ItemRepo.ts"/>
+/// <reference path="../classes/RecipeRepo.ts"/>
 
 namespace bh {
 	export function getMaxLevel(fame: number) { return fame * 2; }
@@ -41,6 +42,7 @@ namespace bh {
 		export var HeroRepo = new bh.HeroRepo();
 		export var ItemRepo = new bh.ItemRepo();
 		export var PlayerRepo = new Repo<Player>();
+		export var RecipeRepo = new bh.RecipeRepo();
 		export var WildCardRepo = new Repo<IDataWildCard>(2106503523);
 
 		export function arenaToPlayers(json: any): IPlayer.Player[] {
@@ -82,7 +84,7 @@ namespace bh {
 		var _init: Promise<any>;
 		export function init(): Promise<any> {
 			if (!_init) {
-				_init = Promise.all<any>([cards.battle.init(), BoosterCardRepo.init(), HeroRepo.init(), ItemRepo.init(), PlayerRepo.init(), guilds.init(), WildCardRepo.init()]);
+				_init = Promise.all<any>([cards.battle.init(), BoosterCardRepo.init(), HeroRepo.init(), ItemRepo.init(), PlayerRepo.init(), RecipeRepo.init(), guilds.init(), WildCardRepo.init()]);
 			}
 			return _init;
 		}

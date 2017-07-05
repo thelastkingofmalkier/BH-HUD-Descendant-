@@ -53,7 +53,7 @@ namespace bh {
 		public get rowHtml() { return this._rowHtml();  }
 		public get evoHtml() { return this._rowHtml(this.count * 60);  }
 		public get goldHtml() { return this._rowHtml(this.maxMaxGoldNeeded);  }
-		public get sotHtml() { return this._rowHtml(this.maxMaxSotNeeded);  }
+		// public get sotHtml() { return this._rowHtml(this.maxMaxSotNeeded);  }
 		public get wcHtml() { return this._rowHtml(this.maxWildCardsNeeded);  }
 		public get scoutHtml() { return `${this.rarityEvoLevel} ${this.name} ${this.count > 1 ? `x${this.count}` : ``}`; }
 		public get typeImage() { return this.type ? getImg("cardtypes", this.type) : ``; }
@@ -63,5 +63,6 @@ namespace bh {
 		public matchesElement(element: GameElement) { return !element || this.elementType === ElementType[element]; }
 		public matchesHero(hero: Hero) { return !hero || (this.matchesElement(<GameElement>ElementType[hero.elementType]) && this.klassType === hero.klassType); }
 		public matchesRarity(rarity: GameRarity) { return !rarity || this.rarityType === RarityType[rarity]; }
+		public toRowHtml(badge: number) { return this._rowHtml(badge); }
 	}
 }

@@ -10,18 +10,18 @@ namespace bh {
 		constructor(id: string, gid: number)
 		constructor(idOrGid?: string|number, gid?: number) {
 			Repo.AllRepos.push(this);
-			this.id = gid ? <string>idOrGid || null : null;
-			this.gid = gid || <number>idOrGid || null;
+			this.id = typeof(gid) == "number" ? <string>idOrGid : null,
+			this.gid = typeof(gid) == "number" ? gid : <number>idOrGid;
 		}
 
 		private _init: Promise<T[]>;
 		public init() {
 			if (!this._init) {
 				this._init = new Promise<T[]>((resolvefn: (data: T[]) => void) => {
-					var tsv = (TSV||{})[String(this.gid)];
+					var tsv = (TSV||{})[String(this.gid||this.id)];
 					if (tsv) {
 						this.resolveTsv(tsv, resolvefn);
-					}else if (this.gid) {
+					}else if (typeof(this.gid) == "number") {
 						Repo.fetchTsv(this.id, this.gid).then(tsv => this.resolveTsv(tsv, resolvefn), () => this.unresolveTsv());
 					}else {
 						resolvefn(this.data = []);
@@ -65,8 +65,8 @@ namespace bh {
 		}
 
 		public static fetchTsv(idOrGid: string|number, gidOrUndefined: number) {
-			var id = gidOrUndefined ? <string>idOrGid : null,
-				gid = gidOrUndefined || <number>idOrGid;
+			var id = typeof(gidOrUndefined) == "number" ? <string>idOrGid : null,
+				gid = typeof(gidOrUndefined) == "number" ? gidOrUndefined : <number>idOrGid;
 			if ((TSV||{})[String(gid)]) { return Promise.resolve(TSV[String(gid)]); }
 			return XmlHttpRequest.get(`${host}/tsv.php?gid=${gid}${id?`&id=${id}`:``}`);
 		}

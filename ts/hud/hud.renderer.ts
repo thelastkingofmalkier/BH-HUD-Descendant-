@@ -7,7 +7,7 @@ namespace bh {
 		}
 		function renderCss() {
 var css = `<style id="brain-hud-styles" type="text/css">
-div.brain-hud-container { font-size:8pt; position:fixed; top:0; right:0; width:250px; background:#FFF; color:#000; border:2px solid #000; z-index:9999; padding:2px; }
+div.brain-hud-container { font-size:8pt; position:fixed; top:0; right:0; width:250px; background:#FFF; color:#000; border:2px solid #000; z-index:9999; padding:2px; max-height:${jQuery(window).height()-10}px; overflow:auto; }
 div.brain-hud-container div { clear:both; }
 div.brain-hud-container table { width:100%; margin:0; padding:0; border:0; }
 div.brain-hud-container td { padding:0; margin:0; border:0; }

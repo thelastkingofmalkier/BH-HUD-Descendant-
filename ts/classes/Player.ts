@@ -74,8 +74,12 @@ namespace bh {
 		public get powerRating() { return this.heroes.reduce((power, hero) => power + hero.powerRating, 0); }
 		public get raidRowHtml() { return this._pp ? formatRow("keys", "RaidTicket", "Raid Tickets", this.raidTickets) : ""; }
 		public get raidTickets() { return this._pp && this._pp.raidKeys || 0; }
-		public get battleCards() { return !(this._pp && this._pp.playerCards && this._pp.playerCards.cards) ? [] : this.sortAndReduceBattleCards(Object.keys(this._pp.playerCards.cards)); }
-		public get activeBattleCards() { return this.battleCards.filter(battleCard => battleCard.isActive); }
+		private _battleCards: PlayerBattleCard[] = null;
+		public get battleCards() { return this._battleCards || (this._battleCards = !(this._pp && this._pp.playerCards && this._pp.playerCards.cards) ? [] : this.sortAndReduceBattleCards(Object.keys(this._pp.playerCards.cards))); }
+		private _activeBattleCards: PlayerBattleCard[] = null;
+		public get activeBattleCards() { return this._activeBattleCards || (this._activeBattleCards = this.battleCards.filter(battleCard => battleCard.isActive)); }
+		private _activeRecipes: Recipe[] = null;
+		public get activeRecipes() { return this._activeRecipes || (this._activeRecipes = this.activeBattleCards.map(bc => data.RecipeRepo.findByBattleCard(bc))); }
 		public get boosterCards() { var map = this._pp && this._pp.feederCardsMap; return !map ? [] : Object.keys(map).map(guid => new PlayerBoosterCard(guid, map[guid])).sort(utils.sort.byElementThenRarityThenName); }
 		public get boosterCount() { var count = 0, map = this._pp && this._pp.feederCardsMap; Object.keys(map || {}).map(guid => count += map[guid]); return count; }
 		public get boosterRowHtml() { return this._pp ? PlayerBoosterCard.rowHtml(this.boosterCount) : ""; }

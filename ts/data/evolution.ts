@@ -1,57 +1,5 @@
 namespace bh {
 	export namespace data {
-		interface IRecipeMaterial {
-			material: string;
-			min: number;
-			max: number;
-		}
-		interface IRecipeEvo {
-			materials: IRecipeMaterial[];
-		}
-		interface IRecipe {
-			guid: string;
-			name: string;
-			rarity: string;
-			evos: IRecipeEvo[];
-		}
-		export var Recipes: { [key: string]: IRecipe; } = { };
-		export var AllMats: string[] = [];
-		export function updateRecipes() {
-			bh.$().get("https://docs.google.com/spreadsheets/d/1bL9SkXb7pjw6ucy9BE5JehFWhlGmrJaiaw4xpPb6eQQ/pub?output=tsv").then((tsv: string) => {
-				var lastLine: string;
-				var parsed = tsv.split(/\n/).slice(1).map(line => {
-					if (lastLine == line) return;
-					lastLine = line;
-					var parts = line.trim().split(/\t/),
-						guid = parts.shift(),
-						name = parts.shift(),
-						rarity = parts.shift(),
-						evo = parts.shift(),
-						evoNumber = +evo[0],
-						recipe = Recipes[guid] || (Recipes[guid] = { guid:guid, name:name, rarity:rarity, evos:[] }),
-						evos = recipe.evos[evoNumber] || (recipe.evos[evoNumber] = { materials:[] }),
-						mat: IRecipeMaterial;
-					while (parts.length) {
-						mat = { min:+parts.shift(), max:+parts.shift(), material:cleanMatName(parts.shift()) };
-						if (!AllMats.includes(mat.material)) AllMats.push(mat.material);
-					}
-				});
-				console.log("Done");
-			});
-			function cleanMatName(mat: string) {
-				if (mat == "Gunpowder") return "Ore Particles";
-				if (mat == "Dehydrated Water") return "Water Vapour";
-				if (mat == "Dragons Breath") return "Dragon's Breath";
-				if (mat == "Snapweed") return "SnapWeed";
-				return mat;
-			}
-		}
-		export function listEvoRecipes(rarity: GameRarity) {
-			var battleCards=cards.battle.getAll().filter(c=>c.rarityType==RarityType[rarity]).sort(utils.sort.byName),
-				lines=battleCards.map(c=>`${c.name}\t${KlassType[c.klassType]}\t${ElementType[c.elementType]}\t${RarityType[c.rarityType]}\t${Recipes[c.guid].evos[0].materials[0]&&Recipes[c.guid].evos[0].materials[0].material||""}`);
-				console.log(Recipes[battleCards[1].guid])
-			$("textarea").val(lines.join("\n"))
-		}
 		export function wildsForEvo(rarityType: RarityType, currentEvoLevel: number) {
 			return [[1], [1,2], [1,2,4], [1,2,4,5], [1,2,3,4,5]][rarityType][currentEvoLevel];
 		}

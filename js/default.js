@@ -185,18 +185,18 @@ var bh;
     var Repo = (function () {
         function Repo(idOrGid, gid) {
             Repo.AllRepos.push(this);
-            this.id = gid ? idOrGid || null : null;
-            this.gid = gid || idOrGid || null;
+            this.id = typeof (gid) == "number" ? idOrGid : null,
+                this.gid = typeof (gid) == "number" ? gid : idOrGid;
         }
         Repo.prototype.init = function () {
             var _this = this;
             if (!this._init) {
                 this._init = new Promise(function (resolvefn) {
-                    var tsv = (bh.TSV || {})[String(_this.gid)];
+                    var tsv = (bh.TSV || {})[String(_this.gid || _this.id)];
                     if (tsv) {
                         _this.resolveTsv(tsv, resolvefn);
                     }
-                    else if (_this.gid) {
+                    else if (typeof (_this.gid) == "number") {
                         Repo.fetchTsv(_this.id, _this.gid).then(function (tsv) { return _this.resolveTsv(tsv, resolvefn); }, function () { return _this.unresolveTsv(); });
                     }
                     else {
@@ -250,7 +250,7 @@ var bh;
             }
         };
         Repo.fetchTsv = function (idOrGid, gidOrUndefined) {
-            var id = gidOrUndefined ? idOrGid : null, gid = gidOrUndefined || idOrGid;
+            var id = typeof (gidOrUndefined) == "number" ? idOrGid : null, gid = typeof (gidOrUndefined) == "number" ? gidOrUndefined : idOrGid;
             if ((bh.TSV || {})[String(gid)]) {
                 return Promise.resolve(bh.TSV[String(gid)]);
             }
@@ -476,6 +476,9 @@ var bh;
         function Player(json, isArena) {
             if (isArena === void 0) { isArena = false; }
             this.isArena = isArena;
+            this._battleCards = null;
+            this._activeBattleCards = null;
+            this._activeRecipes = null;
             if (bh.data.isPlayer(json)) {
                 this._pp = json;
             }
@@ -669,12 +672,17 @@ var bh;
             configurable: true
         });
         Object.defineProperty(Player.prototype, "battleCards", {
-            get: function () { return !(this._pp && this._pp.playerCards && this._pp.playerCards.cards) ? [] : this.sortAndReduceBattleCards(Object.keys(this._pp.playerCards.cards)); },
+            get: function () { return this._battleCards || (this._battleCards = !(this._pp && this._pp.playerCards && this._pp.playerCards.cards) ? [] : this.sortAndReduceBattleCards(Object.keys(this._pp.playerCards.cards))); },
             enumerable: true,
             configurable: true
         });
         Object.defineProperty(Player.prototype, "activeBattleCards", {
-            get: function () { return this.battleCards.filter(function (battleCard) { return battleCard.isActive; }); },
+            get: function () { return this._activeBattleCards || (this._activeBattleCards = this.battleCards.filter(function (battleCard) { return battleCard.isActive; })); },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Player.prototype, "activeRecipes", {
+            get: function () { return this._activeRecipes || (this._activeRecipes = this.activeBattleCards.map(function (bc) { return bh.data.RecipeRepo.findByBattleCard(bc); })); },
             enumerable: true,
             configurable: true
         });
@@ -925,11 +933,6 @@ var bh;
             enumerable: true,
             configurable: true
         });
-        Object.defineProperty(PlayerBattleCard.prototype, "sotHtml", {
-            get: function () { return this._rowHtml(this.maxMaxSotNeeded); },
-            enumerable: true,
-            configurable: true
-        });
         Object.defineProperty(PlayerBattleCard.prototype, "wcHtml", {
             get: function () { return this._rowHtml(this.maxWildCardsNeeded); },
             enumerable: true,
@@ -955,6 +958,7 @@ var bh;
         PlayerBattleCard.prototype.matchesElement = function (element) { return !element || this.elementType === bh.ElementType[element]; };
         PlayerBattleCard.prototype.matchesHero = function (hero) { return !hero || (this.matchesElement(bh.ElementType[hero.elementType]) && this.klassType === hero.klassType); };
         PlayerBattleCard.prototype.matchesRarity = function (rarity) { return !rarity || this.rarityType === bh.RarityType[rarity]; };
+        PlayerBattleCard.prototype.toRowHtml = function (badge) { return this._rowHtml(badge); };
         return PlayerBattleCard;
     }());
     bh.PlayerBattleCard = PlayerBattleCard;
@@ -1528,6 +1532,7 @@ var bh;
         });
         Object.defineProperty(PlayerInventoryItem.prototype, "needed", {
             get: function () {
+                var _this = this;
                 var needed = 0;
                 if (this.isRune) {
                     var heroName = this.name.split("'")[0];
@@ -1538,7 +1543,7 @@ var bh;
                         .filterActiveBattleCards(heroName, "Legendary")
                         .forEach(function (battleCard) { return needed += battleCard.count * 60; });
                 }
-                if (this.isCrystal) {
+                else if (this.isCrystal) {
                     this.player
                         .filterHeroes(bh.ElementType[this.elementType])
                         .forEach(function (playerHero) { return needed += (playerHero.active.maxMaterialCount || 0) + (playerHero.passive.maxMaterialCount || 0); });
@@ -1546,8 +1551,15 @@ var bh;
                         .filterActiveBattleCards(bh.ElementType[this.elementType], "Legendary")
                         .forEach(function (battleCard) { return needed += battleCard.count * 60; });
                 }
-                if (this.isSandsOfTime) {
+                else if (this.isSandsOfTime) {
                     this.player.activeBattleCards.forEach(function (playerBattleCard) { return needed += playerBattleCard.maxMaxSotNeeded; });
+                }
+                else {
+                    var activeRecipes = this.player.activeRecipes, recipes = bh.data.RecipeRepo.findByMaterial(this.name), filtered = recipes.filter(function (recipe) { return activeRecipes.includes(recipe); });
+                    filtered.forEach(function (recipe) {
+                        var item = recipe.getItemByName(_this.name);
+                        needed += item.max;
+                    });
                 }
                 return needed;
             },
@@ -1556,8 +1568,9 @@ var bh;
         });
         Object.defineProperty(PlayerInventoryItem.prototype, "rowHtml", {
             get: function () {
-                var folder = bh.ItemType[this.itemType].toLowerCase() + "s", name = this.isEvoJar ? this.name.replace(/\W/g, "") : this.isCrystal ? this.name.split(/ /)[0] : bh.data.HeroRepo.find(this.name.split("'")[0]).abilities[0].name.replace(/\W/g, ""), image = bh.getImg20(folder, name), needed = this.needed, ofContent = needed ? " / " + bh.utils.formatNumber(needed) : "", hud = this.isSandsOfTime, badge = "<span class=\"badge pull-right\">" + this.count + ofContent + "</span>", children = "";
-                if (needed && (this.isCrystal || this.isRune || this.isSandsOfTime)) {
+                var _this = this;
+                var folder = bh.ItemType[this.itemType].toLowerCase() + "s", name = this.isEvoJar ? this.name.replace(/\W/g, "") : this.isCrystal ? this.name.split(/ /)[0] : bh.data.HeroRepo.find(this.name.split("'")[0]).abilities[0].name.replace(/\W/g, ""), image = bh.getImg20(folder, name), needed = this.needed, ofContent = needed ? " / " + bh.utils.formatNumber(needed) : "", hud = this.isSandsOfTime, badge = "<span class=\"badge pull-right\">" + bh.utils.formatNumber(this.count) + ofContent + "</span>", children = "";
+                if (needed) {
                     if (this.isCrystal) {
                         this.player
                             .filterHeroes(bh.ElementType[this.elementType])
@@ -1566,7 +1579,7 @@ var bh;
                             .filterActiveBattleCards(bh.ElementType[this.elementType], "Legendary")
                             .forEach(function (battleCard) { return children += battleCard.evoHtml; });
                     }
-                    if (this.isRune) {
+                    else if (this.isRune) {
                         var heroName = this.name.split("'")[0];
                         this.player
                             .filterHeroes(heroName)
@@ -1575,10 +1588,19 @@ var bh;
                             .filterActiveBattleCards(heroName, "Legendary")
                             .forEach(function (battleCard) { return children += battleCard.evoHtml; });
                     }
-                    if (this.isSandsOfTime) {
+                    else if (this.isSandsOfTime) {
                         this.player
                             .activeBattleCards
-                            .forEach(function (playerBattleCard) { return children += playerBattleCard.sotHtml; });
+                            .forEach(function (playerBattleCard) { return children += playerBattleCard.toRowHtml(playerBattleCard.maxMaxSotNeeded); });
+                    }
+                    else {
+                        var activeRecipes = this.player.activeRecipes, recipes = bh.data.RecipeRepo.findByMaterial(this.name), filtered = recipes.filter(function (recipe) { return activeRecipes.includes(recipe); });
+                        if (this.name == "Spindle Eggs")
+                            console.log(recipes);
+                        filtered.forEach(function (recipe) {
+                            var item = recipe.getItemByName(_this.name), playerBattleCard = _this.player.activeBattleCards.find(function (bc) { return bc.name == recipe.name && bc.rarityType === recipe.rarityType; });
+                            children += playerBattleCard.toRowHtml(item.max);
+                        });
                     }
                 }
                 return "<div data-element-type=\"" + this.elementType + "\" data-rarity-type=\"" + this.rarityType + "\" data-item-type=\"" + this.itemType + "\" data-hud=\"" + hud + "\">" + renderExpandable(this.guid, image + " " + this.name + " " + badge, children) + "</div>";
@@ -1730,6 +1752,116 @@ var bh;
 })(bh || (bh = {}));
 var bh;
 (function (bh) {
+    function cleanMatName(mat) {
+        if (mat == "Gunpowder")
+            return "Ore Particles";
+        if (mat == "Dehydrated Water")
+            return "Water Vapour";
+        if (mat == "Dragons Breath")
+            return "Dragon's Breath";
+        if (mat == "Snapweed")
+            return "SnapWeed";
+        if (mat.endsWith("Rune")) {
+            mat = mat
+                .replace("Fire Mage", "Monty's Fire")
+                .replace("Fire Berserker", "Fergus' Fire")
+                .replace("Fire Rogue", "Red's Fire")
+                .replace("Earth Witch", "Trix's Earth")
+                .replace("Earth Warrior", "Thrudd's Earth")
+                .replace("Earth Elf", "Bree's Earth")
+                .replace("Air Paladin", "Brom's Air")
+                .replace("Air Ranger", "Hawkeye's Air")
+                .replace("Spirit Sorcerer", "Krell's Spirit")
+                .replace("Spirit Thief", "Jinx's Spirit")
+                .replace("Water Monk", "Logan's Water")
+                .replace("Water Valkyrie", "Gilda's Water")
+                .replace("Water Pirate", "Peg's Water");
+            switch (mat) {
+                case "Fire Mage Rune": return "";
+            }
+        }
+        if (!bh.data.ItemRepo.find(mat))
+            console.warn(mat);
+        return mat;
+    }
+    var RecipeRepo = (function (_super) {
+        __extends(RecipeRepo, _super);
+        function RecipeRepo() {
+            return _super.call(this, "1bL9SkXb7pjw6ucy9BE5JehFWhlGmrJaiaw4xpPb6eQQ", 0) || this;
+        }
+        RecipeRepo.prototype.parseTsv = function (tsv) {
+            var _this = this;
+            return new Promise(function (resolvefn) {
+                var recipes = {};
+                var lastLine;
+                var parsed = tsv.split(/\n/).slice(1).map(function (line) {
+                    if (lastLine == line)
+                        return;
+                    lastLine = line;
+                    var parts = line.trim().split(/\t/), guid = parts.shift(), name = parts.shift(), rarity = parts.shift(), evo = parts.shift(), evoNumber = +evo[0], recipe = recipes[guid] || (recipes[guid] = new Recipe(guid, name, bh.RarityType[rarity])), mat;
+                    while (parts.length) {
+                        mat = { min: +parts.shift(), max: +parts.shift(), material: cleanMatName(parts.shift()) };
+                        recipe.addMat(evoNumber, mat);
+                    }
+                });
+                _this.data = Object.keys(recipes).map(function (key) { return recipes[key]; });
+                resolvefn(_this.data);
+            });
+        };
+        RecipeRepo.prototype.findByMaterial = function (value) {
+            return this.data.filter(function (recipe) {
+                return recipe.evos.find(function (evo) {
+                    return evo.materials.find(function (mat) { return value == mat.material; }) != null;
+                }) != null;
+            });
+        };
+        RecipeRepo.prototype.findByBattleCard = function (card) {
+            return this.data.find(function (r) { return r.name == card.name && r.rarityType === card.rarityType; });
+        };
+        return RecipeRepo;
+    }(bh.Repo));
+    bh.RecipeRepo = RecipeRepo;
+    var Recipe = (function () {
+        function Recipe(guid, name, rarityType) {
+            this.guid = guid;
+            this.name = name;
+            this.rarityType = rarityType;
+            this.evos = [];
+            this.lower = name.toLowerCase();
+        }
+        Recipe.prototype.addMat = function (evoNumber, mat) {
+            if (typeof (mat.min) !== "number" || typeof (mat.max) !== "number" || !mat.material)
+                return;
+            var evo = this.evos[evoNumber] || (this.evos[evoNumber] = { materials: [] });
+            evo.materials.push(mat);
+        };
+        Object.defineProperty(Recipe.prototype, "items", {
+            get: function () {
+                var items = [];
+                this.evos.forEach(function (evo) {
+                    evo.materials.forEach(function (mat) {
+                        var item = items.find(function (item) { return item.item.name == mat.material; });
+                        if (!item) {
+                            items.push(item = { item: bh.data.ItemRepo.find(mat.material), min: 0, max: 0 });
+                        }
+                        item.min += mat.min;
+                        item.max += mat.max;
+                    });
+                });
+                return items;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Recipe.prototype.getItemByName = function (name) {
+            return this.items.find(function (item) { return item.item.name == name; });
+        };
+        return Recipe;
+    }());
+    bh.Recipe = Recipe;
+})(bh || (bh = {}));
+var bh;
+(function (bh) {
     var data;
     (function (data) {
         var cards;
@@ -1852,6 +1984,7 @@ var bh;
         data.HeroRepo = new bh.HeroRepo();
         data.ItemRepo = new bh.ItemRepo();
         data.PlayerRepo = new bh.Repo();
+        data.RecipeRepo = new bh.RecipeRepo();
         data.WildCardRepo = new bh.Repo(2106503523);
         function arenaToPlayers(json) {
             var players = [];
@@ -1894,7 +2027,7 @@ var bh;
         var _init;
         function init() {
             if (!_init) {
-                _init = Promise.all([data.cards.battle.init(), data.BoosterCardRepo.init(), data.HeroRepo.init(), data.ItemRepo.init(), data.PlayerRepo.init(), data.guilds.init(), data.WildCardRepo.init()]);
+                _init = Promise.all([data.cards.battle.init(), data.BoosterCardRepo.init(), data.HeroRepo.init(), data.ItemRepo.init(), data.PlayerRepo.init(), data.RecipeRepo.init(), data.guilds.init(), data.WildCardRepo.init()]);
             }
             return _init;
         }
@@ -1905,43 +2038,6 @@ var bh;
 (function (bh) {
     var data;
     (function (data) {
-        data.Recipes = {};
-        data.AllMats = [];
-        function updateRecipes() {
-            bh.$().get("https://docs.google.com/spreadsheets/d/1bL9SkXb7pjw6ucy9BE5JehFWhlGmrJaiaw4xpPb6eQQ/pub?output=tsv").then(function (tsv) {
-                var lastLine;
-                var parsed = tsv.split(/\n/).slice(1).map(function (line) {
-                    if (lastLine == line)
-                        return;
-                    lastLine = line;
-                    var parts = line.trim().split(/\t/), guid = parts.shift(), name = parts.shift(), rarity = parts.shift(), evo = parts.shift(), evoNumber = +evo[0], recipe = data.Recipes[guid] || (data.Recipes[guid] = { guid: guid, name: name, rarity: rarity, evos: [] }), evos = recipe.evos[evoNumber] || (recipe.evos[evoNumber] = { materials: [] }), mat;
-                    while (parts.length) {
-                        mat = { min: +parts.shift(), max: +parts.shift(), material: cleanMatName(parts.shift()) };
-                        if (!data.AllMats.includes(mat.material))
-                            data.AllMats.push(mat.material);
-                    }
-                });
-                console.log("Done");
-            });
-            function cleanMatName(mat) {
-                if (mat == "Gunpowder")
-                    return "Ore Particles";
-                if (mat == "Dehydrated Water")
-                    return "Water Vapour";
-                if (mat == "Dragons Breath")
-                    return "Dragon's Breath";
-                if (mat == "Snapweed")
-                    return "SnapWeed";
-                return mat;
-            }
-        }
-        data.updateRecipes = updateRecipes;
-        function listEvoRecipes(rarity) {
-            var battleCards = data.cards.battle.getAll().filter(function (c) { return c.rarityType == bh.RarityType[rarity]; }).sort(bh.utils.sort.byName), lines = battleCards.map(function (c) { return c.name + "\t" + bh.KlassType[c.klassType] + "\t" + bh.ElementType[c.elementType] + "\t" + bh.RarityType[c.rarityType] + "\t" + (data.Recipes[c.guid].evos[0].materials[0] && data.Recipes[c.guid].evos[0].materials[0].material || ""); });
-            console.log(data.Recipes[battleCards[1].guid]);
-            bh.$("textarea").val(lines.join("\n"));
-        }
-        data.listEvoRecipes = listEvoRecipes;
         function wildsForEvo(rarityType, currentEvoLevel) {
             return [[1], [1, 2], [1, 2, 4], [1, 2, 4, 5], [1, 2, 3, 4, 5]][rarityType][currentEvoLevel];
         }
@@ -2851,7 +2947,7 @@ var bh;
         }
         hud.render = render;
         function renderCss() {
-            var css = "<style id=\"brain-hud-styles\" type=\"text/css\">\ndiv.brain-hud-container { font-size:8pt; position:fixed; top:0; right:0; width:250px; background:#FFF; color:#000; border:2px solid #000; z-index:9999; padding:2px; }\ndiv.brain-hud-container div { clear:both; }\ndiv.brain-hud-container table { width:100%; margin:0; padding:0; border:0; }\ndiv.brain-hud-container td { padding:0; margin:0; border:0; }\ndiv.brain-hud-container select { width:180px; }\ndiv.brain-hud-container textarea { width:240px; font-size:8pt; display:none; }\n\ndiv.brain-hud-header { text-align:center; font-weight:bold; }\n\ndiv.brain-hud-main-container,\ndiv.brain-hud-scouter-guild-container,\ndiv.brain-hud-scouter-player-container,\ndiv.brain-hud-scouter-player,\ndiv.brain-hud-scouter-panel-content,\ndiv.brain-hud-inventory,\ndiv.brain-hud-inventory-container,\ndiv.brain-hud-child-scroller { display:none; }\n\ndiv.brain-hud-scouter-player-report { display:none; padding:0 2px; text-align:left; }\ndiv.brain-hud-scouter-player > div.player-name { font-size:10pt; font-weight:bold; text-align:center; }\n\ndiv.brain-hud-scouter-panel-header { padding:2px 0 0 0; }\ndiv.brain-hud-scouter-panel-header > button { cursor:default; border:0; width:240px; text-align:left; padding:0; margin:0; }\ndiv.brain-hud-scouter-panel-header > button[data-action] { cursor:pointer; }\ndiv.brain-hud-scouter-panel-header > button > span.hero-level { display:inline-block; width:20px; }\ndiv.brain-hud-scouter-panel-header > button > span.hero-name { display:inline-block; width:60px; }\ndiv.brain-hud-scouter-panel-header > button > span.hero-hp { display:inline-block; width:75px; }\ndiv.brain-hud-scouter-panel-header > button > span.hero-rating { display:inline-block; width:75px; }\n\ndiv.brain-hud-inventory-buttons { text-align:center; }\n\ndiv.brain-hud-container .active { display:block; }\n\ndiv.brain-hud-container .star { color: darkgoldenrod; text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black; }\ndiv.brain-hud-container .evo-star { color: gold; text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black; }\n\ndiv.brain-hud-container img { height:16px; width:16px; }\ndiv.brain-hud-container img.icon-12 { height:12px; width:12px; }\ndiv.brain-hud-container img.icon-20 { height:20px; width:20px; }\n\ndiv.brain-hud-child-scroller { max-height:125px; overflow:auto; }\n\ndiv.progress { margin-bottom:0; height:10px; }\ndiv.progress > div.progress-bar { line-height:10px; font-size:8px; font-weight:bold; clear:none; }\n</style>";
+            var css = "<style id=\"brain-hud-styles\" type=\"text/css\">\ndiv.brain-hud-container { font-size:8pt; position:fixed; top:0; right:0; width:250px; background:#FFF; color:#000; border:2px solid #000; z-index:9999; padding:2px; max-height:" + (jQuery(window).height() - 10) + "px; overflow:auto; }\ndiv.brain-hud-container div { clear:both; }\ndiv.brain-hud-container table { width:100%; margin:0; padding:0; border:0; }\ndiv.brain-hud-container td { padding:0; margin:0; border:0; }\ndiv.brain-hud-container select { width:180px; }\ndiv.brain-hud-container textarea { width:240px; font-size:8pt; display:none; }\n\ndiv.brain-hud-header { text-align:center; font-weight:bold; }\n\ndiv.brain-hud-main-container,\ndiv.brain-hud-scouter-guild-container,\ndiv.brain-hud-scouter-player-container,\ndiv.brain-hud-scouter-player,\ndiv.brain-hud-scouter-panel-content,\ndiv.brain-hud-inventory,\ndiv.brain-hud-inventory-container,\ndiv.brain-hud-child-scroller { display:none; }\n\ndiv.brain-hud-scouter-player-report { display:none; padding:0 2px; text-align:left; }\ndiv.brain-hud-scouter-player > div.player-name { font-size:10pt; font-weight:bold; text-align:center; }\n\ndiv.brain-hud-scouter-panel-header { padding:2px 0 0 0; }\ndiv.brain-hud-scouter-panel-header > button { cursor:default; border:0; width:240px; text-align:left; padding:0; margin:0; }\ndiv.brain-hud-scouter-panel-header > button[data-action] { cursor:pointer; }\ndiv.brain-hud-scouter-panel-header > button > span.hero-level { display:inline-block; width:20px; }\ndiv.brain-hud-scouter-panel-header > button > span.hero-name { display:inline-block; width:60px; }\ndiv.brain-hud-scouter-panel-header > button > span.hero-hp { display:inline-block; width:75px; }\ndiv.brain-hud-scouter-panel-header > button > span.hero-rating { display:inline-block; width:75px; }\n\ndiv.brain-hud-inventory-buttons { text-align:center; }\n\ndiv.brain-hud-container .active { display:block; }\n\ndiv.brain-hud-container .star { color: darkgoldenrod; text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black; }\ndiv.brain-hud-container .evo-star { color: gold; text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black; }\n\ndiv.brain-hud-container img { height:16px; width:16px; }\ndiv.brain-hud-container img.icon-12 { height:12px; width:12px; }\ndiv.brain-hud-container img.icon-20 { height:20px; width:20px; }\n\ndiv.brain-hud-child-scroller { max-height:125px; overflow:auto; }\n\ndiv.progress { margin-bottom:0; height:10px; }\ndiv.progress > div.progress-bar { line-height:10px; font-size:8px; font-weight:bold; clear:none; }\n</style>";
             bh.$("head").append(css);
         }
         function renderBootstrapCss() {
@@ -3052,7 +3148,7 @@ var bh;
         }
         utils.rarityToStars = rarityToStars;
         function evoToStars(rarityType, evoLevel) {
-            var evo = +evoLevel.split(".")[0], level = +evoLevel.split(".")[1], stars = rarityType, count = 0, value = "";
+            var evo = +evoLevel.split(".")[0], level = +evoLevel.split(".")[1], stars = rarityType + 1, count = 0, value = "";
             while (evo--) {
                 count++;
                 value += "<span class='evo-star'>&#9733;</span>";
