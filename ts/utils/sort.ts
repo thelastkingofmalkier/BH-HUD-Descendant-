@@ -2,21 +2,8 @@ namespace bh {
 	export namespace utils {
 		export namespace sort {
 
-			// function elementToNumber(element: "Air" | "Earth" | "Fire" | "Water" | "Spirit" | "Neutral") {
-			function elementToNumber(element: string) {
-				switch (element) {
-					case "Fire": return 0;
-					case "Earth": return 1;
-					case "Air": return 2;
-					case "Spirit": return 3;
-					case "Water": return 4;
-					default: return 5
-				}
-			}
 			export function byElement(a: IHasElementType, b: IHasElementType): number {
-				var aValue = elementToNumber(ElementType[a.elementType]), bValue = elementToNumber(ElementType[b.elementType]);
-				// var aValue = elementToNumber(a.element), bValue = elementToNumber(b.element);
-				return aValue == bValue ? 0 : aValue < bValue ? -1 : 1;
+				return a.elementType == b.elementType ? 0 : a.elementType < b.elementType ? -1 : 1;
 			}
 			export function byElementThenKlass(a: IHasElementType & IHasKlass, b: IHasElementType & IHasKlass): number {
 				return byElement(a, b) || byKlass(a, b);
@@ -45,7 +32,7 @@ namespace bh {
 			}
 
 			export function byPosition(a: IHasPosition, b: IHasPosition): number {
-				var ap = rankToNumber(a.position), bp = rankToNumber(b.position);
+				var ap = positionToType(a.position), bp = positionToType(b.position);
 				return ap == bp ? 0 : ap > bp ? -1 : 1;
 			}
 			export function byPositionThenName(a: IHasName & IHasPosition, b: IHasName & IHasPosition): number {

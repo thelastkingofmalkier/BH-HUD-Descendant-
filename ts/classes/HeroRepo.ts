@@ -15,7 +15,7 @@ namespace bh {
 		}
 
 		public filterByElement(elementType: ElementType): Hero[];
-		public filterByElement(element: "Air" | "Earth" | "Fire" | "Water" | "Spirit" | "Neutral"): Hero[];
+		public filterByElement(element: GameElement): Hero[];
 		public filterByElement(elementOrElementType: any) {
 			return this.data.filter(hero => hero.elementType === elementOrElementType || ElementType[hero.elementType] === elementOrElementType);
 		}

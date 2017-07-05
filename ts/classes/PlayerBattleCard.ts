@@ -19,7 +19,7 @@ namespace bh {
 		public get klass() { return this._bc && this._bc.klass; }
 		public get name() { return this._bc && this._bc.name || this.playerCard && this.playerCard.configId; }
 		public get rarity() { return this._bc && this._bc.rarity || null; }
-		public get rarityType() { return this._bc && this._bc.rarity ? RarityType[<any>this._bc.rarity.replace(/ /, "")] : null; }
+		public get rarityType(): RarityType { return this._bc && this._bc.rarity ? <any>RarityType[<any>this._bc.rarity.replace(/ /, "")] : null; }
 		public get type() { return this._bc && this._bc.type || null; }
 		public get tier() { return this._bc && this._bc.tier || null; }
 
@@ -42,16 +42,7 @@ namespace bh {
 			return `${this.battleOrBragImage} ${this.evoLevel} <small>${stars}</small> ${name} ${count} ${logoValue}`;
 		}
 		public get isActive() { return (this.evo > 0 || this.level > 1) && !this.isMaxed; }
-		public get isMaxed() {
-			switch(this.rarity) {
-				case "Common": return this.evoLevel == "1.10";
-				case "Uncommon": return this.evoLevel == "2.20";
-				case "Rare": return this.evoLevel == "3.35";
-				case "Super Rare": return this.evoLevel == "4.50";
-				case "Legendary": return this.evoLevel == "5.50";
-			}
-			return false;
-		}
+		public get isMaxed() { return this.evoLevel == ["1.10", "2.20", "3.35", "4.50", "5.50"][this.rarityType]; }
 		public get maxWildCardsNeeded() { return data.getMaxWildCardsNeeded(this) * this.count; }
 		public get nextWildCardsNeeded() { return data.getNextWildCardsNeeded(this) * this.count; }
 		public get maxMaxSotNeeded() { return data.getMaxSotNeeded(this.playerCard, this.evoLevel) * this.count; }

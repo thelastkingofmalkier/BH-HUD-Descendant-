@@ -32,12 +32,9 @@ namespace bh {
 		}
 	}
 
-	export function isElement(element: string) {
-		return ["Air", "Earth", "Fire", "Water", "Spirit", "Neutral"].includes(element);
-	}
-	export function isRarity(rarity: string) {
-		return ["Common", "Uncommon", "Rare", "Super Rare", "Legendary"].includes(rarity);
-	}
+	export function isElement(element: string) { return String(element) in ElementType; }
+
+	export function isRarity(rarity: string) { return String(rarity).replace(/ /g, "") in RarityType; }
 
 	export namespace data {
 		export var BoosterCardRepo = new Repo<IDataBoosterCard>(1709781959);

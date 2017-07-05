@@ -22,7 +22,7 @@ namespace bh {
 				.forEach(playerBattleCard => needed += playerBattleCard.maxWildCardsNeeded);
 			return needed;
 		}
-		public get rarity(): "Common" | "Uncommon" | "Rare" | "Super Rare" | "Legendary" { return <any>this._.name; }
+		public get rarity(): GameRarity { return <any>this._.name; }
 		public get rowHtml() {
 			var html = this.html,
 				expander = "",

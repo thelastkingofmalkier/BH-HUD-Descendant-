@@ -1,4 +1,5 @@
 namespace bh {
+
 	export namespace utils {
 		export function htmlFriendly(value: string) {
 			return String(value).replace(/\</g, "&lt;").replace(/\>/g, "&rt;");
@@ -45,36 +46,27 @@ namespace bh {
 			var string = String(value).substring(0, 1).toLowerCase();
 			return string === "y" || string === "t" || string === "1";
 		}
-		export function rankToNumber(rank: string): number {
-			switch (rank) {
-				case "Leader": return 4;
-				case "CoLeader": return 3;
-				case "Elder": return 2;
-				default: return 1;
-			}
-		}
-		export function guessMinRarity(evoLevel: number, level: number): string {
+		export function positionToType(position: string): PositionType { return <any>PositionType[<any>position]; }
+
+		export function rarityToType(rarity: GameRarity): RarityType { return <any>RarityType[<any>rarity.replace(/ /g, "")]; }
+
+		export function typeToElement(elementType: ElementType): GameElement { return <any>ElementType[elementType]; }
+
+		export function guessMinRarity(evoLevel: number, level: number): GameRarity {
 			if (4 < evoLevel) return "Legendary";
 			if (34 < level || 3 < evoLevel) return "Super Rare";
 			if (19 < level || 2 < evoLevel) return "Rare";
 			if (9 < level || 1 < evoLevel) return "Uncommon";
 			return "Common";
 		}
-		export function rarityToStars(rarity: string): string {
-			switch (rarity) {
-				case "Common": return "<small class='evo-star'>&#9733;</small>";
-				case "Uncommon": return "<small class='evo-star'>&#9733;&#9733;</small>";
-				case "Rare": return "<small class='evo-star'>&#9733;&#9733;&#9733;</small>";
-				case "Super Rare": return "<small class='evo-star'>&#9733;&#9733;&#9733;&#9733;</small>";
-				case "Legendary": return "<small class='evo-star'>&#9733;&#9733;&#9733;&#9733;&#9733;</small>";
-				default: return "";
-			}
+		export function rarityToStars(rarity: GameRarity): string {
+			return `<small class='evo-star'>${(new Array(rarityToType(rarity))).fill("&#9733;").join("")}</small>`;
 		}
-		export function evoToStars(rarity: string, evoLevel: string): string {
+		export function evoToStars(rarity: GameRarity, evoLevel: string): string {
 			var evo = +evoLevel.split(".")[0],
 				level = +evoLevel.split(".")[1],
 				rarity = rarity || guessMinRarity(evo, level - 1),
-				stars = rarity == "Legendary" ? 5 : rarity == "Super Rare" ? 4 : rarity == "Rare" ? 3 : rarity == "Uncommon" ? 2 : 1,
+				stars: number = rarityToType(rarity),
 				count = 0,
 				value = "";
 			while (evo--) {

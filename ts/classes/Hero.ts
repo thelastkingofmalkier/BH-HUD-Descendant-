@@ -10,9 +10,9 @@ namespace bh {
 		public get abilities() { return [this.trait, this.active, this.passive]; }
 		public active: HeroAbility;
 		public guid: string;
-		public element: "Air" | "Earth" | "Fire" | "Water" | "Spirit" | "Neutral";
+		public element: GameElement;
 		public get elementType() { return ElementType[this.element]; }
-		public klass: "Magic" | "Might" | "Skill";
+		public klass: GameKlass;
 		public get klassType() { return KlassType[this.klass]; }
 		public lower: string;
 		public name: string;

@@ -10,7 +10,7 @@ namespace bh {
 	var b1 = a1 + a4 * 0.40, b2 = a2 + a4 * 0.25, b3 = a3 + a4 * 0.20, b4 = a4 * 0.15;
 	var c1 = a1 + a4 * 0.45, c2 = a2 + a4 * 0.30, c3 = a3 + a4 * 0.25, c4 = 0;
 
-	function calculateHeroAbilityScore(hero: Hero, ability: "HP" | "Trait" | "Active" | "Passive"): number {
+	function calculateHeroAbilityScore(hero: Hero, ability: GamePowerRatingAbilityType): number {
 		switch (hero.name) {
 			case "Bree": return ability == "HP" ? b2 : ability == "Trait" ? b1 : ability == "Active" ? b4 : b3;
 			case "Brom": return ability == "HP" ? b2 : ability == "Trait" ? b1 : ability == "Active" ? b4 : b3;

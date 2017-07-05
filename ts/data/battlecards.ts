@@ -21,10 +21,10 @@ namespace bh {
 					return _cards.find(card => card.name == name);
 				}
 
-				export function getMaxEvo(rarity: "Legendary" | "Super Rare" | "Rare" | "Uncommon" | "Common"): number {
+				export function getMaxEvo(rarity: GameRarity): number {
 					return <any>RarityType[<any>rarity.replace(/ /, "")] + 1;
 				}
-				export function isMaxLevel(rarity: "Legendary" | "Super Rare" | "Rare" | "Uncommon" | "Common", level: number): boolean {
+				export function isMaxLevel(rarity: GameRarity, level: number): boolean {
 					return level == [10,20,35,50,50][<any>RarityType[<any>(rarity||"").replace(/ /, "")]];
 				}
 

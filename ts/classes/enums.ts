@@ -1,5 +1,6 @@
 namespace bh {
-	export enum ElementType { Air, Earth, Fire, Water, Spirit, Neutral }
+	export enum ElementType { Fire, Earth, Air, Spirit, Water, Neutral }
 	export enum KlassType { Magic, Might, Skill }
+	export enum PositionType { Member, Elder, CoLeader, Leader }
 	export enum RarityType { Common, Uncommon, Rare, SuperRare, Legendary }
 }

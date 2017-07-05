@@ -1,10 +1,10 @@
 namespace bh {
 	export class InventoryItem {
-		public element: "Air" | "Earth" | "Fire" | "Water" | "Spirit" | "Neutral";
+		public element: GameElement;
 		public guid: string;
 		public name: string;
-		public rarity: "Common" | "Uncommon" | "Rare" | "Super Rare" | "Legendary";
-		public type: "Evo Jar" | "Crystal" | "Rune";
+		public rarity: GameRarity;
+		public type: GameItemType;
 
 		public constructor(line: string) {
 			var values = line.split(/\t/).map(s => s.trim());

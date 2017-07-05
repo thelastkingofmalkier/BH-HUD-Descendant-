@@ -13,7 +13,7 @@ namespace IGuild {
 		crestBG: number;
 		crestIcon: number;
 		crestBGColor: number;
-		accessType: "Open" | "Closed" | "InviteOnly";
+		accessType: GameGuildWarAccessType;
 		boosterCardRequests: any[];
 		messages: { timestamp: number; content: string; id: string; playerId: string; }[];
 		joinRequests: any[];
@@ -46,7 +46,7 @@ namespace IGuild {
 		guildId: string; // guid
 		giftPoints: number;
 		giftPointsInterval: number;
-		position: "Leader" | "CoLeader" | "Elder" | "Member";
+		position: GameGuildPosition;
 		lastActivityTimeStamp: number;
 		blockInvites: boolean;
 		recentInvites: any[];

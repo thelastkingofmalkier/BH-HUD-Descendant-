@@ -1,37 +1,48 @@
 declare var escape: (s: string) => string;
 declare var unescape: (s: string) => string;
 interface BaseWindowMessage { data: any; originalEvent?: { data?: any; } }
-//interface IPostedMessage { action: string; playerGuid: string; skey: string; data: any; }
 interface IMessage { action: string; playerGuid: string; sessionKey: string; guildGuid: string; data: any; }
 
+type GameAbilityType = "Trait" | "Active" | "Passive";
+type GameBattleCardTarget = "Multi" | "Multi Flurry" | "Self" | "Single" | "Single Flurry" | "Splash";
+type GameBattleCardTier = "OP" | "S" | "A" | "B" | "C" | "D";
+type GameBattleCardType = "Attack" | "Heal" | "Shield";
+type GameBoosterCardChallenge = "Halloween" | "Christmas";
+type GameElement = "Air" | "Earth" | "Fire" | "Water" | "Spirit" | "Neutral";
+type GameGuildPosition = "Member" | "Elder" | "CoLeader" | "Leader";
+type GameGuildWarAccessType = "InviteOnly" | "Open" | "Closed";
+type GameItemType = "Evo Jar" | "Crystal" | "Rune";
+type GameKlass = "Magic" | "Might" | "Skill";
+type GamePowerRatingAbilityType = "HP" | "Trait" | "Active" | "Passive";
+type GameRarity = "Common" | "Uncommon" | "Rare" | "Super Rare" | "Legendary";
+
 interface IHasGuid { guid: string; }
-// interface IHasElement { element: "Air" | "Earth" | "Fire" | "Water" | "Spirit" | "Neutral"; }
 interface IHasElementType { elementType: bh.ElementType; }
-interface IHasKlass { klass: "Magic" | "Might" | "Skill"; }
+interface IHasKlass { klass: GameKlass; }
 interface IHasName { name: string; lower?: string; }
-interface IHasPosition { position: "Member" | "Elder" | "CoLeader" | "Leader"; }
-interface IHasRarity { rarity: "Common" | "Uncommon" | "Rare" | "Super Rare" | "Legendary"; }
+interface IHasPosition { position: GameGuildPosition; }
+interface IHasRarity { rarity: GameRarity; }
 interface IHasEvoLevel { evoLevel: string; }
 
 interface IHasGuidAndName extends IHasGuid, IHasName { }
 
 interface IDataAbility extends IHasGuid, IHasName {
 	hero: string; // guid
-	type: "Trait" | "Active" | "Passive";
+	type: GameAbilityType;
 }
 
 interface IDataBattleCard extends IHasGuid, IHasName, IHasElementType, IHasKlass, IHasRarity {
-	element: "Air" | "Earth" | "Fire" | "Water" | "Spirit" | "Neutral";
+	element: GameElement;
 	turns: number;
-	type: "Attack" | "Heal" | "Shield";
-	target: "Multi" | "Multi Flurry" | "Self" | "Single" | "Single Flurry" | "Splash"
+	type: GameBattleCardType;
+	target: GameBattleCardTarget;
 	brag: boolean;
 	base: number;
 	delta: number;
-	tier: string;
+	tier: GameBattleCardTier;
 }
 interface IDataBoosterCard extends IHasGuid, IHasName, IHasElementType, IHasRarity {
-	challenge?: "Halloween" | "Christmas";
+	challenge?: GameBoosterCardChallenge;
 }
 interface IDataWildCard extends IHasGuidAndName { }
 
@@ -73,7 +84,7 @@ interface IGuildWarGuild {
 	minFameLevel: number;
 	arenaScore: number;
 	membersCount: number;
-	accessType: "InviteOnly" | "Open" | "Closed";
+	accessType: GameGuildWarAccessType;
 	crestBG: number;
 	crestIcon: number;
 	crestBGColor: number;

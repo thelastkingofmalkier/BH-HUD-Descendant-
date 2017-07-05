@@ -12,11 +12,11 @@ var bh;
 (function (bh) {
     var ElementType;
     (function (ElementType) {
-        ElementType[ElementType["Air"] = 0] = "Air";
+        ElementType[ElementType["Fire"] = 0] = "Fire";
         ElementType[ElementType["Earth"] = 1] = "Earth";
-        ElementType[ElementType["Fire"] = 2] = "Fire";
-        ElementType[ElementType["Water"] = 3] = "Water";
-        ElementType[ElementType["Spirit"] = 4] = "Spirit";
+        ElementType[ElementType["Air"] = 2] = "Air";
+        ElementType[ElementType["Spirit"] = 3] = "Spirit";
+        ElementType[ElementType["Water"] = 4] = "Water";
         ElementType[ElementType["Neutral"] = 5] = "Neutral";
     })(ElementType = bh.ElementType || (bh.ElementType = {}));
     var KlassType;
@@ -25,6 +25,13 @@ var bh;
         KlassType[KlassType["Might"] = 1] = "Might";
         KlassType[KlassType["Skill"] = 2] = "Skill";
     })(KlassType = bh.KlassType || (bh.KlassType = {}));
+    var PositionType;
+    (function (PositionType) {
+        PositionType[PositionType["Member"] = 0] = "Member";
+        PositionType[PositionType["Elder"] = 1] = "Elder";
+        PositionType[PositionType["CoLeader"] = 2] = "CoLeader";
+        PositionType[PositionType["Leader"] = 3] = "Leader";
+    })(PositionType = bh.PositionType || (bh.PositionType = {}));
     var RarityType;
     (function (RarityType) {
         RarityType[RarityType["Common"] = 0] = "Common";
@@ -858,16 +865,7 @@ var bh;
             configurable: true
         });
         Object.defineProperty(PlayerBattleCard.prototype, "isMaxed", {
-            get: function () {
-                switch (this.rarity) {
-                    case "Common": return this.evoLevel == "1.10";
-                    case "Uncommon": return this.evoLevel == "2.20";
-                    case "Rare": return this.evoLevel == "3.35";
-                    case "Super Rare": return this.evoLevel == "4.50";
-                    case "Legendary": return this.evoLevel == "5.50";
-                }
-                return false;
-            },
+            get: function () { return this.evoLevel == ["1.10", "2.20", "3.35", "4.50", "5.50"][this.rarityType]; },
             enumerable: true,
             configurable: true
         });
@@ -1836,13 +1834,9 @@ var bh;
         }
     }
     bh.getAbilityMaxLevel = getAbilityMaxLevel;
-    function isElement(element) {
-        return ["Air", "Earth", "Fire", "Water", "Spirit", "Neutral"].includes(element);
-    }
+    function isElement(element) { return String(element) in bh.ElementType; }
     bh.isElement = isElement;
-    function isRarity(rarity) {
-        return ["Common", "Uncommon", "Rare", "Super Rare", "Legendary"].includes(rarity);
-    }
+    function isRarity(rarity) { return String(rarity).replace(/ /g, "") in bh.RarityType; }
     bh.isRarity = isRarity;
     var data;
     (function (data) {
@@ -2225,7 +2219,7 @@ var bh;
                 return report;
             }
             function mapMemberToOutput(member, index) {
-                var player = data.PlayerRepo.find(member.playerId), role = bh.utils.rankToNumber(member.position), fame = member.fameLevel + 1, heroData = data.HeroRepo.sorted.map(player ? mapPlayerHero : mapHero), position = index ? index + 1 : "GL";
+                var player = data.PlayerRepo.find(member.playerId), role = bh.utils.positionToType(member.position), fame = member.fameLevel + 1, heroData = data.HeroRepo.sorted.map(player ? mapPlayerHero : mapHero), position = index ? index + 1 : "GL";
                 return [position, fame, member.name, role].concat(heroData).join("\t");
                 function mapHero(hero) {
                     var level = member.archetypeLevels[hero.guid] + 1, hp = bh.utils.truncateNumber(hero.getHitPoints(level));
@@ -2952,19 +2946,8 @@ var bh;
     (function (utils) {
         var sort;
         (function (sort) {
-            function elementToNumber(element) {
-                switch (element) {
-                    case "Fire": return 0;
-                    case "Earth": return 1;
-                    case "Air": return 2;
-                    case "Spirit": return 3;
-                    case "Water": return 4;
-                    default: return 5;
-                }
-            }
             function byElement(a, b) {
-                var aValue = elementToNumber(bh.ElementType[a.elementType]), bValue = elementToNumber(bh.ElementType[b.elementType]);
-                return aValue == bValue ? 0 : aValue < bValue ? -1 : 1;
+                return a.elementType == b.elementType ? 0 : a.elementType < b.elementType ? -1 : 1;
             }
             sort.byElement = byElement;
             function byElementThenKlass(a, b) {
@@ -2997,7 +2980,7 @@ var bh;
             }
             sort.byName = byName;
             function byPosition(a, b) {
-                var ap = utils.rankToNumber(a.position), bp = utils.rankToNumber(b.position);
+                var ap = utils.positionToType(a.position), bp = utils.positionToType(b.position);
                 return ap == bp ? 0 : ap > bp ? -1 : 1;
             }
             sort.byPosition = byPosition;
@@ -3067,15 +3050,12 @@ var bh;
             return string === "y" || string === "t" || string === "1";
         }
         utils.parseBoolean = parseBoolean;
-        function rankToNumber(rank) {
-            switch (rank) {
-                case "Leader": return 4;
-                case "CoLeader": return 3;
-                case "Elder": return 2;
-                default: return 1;
-            }
-        }
-        utils.rankToNumber = rankToNumber;
+        function positionToType(position) { return bh.PositionType[position]; }
+        utils.positionToType = positionToType;
+        function rarityToType(rarity) { return bh.RarityType[rarity.replace(/ /g, "")]; }
+        utils.rarityToType = rarityToType;
+        function typeToElement(elementType) { return bh.ElementType[elementType]; }
+        utils.typeToElement = typeToElement;
         function guessMinRarity(evoLevel, level) {
             if (4 < evoLevel)
                 return "Legendary";
@@ -3089,18 +3069,11 @@ var bh;
         }
         utils.guessMinRarity = guessMinRarity;
         function rarityToStars(rarity) {
-            switch (rarity) {
-                case "Common": return "<small class='evo-star'>&#9733;</small>";
-                case "Uncommon": return "<small class='evo-star'>&#9733;&#9733;</small>";
-                case "Rare": return "<small class='evo-star'>&#9733;&#9733;&#9733;</small>";
-                case "Super Rare": return "<small class='evo-star'>&#9733;&#9733;&#9733;&#9733;</small>";
-                case "Legendary": return "<small class='evo-star'>&#9733;&#9733;&#9733;&#9733;&#9733;</small>";
-                default: return "";
-            }
+            return "<small class='evo-star'>" + (new Array(rarityToType(rarity))).fill("&#9733;").join("") + "</small>";
         }
         utils.rarityToStars = rarityToStars;
         function evoToStars(rarity, evoLevel) {
-            var evo = +evoLevel.split(".")[0], level = +evoLevel.split(".")[1], rarity = rarity || guessMinRarity(evo, level - 1), stars = rarity == "Legendary" ? 5 : rarity == "Super Rare" ? 4 : rarity == "Rare" ? 3 : rarity == "Uncommon" ? 2 : 1, count = 0, value = "";
+            var evo = +evoLevel.split(".")[0], level = +evoLevel.split(".")[1], rarity = rarity || guessMinRarity(evo, level - 1), stars = rarityToType(rarity), count = 0, value = "";
             while (evo--) {
                 count++;
                 value += "<span class='evo-star'>&#9733;</span>";
