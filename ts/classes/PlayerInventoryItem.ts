@@ -40,10 +40,10 @@ namespace bh {
 
 			}else {
 				var activeRecipes = this.player.activeRecipes,
-					recipes = data.RecipeRepo.findByMaterial(this.name),
-					filtered = recipes.filter(recipe => activeRecipes.includes(recipe));
+					recipes = data.RecipeRepo.findByItem(this.name),
+					filtered = activeRecipes.filter(recipe => recipes.includes(recipe));
 				filtered.forEach(recipe => {
-					var item = recipe.getItemByName(this.name);
+					var item = recipe.getItem(this);
 					needed += item.max;
 				});
 
@@ -84,12 +84,11 @@ namespace bh {
 
 				}else {
 					var activeRecipes = this.player.activeRecipes,
-						recipes = data.RecipeRepo.findByMaterial(this.name),
+						recipes = data.RecipeRepo.findByItem(this),
 						filtered = recipes.filter(recipe => activeRecipes.includes(recipe));
 					filtered.forEach(recipe => {
-						var item = recipe.getItemByName(this.name),
+						var item = recipe.getItem(this),
 							playerBattleCard = this.player.activeBattleCards.find(bc => bc.name == recipe.name && bc.rarityType === recipe.rarityType);
-if(recipe.name.includes("Voo"))console.log(recipe)
 						children += playerBattleCard.toRowHtml(item.max);
 					});
 

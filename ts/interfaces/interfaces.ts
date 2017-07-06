@@ -32,6 +32,8 @@ interface IDataAbility extends IHasGuid, IHasName {
 }
 
 interface IDataBattleCard extends IHasGuid, IHasName, IHasElementType, IHasKlassType, IHasRarityType {
+	alternate: string;
+	altLower: string;
 	turns: number;
 	type: GameBattleCardType;
 	target: GameBattleCardTarget;

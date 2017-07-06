@@ -6,17 +6,19 @@ namespace bh {
 		}
 		return root;
 	}
-	function img(src: string, css?: string) {
+	function img(src: string, css?: string, style?: string) {
 		var onerror = "",
-			klass = css ? `class="${css}"` : ""
+			klass = css ? `class="${css}"` : "",
+			style = style ? `style="${style}"` : "";
 		if (src.includes("glyphicons-82-refresh")) {
 			onerror = `onerror="bh.$(this).replaceWith('&#8634;')"`;
 		}
-		return `<img src="${src}" ${klass} ${onerror}/>`;
+		return `<img src="${src}" ${klass} ${style} ${onerror}/>`;
 	}
 	export function getImg(...parts: string[]): string { return img(getSrc(...parts)); }
 	export function getImg12(...parts: string[]): string {return img(getSrc(...parts), "icon-12"); }
 	export function getImg20(...parts: string[]): string {return img(getSrc(...parts), "icon-20"); }
+	export function getImgG(...parts: string[]): string { return img(getSrc(...parts), "grayscale"); }
 	function getSrc(...parts: string[]): string {
 		var sliced = parts.slice(),
 			image = (<any>images)[sliced.shift()];
@@ -98,6 +100,21 @@ namespace bh {
 			export declare var WaterVapour: string;
 			export declare var WeederSeeds: string;
 			export declare var Zapperball: string;
+		}
+		export namespace heroes {
+			export declare var Brom: string;
+			export declare var Hawkeye: string;
+			export declare var Bree: string;
+			export declare var Thrudd: string;
+			export declare var Trix: string;
+			export declare var Fergus: string;
+			export declare var Monty: string;
+			export declare var Red: string;
+			export declare var Jinx: string;
+			export declare var Krell: string;
+			export declare var Gilda: string;
+			export declare var Logan: string;
+			export declare var Peg: string;
 		}
 		export namespace icons {
 			export declare var logo: string;

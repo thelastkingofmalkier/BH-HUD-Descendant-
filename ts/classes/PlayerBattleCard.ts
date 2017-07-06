@@ -18,6 +18,7 @@ namespace bh {
 		public get elementType() { return this._bc ? this._bc.elementType : null; }
 		public get klassType() { return this._bc ? this._bc.klassType : null; }
 		public get name() { return this._bc && this._bc.name || this.playerCard && this.playerCard.configId; }
+		public get lower() { return this.name.toLowerCase(); }
 		public get rarityType() { return this._bc ? this._bc.rarityType : null; }
 		public get type() { return this._bc && this._bc.type || null; }
 		public get tier() { return this._bc && this._bc.tier || null; }

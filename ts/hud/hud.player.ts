@@ -29,7 +29,7 @@ namespace bh {
 					select = $("#brain-hud-scouter-player-target");
 
 				if (!$(`#brain-hud-scouter-player-target > option[value="${player.guid}"]`).length) {
-					select.append(`<option value="${player.guid}">${player.isFullMeat ? `&#9734; ` : ``}${player.name} (${player.powerPercent}%)</option>`);
+					select.append(`<option value="${player.guid}">${player.isFullMeat ? `&#9734; ` : ``}${utils.htmlFriendly(player.name)} (${player.powerPercent}%)</option>`);
 					select.children().toArray().slice(1)
 						.sort((a: HTMLOptionElement, b: HTMLOptionElement) => { return a.text < b.text ? -1 : a.text == b.text ? 0 : 1 })
 						.forEach(el => select.append(el));

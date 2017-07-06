@@ -1,3 +1,5 @@
+/// <reference path="./Cacheable.ts" />
+
 namespace bh {
 
 	function formatRow(imageGroup: string, imageName: string, name: string, badgeValue: number | string) {
@@ -5,18 +7,12 @@ namespace bh {
 		return `<div data-hud="true">${getImg20(imageGroup, imageName)} ${name}<span class="badge pull-right">${badgeValue}</span></div>`;
 	}
 
-	export class Player {
+	export class Player extends Cacheable {
 		private _pp: IPlayer.Player;
 		private _gp: IGuild.Player;
 
-		private get archetypes(): IPlayer.Hero[] {
-			if (this._pp) return this._pp.archetypes || [];
-			return Object.keys(this._gp.archetypeLevels).map(guid => {
-				return <any>{ playerId:this.guid, id:guid, level:this._gp.archetypeLevels[guid] };
-			});
-		}
-
 		public constructor(json: IPlayer.Player | IGuild.Player, public isArena = false) {
+			super();
 			if (data.isPlayer(json)) { this._pp = <IPlayer.Player>json; }
 			if (data.isGuildPlayer(json)) { this._gp = <IGuild.Player>json; }
 		}
@@ -60,12 +56,23 @@ namespace bh {
 		public get guildName() { return data.guilds.findNameByGuid(this.guildGuid); }
 		public get guildParent() { var guildName = this.guildName; return guildName && guildName.parent || null; }
 		public get guilds() { return data.guilds.filterNamesByParent(this.guildParent); }
-		public get heroCount() { return this.archetypes.length; }
-		public get heroes() { return this.archetypes.map(archetype => new PlayerHero(this, archetype)); }
+		public get heroes(): PlayerHero[] {
+			return this.fromCache("heroes", () => {
+				var archetypes: IPlayer.Hero[];
+				if (this._pp) {
+					archetypes = this._pp.archetypes || [];
+				}else {
+					archetypes = Object.keys(this._gp.archetypeLevels).map(guid => {
+						return <any>{ playerId:this.guid, id:guid, level:this._gp.archetypeLevels[guid] };
+					});
+				}
+				return archetypes.map(archetype => new PlayerHero(this, archetype));
+			});
+		}
 		public get isAlly() { var me = Player.me; return !!me.guilds.find(g => g.guid == this.guildGuid); }
 		public get canScout() { return !!this.guildParent || this.guid == "b0a8b57b-54f5-47d8-8b7a-f9dac8300ca0"; }
 		public get isExtended() { return !!this._pp; }
-		public get isFullMeat() { return this.heroCount == data.HeroRepo.length && !this.heroes.find(hero => !hero.isMeat); }
+		public get isFullMeat() { return this.heroes.length == data.HeroRepo.length && !this.heroes.find(hero => !hero.isMeat); }
 		public get isMe() { return [Messenger.ActivePlayerGuid, "b0a8b57b-54f5-47d8-8b7a-f9dac8300ca0"].includes(this.guid); }
 		public get name() { return this._pp ? this._pp.name : this._gp && this._gp.name || null; }
 		public get position() { return this._gp && this._gp.position || null; }
@@ -74,12 +81,9 @@ namespace bh {
 		public get powerRating() { return this.heroes.reduce((power, hero) => power + hero.powerRating, 0); }
 		public get raidRowHtml() { return this._pp ? formatRow("keys", "RaidTicket", "Raid Tickets", this.raidTickets) : ""; }
 		public get raidTickets() { return this._pp && this._pp.raidKeys || 0; }
-		private _battleCards: PlayerBattleCard[] = null;
-		public get battleCards() { return this._battleCards || (this._battleCards = !(this._pp && this._pp.playerCards && this._pp.playerCards.cards) ? [] : this.sortAndReduceBattleCards(Object.keys(this._pp.playerCards.cards))); }
-		private _activeBattleCards: PlayerBattleCard[] = null;
-		public get activeBattleCards() { return this._activeBattleCards || (this._activeBattleCards = this.battleCards.filter(battleCard => battleCard.isActive)); }
-		private _activeRecipes: Recipe[] = null;
-		public get activeRecipes() { return this._activeRecipes || (this._activeRecipes = this.activeBattleCards.map(bc => data.RecipeRepo.findByBattleCard(bc))); }
+		public get battleCards(): PlayerBattleCard[] { return this.fromCache("battleCards", () => !(this._pp && this._pp.playerCards && this._pp.playerCards.cards) ? [] : this.sortAndReduceBattleCards(Object.keys(this._pp.playerCards.cards))); }
+		public get activeBattleCards(): PlayerBattleCard[] { return this.fromCache("activeBattleCards", () => this.battleCards.filter(battleCard => battleCard.isActive)); }
+		public get activeRecipes(): Recipe[] { return this.fromCache("activeRecipes", () => this.activeBattleCards.map(bc => data.RecipeRepo.createPartialRecipe(bc)).filter(r => !!r)); }
 		public get boosterCards() { var map = this._pp && this._pp.feederCardsMap; return !map ? [] : Object.keys(map).map(guid => new PlayerBoosterCard(guid, map[guid])).sort(utils.sort.byElementThenRarityThenName); }
 		public get boosterCount() { var count = 0, map = this._pp && this._pp.feederCardsMap; Object.keys(map || {}).map(guid => count += map[guid]); return count; }
 		public get boosterRowHtml() { return this._pp ? PlayerBoosterCard.rowHtml(this.boosterCount) : ""; }

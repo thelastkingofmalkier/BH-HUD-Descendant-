@@ -1,15 +1,6 @@
 /// <reference path="Repo.ts"/>
 namespace bh {
 
-	export interface IRecipeMaterial {
-		material: string;
-		min: number;
-		max: number;
-	}
-	export interface IRecipeEvo {
-		materials: IRecipeMaterial[];
-	}
-
 	function cleanMatName(mat: string) {
 		if (mat == "Gunpowder") return "Ore Particles";
 		if (mat == "Dehydrated Water") return "Water Vapour";
@@ -52,15 +43,11 @@ namespace bh {
 					var parts = line.trim().split(/\t/),
 						guid = parts.shift(),
 						name = parts.shift(),
-						rarity = parts.shift().replace(/ /g, ""),
-						evo = parts.shift(),
-						evoNumber = +evo[0],
-						recipe = recipes[guid] || (recipes[guid] = new Recipe(guid, name, RarityType[<GameRarity>rarity])),
-						mat: IRecipeMaterial;
+						rarityType = RarityType[<GameRarity>parts.shift().replace(/ /g, "")],
+						evoNumber = +parts.shift()[0],
+						recipe = recipes[guid] || (recipes[guid] = new Recipe(guid, name, rarityType));
 					while (parts.length) {
-						mat = { min:+parts.shift(), max:+parts.shift(), material:cleanMatName(parts.shift()) };
-						recipe.addMat(evoNumber, mat);
-						// if (!AllMats.includes(mat.material)) AllMats.push(mat.material);
+						recipe.addItem(evoNumber, +parts.shift().trim(), +parts.shift().trim(), cleanMatName(parts.shift().trim()));
 					}
 				});
 				this.data = Object.keys(recipes).map(key => recipes[key]);
@@ -68,46 +55,23 @@ namespace bh {
 			});
 		}
 
-		public findByMaterial(value: string) {
+		public findByItem(item: InventoryItem | PlayerInventoryItem | string) {
+			var name = item && (<InventoryItem | PlayerInventoryItem>item).name || <string>item;
 			return this.data.filter(recipe => {
 				return recipe.evos.find(evo => {
-					return evo.materials.find(mat => value == mat.material) != null;
+					return evo.items.find(recipeItem => name == recipeItem.item.name) != null;
 				}) != null;
 			});
 		}
 
 		public findByBattleCard(card: IDataBattleCard | PlayerBattleCard) {
-			return this.data.find(r => r.name == card.name && r.rarityType === card.rarityType);
+			return this.data.find(r => r.lower == card.lower && r.rarityType === card.rarityType)
+				|| console.log(card.name + ": " + card.rarityType);
+		}
+
+		public createPartialRecipe(card: PlayerBattleCard) {
+			var recipe = this.findByBattleCard(card);
+			return recipe && recipe.createPartial(card) || null;
 		}
 	}
-	export class Recipe {
-		public evos: IRecipeEvo[] = [];
-		public lower: string;
-		public constructor(public guid: string, public name: string, public rarityType: RarityType) {
-			this.lower = name.toLowerCase();
-		}
-		public addMat(evoNumber: number, mat: IRecipeMaterial) {
-			if (typeof(mat.min) !== "number" || typeof(mat.max) !== "number" || !mat.material) return;
-			var evo = this.evos[evoNumber] || (this.evos[evoNumber] = { materials:[] });
-			evo.materials.push(mat);
-		}
-		public get items() {
-			var items: IRecipeItem[] = [];
-			this.evos.forEach(evo => {
-				evo.materials.forEach(mat => {
-					var item = items.find(item => item.item.name == mat.material);
-					if (!item) {
-						items.push(item = { item:data.ItemRepo.find(mat.material), min:0, max:0 });
-					}
-					item.min += mat.min;
-					item.max += mat.max;
-				});
-			});
-			return items;
-		}
-		public getItemByName(name: string) {
-			return this.items.find(item => item.item.name == name);
-		}
-	}
-	export interface IRecipeItem { item: InventoryItem; min: number; max: number; }
 }

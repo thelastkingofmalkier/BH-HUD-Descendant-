@@ -13,6 +13,12 @@ div.brain-hud-container table { width:100%; margin:0; padding:0; border:0; }
 div.brain-hud-container td { padding:0; margin:0; border:0; }
 div.brain-hud-container select { width:180px; }
 div.brain-hud-container textarea { width:240px; font-size:8pt; display:none; }
+div.brain-hud-container .Air { background-color:#f3f3f3; }
+div.brain-hud-container .Earth { background-color:#e0eed5; }
+div.brain-hud-container .Fire { background-color:#fce5cd; }
+div.brain-hud-container .Spirit { background-color:#f3e2f6; }
+div.brain-hud-container .Water { background-color:#deeaf4; }
+div.brain-hud-container .grayscale { filter: grayscale(100%); }
 
 div.brain-hud-header { text-align:center; font-weight:bold; }
 
@@ -31,10 +37,11 @@ div.brain-hud-scouter-player > div.player-name { font-size:10pt; font-weight:bol
 div.brain-hud-scouter-panel-header { padding:2px 0 0 0; }
 div.brain-hud-scouter-panel-header > button { cursor:default; border:0; width:240px; text-align:left; padding:0; margin:0; }
 div.brain-hud-scouter-panel-header > button[data-action] { cursor:pointer; }
-div.brain-hud-scouter-panel-header > button > span.hero-level { display:inline-block; width:20px; }
+div.brain-hud-scouter-panel-header > button > span.hero-icon { display:inline-block; width:20px; text-align:center; }
+div.brain-hud-scouter-panel-header > button > span.hero-level { display:inline-block; width:25px; text-align:center; }
 div.brain-hud-scouter-panel-header > button > span.hero-name { display:inline-block; width:60px; }
-div.brain-hud-scouter-panel-header > button > span.hero-hp { display:inline-block; width:75px; }
-div.brain-hud-scouter-panel-header > button > span.hero-rating { display:inline-block; width:75px; }
+div.brain-hud-scouter-panel-header > button > span.hero-hp { display:inline-block; width:70px; text-align:center; }
+div.brain-hud-scouter-panel-header > button > span.hero-rating { display:inline-block; width:55px; }
 
 div.brain-hud-inventory-buttons { text-align:center; }
 

@@ -17,8 +17,14 @@ namespace bh {
 				export function find(guid: string): IDataBattleCard {
 					return _cards.find(card => card.guid == guid);
 				}
-				export function findByName(name: string): IDataBattleCard {
-					return _cards.find(card => card.name == name);
+				export function findByName(name: string): IDataBattleCard;
+				export function findByName(name: string, rarityType: RarityType): IDataBattleCard;
+				export function findByName(name: string, rarityType?: RarityType): IDataBattleCard {
+					var lower = name.toLowerCase();
+					if (rarityType === undefined) {
+						return _cards.find(card => card.lower == lower || card.altLower == lower);
+					}
+					return _cards.find(card => card.rarityType === rarityType && (card.lower == lower || card.altLower == lower));
 				}
 
 				export function getMaxEvo(rarityType: RarityType): number {

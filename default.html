@@ -5,7 +5,7 @@
 
 		<script type="text/javascript" src="https://code.jquery.com/jquery-2.2.0.min.js"></script>
 		<script type="text/javascript" src="./js/images.all.js"></script>
-		<!--<script type="text/javascript" src="./js/data.all.js"></script>-->
+		<script type="text/javascript" src="./js/data.all.js"></script>
 		<script type="text/javascript" src="./js/default.js"></script>
 		<script>
 			bh.hud.listener.init(window).then(()=>{
@@ -16,7 +16,7 @@
 						readyState: XmlHttpRequest.DONE
 					};
 					bh.Messenger.ActivePlayerGuid = json.id;
-					window[0].bh.hud.listener.handleReadyStateChange(xhr);
+					setTimeout(() => window[0].bh.hud.listener.handleReadyStateChange(xhr), 500);
 				});
 				$.getJSON("./json/brain_storm_war.json").then(json => {
 					var xhr = {
@@ -25,7 +25,7 @@
 						readyState: XmlHttpRequest.DONE
 					};
 					bh.Messenger.ActivePlayerGuid = json.id;
-					window[0].bh.hud.listener.handleReadyStateChange(xhr);
+					setTimeout(() => window[0].bh.hud.listener.handleReadyStateChange(xhr), 500);
 				});
 			});
 		</script>
