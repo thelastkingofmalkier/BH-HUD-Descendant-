@@ -93,7 +93,6 @@ namespace bh {
 										: key == "turns" ? +parts[index]
 										: parts[index];
 							if (key == "name") value["lower"] = parts[index].toLowerCase();
-							if (key == "alternate") value["altLower"] = parts[index].toLowerCase();
 						}
 					});
 					return <T><any>value;

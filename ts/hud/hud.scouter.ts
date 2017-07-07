@@ -56,7 +56,7 @@ namespace bh {
 									}
 									return renderExpandable(hero.guid + playerHeroAbility.guid, text, children);
 								}),
-							cardsHtml = hero.deck.map(card => card.fullHtml).join("<br/>");
+							cardsHtml = hero.deck.map(card => card.rowHtml).join("");
 						content = `${abilities.join("")}${cardsHtml}`;
 					}
 					html += buildPanel(id, hero.elementType, title, content, player.isMe || player.isAlly);

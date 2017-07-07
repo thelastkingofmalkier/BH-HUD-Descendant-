@@ -1,5 +1,5 @@
 var __extends = (this && this.__extends) || (function () {
-    var extendStatics = Object.setPrototypeOf ||
+var extendStatics = Object.setPrototypeOf ||
         ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
         function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
     return function (d, b) {
@@ -299,8 +299,6 @@ var bh;
                                 : parts[index];
                         if (key == "name")
                             value["lower"] = parts[index].toLowerCase();
-                        if (key == "alternate")
-                            value["altLower"] = parts[index].toLowerCase();
                     }
                 });
                 return value;
@@ -815,9 +813,20 @@ var bh;
                 console.log("Missing BattleCard:", this.name + ": " + playerCard.id + " (" + this.evoLevel + ")");
             }
         }
+        PlayerBattleCard.prototype._rowChildren = function () {
+            var _this = this;
+            var me = bh.Player.me, recipe = bh.data.RecipeRepo.find(this.guid), activeRecipe = recipe && recipe.createPartial(this), html = "";
+            if (activeRecipe) {
+                activeRecipe.all.forEach(function (recipeItem) {
+                    var item = me.inventory.find(function (item) { return item.guid == recipeItem.item.guid; });
+                    html += bh.PlayerInventoryItem.toRowHtml(item, item.count, recipeItem.max * _this.count);
+                });
+            }
+            return html;
+        };
         PlayerBattleCard.prototype._rowHtml = function (badgeValue) {
-            var badgeHtml = badgeValue ? "<span class=\"badge pull-right\">" + badgeValue + "</span>" : "";
-            return "<div data-element-type=\"" + this.elementType + "\" data-rarity-type=\"" + this.rarityType + "\" data-klass-type=\"" + this.klassType + "\" data-brag=\"" + (this.brag ? "Brag" : "") + "\">" + this.fullHtml + badgeHtml + "</div>";
+            var badgeHtml = badgeValue ? "<span class=\"badge pull-right\">" + badgeValue + "</span>" : "", children = badgeValue || this.isMaxed ? "" : this._rowChildren(), content = bh.renderExpandable(this.playerCard.id, "" + this.fullHtml + badgeHtml, children);
+            return "<div data-element-type=\"" + this.elementType + "\" data-rarity-type=\"" + this.rarityType + "\" data-klass-type=\"" + this.klassType + "\" data-brag=\"" + (this.brag ? "Brag" : "") + "\">" + content + "</div>";
         };
         Object.defineProperty(PlayerBattleCard.prototype, "brag", {
             get: function () { return this._bc && this._bc.brag || false; },
@@ -891,8 +900,8 @@ var bh;
         });
         Object.defineProperty(PlayerBattleCard.prototype, "fullHtml", {
             get: function () {
-                var count = this.count > 1 ? "x" + this.count : "", typeAndValue = this.value ? " (" + this.typeImage + " " + this.formattedValue : "", stars = bh.utils.evoToStars(this.rarityType, this.evoLevel), name = this.name.replace(/Mischievous/, "Misch.").replace(/Protection/, "Prot."), logoValue = "";
-                return this.battleOrBragImage + " " + this.evoLevel + " <small>" + stars + "</small> " + name + " " + count + " " + logoValue;
+                var count = this.count > 1 ? "x" + this.count : "", typeAndValue = this.value ? " (" + this.typeImage + " " + this.formattedValue : "", stars = bh.utils.evoToStars(this.rarityType, this.evoLevel), name = this.name.replace(/Mischievous/, "Misch.").replace(/Protection/, "Prot.");
+                return this.battleOrBragImage + " " + this.evoLevel + " <small>" + stars + "</small> " + name + " " + count;
             },
             enumerable: true,
             configurable: true
@@ -1584,11 +1593,8 @@ var bh;
                     this.player.activeBattleCards.forEach(function (playerBattleCard) { return needed += playerBattleCard.maxMaxSotNeeded; });
                 }
                 else {
-                    var activeRecipes = this.player.activeRecipes, recipes = bh.data.RecipeRepo.findByItem(this.name), filtered = activeRecipes.filter(function (recipe) { return recipes.includes(recipe); });
-                    filtered.forEach(function (recipe) {
-                        var item = recipe.getItem(_this);
-                        needed += item.max;
-                    });
+                    var activeRecipes = this.player.activeRecipes, filtered = activeRecipes.filter(function (recipe) { return !!recipe.getItem(_this); });
+                    filtered.forEach(function (recipe) { return needed += recipe.getMaxNeeded(_this); });
                 }
                 return needed;
             },
@@ -1623,10 +1629,9 @@ var bh;
                             .forEach(function (playerBattleCard) { return children += playerBattleCard.toRowHtml(playerBattleCard.maxMaxSotNeeded); });
                     }
                     else {
-                        var activeRecipes = this.player.activeRecipes, recipes = bh.data.RecipeRepo.findByItem(this), filtered = recipes.filter(function (recipe) { return activeRecipes.includes(recipe); });
+                        var activeRecipes = this.player.activeRecipes, filtered = activeRecipes.filter(function (recipe) { return !!recipe.getItem(_this); });
                         filtered.forEach(function (recipe) {
-                            var item = recipe.getItem(_this), playerBattleCard = _this.player.activeBattleCards.find(function (bc) { return bc.name == recipe.name && bc.rarityType === recipe.rarityType; });
-                            children += playerBattleCard.toRowHtml(item.max);
+                            children += recipe.card.toRowHtml(recipe.getMaxNeeded(_this));
                         });
                     }
                 }
@@ -1635,6 +1640,10 @@ var bh;
             enumerable: true,
             configurable: true
         });
+        PlayerInventoryItem.toRowHtml = function (item, count, needed) {
+            var folder = bh.ItemType[item.itemType].toLowerCase() + "s", name = item.isEvoJar ? item.name.replace(/\W/g, "") : item.isCrystal ? item.name.split(/ /)[0] : bh.data.HeroRepo.find(item.name.split("'")[0]).abilities[0].name.replace(/\W/g, ""), image = bh.getImg20(folder, name), badge = "<span class=\"badge pull-right\">" + bh.utils.formatNumber(count) + " / " + bh.utils.formatNumber(needed) + "</span>";
+            return "<div>" + image + " " + item.name + " " + badge + "</div>";
+        };
         return PlayerInventoryItem;
     }());
     bh.PlayerInventoryItem = PlayerInventoryItem;
@@ -1784,11 +1793,11 @@ var bh;
         function Recipe(guid, name, rarityType) {
             var _this = _super.call(this) || this;
             _this.guid = guid;
-            _this.rarityType = rarityType;
             _this.evos = [];
-            _this.card = bh.data.cards.battle.findByName(name, rarityType);
+            _this.card = bh.data.cards.battle.find(guid);
             _this.name = _this.card && _this.card.name || name;
             _this.lower = _this.name.toLowerCase();
+            _this.rarityType = rarityType;
             if (!_this.card)
                 console.log(name + " (" + bh.RarityType[rarityType][0] + ")");
             return _this;
@@ -1824,8 +1833,13 @@ var bh;
         Recipe.prototype.getItem = function (item) {
             return this.all.find(function (recipeItem) { return recipeItem.item.name == item.name; });
         };
+        Recipe.prototype.getMaxNeeded = function (item) {
+            var recipeItem = this.getItem(item), max = recipeItem && recipeItem.max, multiplier = this.card instanceof bh.PlayerBattleCard ? this.card.count : 1;
+            return max * multiplier;
+        };
         Recipe.prototype.createPartial = function (card) {
             var recipe = new Recipe(this.guid, this.name, this.rarityType);
+            recipe.card = card;
             this.evos.slice(card.evo).forEach(function (evo) {
                 return evo.items.forEach(function (item) {
                     return recipe.addItem(evo.evoFrom, item.min, item.max, item.item.name);
@@ -1939,9 +1953,9 @@ var bh;
                 function findByName(name, rarityType) {
                     var lower = name.toLowerCase();
                     if (rarityType === undefined) {
-                        return _cards.find(function (card) { return card.lower == lower || card.altLower == lower; });
+                        return _cards.find(function (card) { return card.lower == lower; });
                     }
-                    return _cards.find(function (card) { return card.rarityType === rarityType && (card.lower == lower || card.altLower == lower); });
+                    return _cards.find(function (card) { return card.rarityType === rarityType && card.lower == lower; });
                 }
                 battle.findByName = findByName;
                 function getMaxEvo(rarityType) {
@@ -3016,7 +3030,7 @@ var bh;
         }
         hud.render = render;
         function renderCss() {
-            var css = "<style id=\"brain-hud-styles\" type=\"text/css\">\ndiv.brain-hud-container { font-size:8pt; position:fixed; top:0; right:0; width:250px; background:#FFF; color:#000; border:2px solid #000; z-index:9999; padding:2px; max-height:" + (jQuery(window).height() - 10) + "px; overflow:auto; }\ndiv.brain-hud-container div { clear:both; }\ndiv.brain-hud-container table { width:100%; margin:0; padding:0; border:0; }\ndiv.brain-hud-container td { padding:0; margin:0; border:0; }\ndiv.brain-hud-container select { width:180px; }\ndiv.brain-hud-container textarea { width:240px; font-size:8pt; display:none; }\ndiv.brain-hud-container .Air { background-color:#f3f3f3; }\ndiv.brain-hud-container .Earth { background-color:#e0eed5; }\ndiv.brain-hud-container .Fire { background-color:#fce5cd; }\ndiv.brain-hud-container .Spirit { background-color:#f3e2f6; }\ndiv.brain-hud-container .Water { background-color:#deeaf4; }\ndiv.brain-hud-container .grayscale { filter: grayscale(100%); }\n\ndiv.brain-hud-header { text-align:center; font-weight:bold; }\n\ndiv.brain-hud-main-container,\ndiv.brain-hud-scouter-guild-container,\ndiv.brain-hud-scouter-player-container,\ndiv.brain-hud-scouter-player,\ndiv.brain-hud-scouter-panel-content,\ndiv.brain-hud-inventory,\ndiv.brain-hud-inventory-container,\ndiv.brain-hud-child-scroller { display:none; }\n\ndiv.brain-hud-scouter-player-report { display:none; padding:0 2px; text-align:left; }\ndiv.brain-hud-scouter-player > div.player-name { font-size:10pt; font-weight:bold; text-align:center; }\n\ndiv.brain-hud-scouter-panel-header { padding:2px 0 0 0; }\ndiv.brain-hud-scouter-panel-header > button { cursor:default; border:0; width:240px; text-align:left; padding:0; margin:0; }\ndiv.brain-hud-scouter-panel-header > button[data-action] { cursor:pointer; }\ndiv.brain-hud-scouter-panel-header > button > span.hero-icon { display:inline-block; width:20px; text-align:center; }\ndiv.brain-hud-scouter-panel-header > button > span.hero-level { display:inline-block; width:25px; text-align:center; }\ndiv.brain-hud-scouter-panel-header > button > span.hero-name { display:inline-block; width:60px; }\ndiv.brain-hud-scouter-panel-header > button > span.hero-hp { display:inline-block; width:70px; text-align:center; }\ndiv.brain-hud-scouter-panel-header > button > span.hero-rating { display:inline-block; width:55px; }\n\ndiv.brain-hud-inventory-buttons { text-align:center; }\n\ndiv.brain-hud-container .active { display:block; }\n\ndiv.brain-hud-container .star { color: darkgoldenrod; text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black; }\ndiv.brain-hud-container .evo-star { color: gold; text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black; }\n\ndiv.brain-hud-container img { height:16px; width:16px; }\ndiv.brain-hud-container img.icon-12 { height:12px; width:12px; }\ndiv.brain-hud-container img.icon-20 { height:20px; width:20px; }\n\ndiv.brain-hud-child-scroller { max-height:125px; overflow:auto; }\n\ndiv.progress { margin-bottom:0; height:10px; }\ndiv.progress > div.progress-bar { line-height:10px; font-size:8px; font-weight:bold; clear:none; }\n</style>";
+            var css = "<style id=\"brain-hud-styles\" type=\"text/css\">\ndiv.brain-hud-container { font-size:8pt; position:fixed; top:0; right:0; width:250px; background:#FFF; color:#000; border:2px solid #000; z-index:9999; padding:2px; max-height:" + (jQuery(window).height() - 10) + "px; overflow:auto; }\ndiv.brain-hud-container div { clear:both; }\ndiv.brain-hud-container table { width:100%; margin:0; padding:0; border:0; }\ndiv.brain-hud-container td { padding:0; margin:0; border:0; }\ndiv.brain-hud-container select { width:180px; }\ndiv.brain-hud-container textarea { width:240px; font-size:8pt; display:none; }\ndiv.brain-hud-container .Air { background-color:#f3f3f3; }\ndiv.brain-hud-container .Earth { background-color:#e0eed5; }\ndiv.brain-hud-container .Fire { background-color:#fce5cd; }\ndiv.brain-hud-container .Spirit { background-color:#f3e2f6; }\ndiv.brain-hud-container .Water { background-color:#deeaf4; }\ndiv.brain-hud-container .grayscale { filter: grayscale(100%); }\n\ndiv.brain-hud-header { text-align:center; font-weight:bold; }\n\ndiv.brain-hud-main-container,\ndiv.brain-hud-scouter-guild-container,\ndiv.brain-hud-scouter-player-container,\ndiv.brain-hud-scouter-player,\ndiv.brain-hud-scouter-panel-content,\ndiv.brain-hud-inventory,\ndiv.brain-hud-inventory-container,\ndiv.brain-hud-child-scroller { display:none; }\n\ndiv.brain-hud-scouter-panel-content,\ndiv.brain-hud-child-scroller { padding-left:10px; }\n\ndiv.brain-hud-scouter-player-report { display:none; padding:0 2px; text-align:left; }\ndiv.brain-hud-scouter-player > div.player-name { font-size:10pt; font-weight:bold; text-align:center; }\n\ndiv.brain-hud-scouter-panel-header { padding:2px 0 0 0; }\ndiv.brain-hud-scouter-panel-header > button { cursor:default; border:0; width:240px; text-align:left; padding:0; margin:0; }\ndiv.brain-hud-scouter-panel-header > button[data-action] { cursor:pointer; }\ndiv.brain-hud-scouter-panel-header > button > span.hero-icon { display:inline-block; width:20px; text-align:center; }\ndiv.brain-hud-scouter-panel-header > button > span.hero-level { display:inline-block; width:25px; text-align:center; }\ndiv.brain-hud-scouter-panel-header > button > span.hero-name { display:inline-block; width:60px; }\ndiv.brain-hud-scouter-panel-header > button > span.hero-hp { display:inline-block; width:70px; text-align:center; }\ndiv.brain-hud-scouter-panel-header > button > span.hero-rating { display:inline-block; width:55px; }\n\ndiv.brain-hud-inventory-buttons { text-align:center; }\n\ndiv.brain-hud-container .active { display:block; }\n\ndiv.brain-hud-container .star { color: darkgoldenrod; text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black; }\ndiv.brain-hud-container .evo-star { color: gold; text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black; }\n\ndiv.brain-hud-container img { height:16px; width:16px; }\ndiv.brain-hud-container img.icon-12 { height:12px; width:12px; }\ndiv.brain-hud-container img.icon-20 { height:20px; width:20px; }\n\ndiv.brain-hud-child-scroller { max-height:125px; overflow:auto; }\n\ndiv.progress { margin-bottom:0; height:10px; }\ndiv.progress > div.progress-bar { line-height:10px; font-size:8px; font-weight:bold; clear:none; }\n</style>";
             bh.$("head").append(css);
         }
         function renderBootstrapCss() {
@@ -3066,7 +3080,7 @@ var bh;
                                 children += playerHeroAbility.goldHtml;
                             }
                             return bh.renderExpandable(hero.guid + playerHeroAbility.guid, text, children);
-                        }), cardsHtml = hero.deck.map(function (card) { return card.fullHtml; }).join("<br/>");
+                        }), cardsHtml = hero.deck.map(function (card) { return card.rowHtml; }).join("");
                         content = "" + abilities.join("") + cardsHtml;
                     }
                     html += buildPanel(id, hero.elementType, title, content, player.isMe || player.isAlly);

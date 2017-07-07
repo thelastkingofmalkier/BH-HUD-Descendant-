@@ -21,10 +21,8 @@ namespace bh {
 				export function findByName(name: string, rarityType: RarityType): IDataBattleCard;
 				export function findByName(name: string, rarityType?: RarityType): IDataBattleCard {
 					var lower = name.toLowerCase();
-					if (rarityType === undefined) {
-						return _cards.find(card => card.lower == lower || card.altLower == lower);
-					}
-					return _cards.find(card => card.rarityType === rarityType && (card.lower == lower || card.altLower == lower));
+					if (rarityType === undefined) { return _cards.find(card => card.lower == lower); }
+					return _cards.find(card => card.rarityType === rarityType && card.lower == lower);
 				}
 
 				export function getMaxEvo(rarityType: RarityType): number {

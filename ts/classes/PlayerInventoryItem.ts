@@ -40,12 +40,8 @@ namespace bh {
 
 			}else {
 				var activeRecipes = this.player.activeRecipes,
-					recipes = data.RecipeRepo.findByItem(this.name),
-					filtered = activeRecipes.filter(recipe => recipes.includes(recipe));
-				filtered.forEach(recipe => {
-					var item = recipe.getItem(this);
-					needed += item.max;
-				});
+					filtered = activeRecipes.filter(recipe => !!recipe.getItem(this));
+				filtered.forEach(recipe => needed += recipe.getMaxNeeded(this));
 
 			}
 			return needed;
@@ -84,17 +80,21 @@ namespace bh {
 
 				}else {
 					var activeRecipes = this.player.activeRecipes,
-						recipes = data.RecipeRepo.findByItem(this),
-						filtered = recipes.filter(recipe => activeRecipes.includes(recipe));
+						filtered = activeRecipes.filter(recipe => !!recipe.getItem(this));
 					filtered.forEach(recipe => {
-						var item = recipe.getItem(this),
-							playerBattleCard = this.player.activeBattleCards.find(bc => bc.name == recipe.name && bc.rarityType === recipe.rarityType);
-						children += playerBattleCard.toRowHtml(item.max);
+						children += (<PlayerBattleCard>recipe.card).toRowHtml(recipe.getMaxNeeded(this));
 					});
 
 				}
 			}
 			return `<div data-element-type="${this.elementType}" data-rarity-type="${this.rarityType}" data-item-type="${this.itemType}" data-hud="${hud}">${renderExpandable(this.guid, `${image} ${this.name} ${badge}`, children)}</div>`;
+		}
+		public static toRowHtml(item: PlayerInventoryItem, count: number, needed: number) {
+			var folder = ItemType[item.itemType].toLowerCase() + "s",
+				name = item.isEvoJar ? item.name.replace(/\W/g, "") : item.isCrystal ? item.name.split(/ /)[0] : data.HeroRepo.find(item.name.split("'")[0]).abilities[0].name.replace(/\W/g, ""),
+				image = getImg20(folder, name),
+				badge = `<span class="badge pull-right">${utils.formatNumber(count)} / ${utils.formatNumber(needed)}</span>`;
+			return `<div>${image} ${item.name} ${badge}</div>`;
 		}
 	}
 	export function renderExpandable(guid: string, text: string, children: string) {

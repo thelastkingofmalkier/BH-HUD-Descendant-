@@ -31,6 +31,9 @@ div.brain-hud-inventory,
 div.brain-hud-inventory-container,
 div.brain-hud-child-scroller { display:none; }
 
+div.brain-hud-scouter-panel-content,
+div.brain-hud-child-scroller { padding-left:10px; }
+
 div.brain-hud-scouter-player-report { display:none; padding:0 2px; text-align:left; }
 div.brain-hud-scouter-player > div.player-name { font-size:10pt; font-weight:bold; text-align:center; }
 

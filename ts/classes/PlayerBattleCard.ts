@@ -2,9 +2,24 @@ namespace bh {
 	export class PlayerBattleCard {
 		private _bc: IDataBattleCard;
 
+		private _rowChildren() {
+			var me = Player.me,
+				recipe = data.RecipeRepo.find(this.guid),
+				activeRecipe = recipe && recipe.createPartial(this),
+				html = "";
+			if (activeRecipe) {
+				activeRecipe.all.forEach(recipeItem => {
+					var item = me.inventory.find(item => item.guid == recipeItem.item.guid);
+					html += PlayerInventoryItem.toRowHtml(item, item.count, recipeItem.max * this.count);
+				});
+			}
+			return html;
+		}
 		private _rowHtml(badgeValue?: number) {
-			var badgeHtml = badgeValue ? `<span class="badge pull-right">${badgeValue}</span>` : ``;
-			return `<div data-element-type="${this.elementType}" data-rarity-type="${this.rarityType}" data-klass-type="${this.klassType}" data-brag="${this.brag ? "Brag" : ""}">${this.fullHtml}${badgeHtml}</div>`;
+			var badgeHtml = badgeValue ? `<span class="badge pull-right">${badgeValue}</span>` : ``,
+				children = badgeValue || this.isMaxed ? `` : this._rowChildren(),
+				content = renderExpandable(this.playerCard.id, `${this.fullHtml}${badgeHtml}`, children);
+			return `<div data-element-type="${this.elementType}" data-rarity-type="${this.rarityType}" data-klass-type="${this.klassType}" data-brag="${this.brag ? "Brag" : ""}">${content}</div>`;
 		}
 
 		public constructor(public playerCard: IPlayer.PlayerCard) {
@@ -37,9 +52,8 @@ namespace bh {
 			var count = this.count > 1 ? `x${this.count}` : ``,
 				typeAndValue = this.value ? ` (${this.typeImage} ${this.formattedValue}` : ``,
 				stars = utils.evoToStars(this.rarityType, this.evoLevel),
-				name = this.name.replace(/Mischievous/, "Misch.").replace(/Protection/, "Prot."),
-				logoValue = "";
-			return `${this.battleOrBragImage} ${this.evoLevel} <small>${stars}</small> ${name} ${count} ${logoValue}`;
+				name = this.name.replace(/Mischievous/, "Misch.").replace(/Protection/, "Prot.");
+			return `${this.battleOrBragImage} ${this.evoLevel} <small>${stars}</small> ${name} ${count}`;
 		}
 		public get isActive() { return (this.evo > 0 || this.level > 1) && !this.isMaxed; }
 		public get isMaxed() { return this.evoLevel == ["1.10", "2.20", "3.35", "4.50", "5.50"][this.rarityType]; }
