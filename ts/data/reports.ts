@@ -67,7 +67,7 @@ namespace bh {
 			}
 			function mapMemberToOutput(member: IGuild.Player, index: number): string {
 				var player = PlayerRepo.find(member.playerId),
-					role = utils.positionToType(member.position),
+					role = PositionType[member.position] + 1,
 					fame = member.fameLevel + 1,
 					heroData = data.HeroRepo.sorted.map(player ? mapPlayerHero : mapHero),
 					position = index ? index + 1 : "GL";

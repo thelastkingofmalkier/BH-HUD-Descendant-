@@ -1,5 +1,5 @@
 var __extends = (this && this.__extends) || (function () {
-var extendStatics = Object.setPrototypeOf ||
+   var extendStatics = Object.setPrototypeOf ||
         ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
         function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
     return function (d, b) {
@@ -2365,7 +2365,7 @@ var bh;
                 return report;
             }
             function mapMemberToOutput(member, index) {
-                var player = data.PlayerRepo.find(member.playerId), role = bh.utils.positionToType(member.position), fame = member.fameLevel + 1, heroData = data.HeroRepo.sorted.map(player ? mapPlayerHero : mapHero), position = index ? index + 1 : "GL";
+                var player = data.PlayerRepo.find(member.playerId), role = bh.PositionType[member.position] + 1, fame = member.fameLevel + 1, heroData = data.HeroRepo.sorted.map(player ? mapPlayerHero : mapHero), position = index ? index + 1 : "GL";
                 return [position, fame, member.name, role].concat(heroData).join("\t");
                 function mapHero(hero) {
                     var level = member.archetypeLevels[hero.guid] + 1, hp = bh.utils.truncateNumber(hero.getHitPoints(level));
@@ -3135,7 +3135,7 @@ var bh;
             }
             sort.byName = byName;
             function byPosition(a, b) {
-                var ap = utils.positionToType(a.position), bp = utils.positionToType(b.position);
+                var ap = bh.PositionType[a.position], bp = bh.PositionType[b.position];
                 return ap == bp ? 0 : ap > bp ? -1 : 1;
             }
             sort.byPosition = byPosition;
@@ -3187,47 +3187,11 @@ var bh;
             return parts.length == 1 ? out : parts[0].length == 1 ? parts[0] + "." + parts[1][0] + "k" : parts[0] + "k";
         }
         utils.truncateNumber = truncateNumber;
-        function unique(array) {
-            var map = {};
-            array.forEach(function (s) { return map[s] = s; });
-            return Object.keys(map);
-        }
-        utils.unique = unique;
-        function flatten(array) {
-            var out = [];
-            array.forEach(function (arr) { return arr.forEach(function (s) { return out.push(s); }); });
-            return out;
-        }
-        utils.flatten = flatten;
         function parseBoolean(value) {
             var string = String(value).substring(0, 1).toLowerCase();
             return string === "y" || string === "t" || string === "1";
         }
         utils.parseBoolean = parseBoolean;
-        function positionToType(position) { return bh.PositionType[position]; }
-        utils.positionToType = positionToType;
-        function rarityToType(rarity) { return bh.RarityType[rarity.replace(/ /g, "")]; }
-        utils.rarityToType = rarityToType;
-        function typeToElement(elementType) { return bh.ElementType[elementType]; }
-        utils.typeToElement = typeToElement;
-        function typeToRarity(rarityType) { return bh.RarityType[rarityType]; }
-        utils.typeToRarity = typeToRarity;
-        function guessMinRarity(evoLevel, level) {
-            if (4 < evoLevel)
-                return "Legendary";
-            if (34 < level || 3 < evoLevel)
-                return "SuperRare";
-            if (19 < level || 2 < evoLevel)
-                return "Rare";
-            if (9 < level || 1 < evoLevel)
-                return "Uncommon";
-            return "Common";
-        }
-        utils.guessMinRarity = guessMinRarity;
-        function rarityToStars(rarityType) {
-            return "<small class='evo-star'>" + (new Array(rarityType)).fill("&#9733;").join("") + "</small>";
-        }
-        utils.rarityToStars = rarityToStars;
         function evoToStars(rarityType, evoLevel) {
             var evo = +evoLevel.split(".")[0], level = +evoLevel.split(".")[1], stars = rarityType + 1, count = 0, value = "";
             while (evo--) {
@@ -3254,7 +3218,7 @@ var bh;
         }
         utils.getBase64Image = getBase64Image;
         function createImagesJs() {
-            var allTypes = Object.keys(bh.images), loadedTypes = [], imageSources = unique(bh.$("img").toArray().map(function (img) { return img.src; })), output = "";
+            var allTypes = Object.keys(bh.images), loadedTypes = [], imageSources = bh.$("img").toArray().map(function (img) { return img.src; }).reduce(function (arr, src) { return arr.includes(src) ? arr : arr.concat(src); }, []), output = "";
             output += "var bh;(function (bh) {var images;(function (images) {";
             bh.$("#data-output").val("Loading, please wait ...");
             asyncForEach(imageSources, function (imageSource) {

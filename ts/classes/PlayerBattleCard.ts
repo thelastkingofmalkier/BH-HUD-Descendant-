@@ -12,6 +12,8 @@ namespace bh {
 					var item = me.inventory.find(item => item.guid == recipeItem.item.guid);
 					html += PlayerInventoryItem.toRowHtml(item, item.count, recipeItem.max * this.count);
 				});
+				// GOLD
+				// WILDCARDS
 			}
 			return html;
 		}

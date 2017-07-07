@@ -32,7 +32,7 @@ namespace bh {
 			}
 
 			export function byPosition(a: IHasPosition, b: IHasPosition): number {
-				var ap = positionToType(a.position), bp = positionToType(b.position);
+				var ap = PositionType[a.position], bp = PositionType[b.position];
 				return ap == bp ? 0 : ap > bp ? -1 : 1;
 			}
 			export function byPositionThenName(a: IHasName & IHasPosition, b: IHasName & IHasPosition): number {

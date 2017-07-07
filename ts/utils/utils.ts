@@ -29,41 +29,12 @@ namespace bh {
 			return parts.length == 1 ? out : parts[0].length == 1 ? `${parts[0]}.${parts[1][0]}k` : `${parts[0]}k`;
 		}
 
-		// Arrays
-		export function unique(array: string[]): string[] {
-			var map: { [key: string]: string; } = { };
-			array.forEach(s => map[s] = s);
-			return Object.keys(map);
-		}
-		export function flatten(array: string[][]): string[] {
-			var out: string[] = [];
-			array.forEach(arr => arr.forEach(s => out.push(s)));
-			return out;
-		}
-
 		// Other
 		export function parseBoolean(value: any): boolean {
 			var string = String(value).substring(0, 1).toLowerCase();
 			return string === "y" || string === "t" || string === "1";
 		}
-		export function positionToType(position: string): PositionType { return <any>PositionType[<any>position]; }
 
-		export function rarityToType(rarity: GameRarity): RarityType { return <any>RarityType[<any>rarity.replace(/ /g, "")]; }
-
-		export function typeToElement(elementType: ElementType): GameElement { return <any>ElementType[elementType]; }
-
-		export function typeToRarity(rarityType: RarityType): GameRarity { return <any>RarityType[rarityType]; }
-
-		export function guessMinRarity(evoLevel: number, level: number): GameRarity {
-			if (4 < evoLevel) return "Legendary";
-			if (34 < level || 3 < evoLevel) return "SuperRare";
-			if (19 < level || 2 < evoLevel) return "Rare";
-			if (9 < level || 1 < evoLevel) return "Uncommon";
-			return "Common";
-		}
-		export function rarityToStars(rarityType: RarityType): string {
-			return `<small class='evo-star'>${(new Array(rarityType)).fill("&#9733;").join("")}</small>`;
-		}
 		export function evoToStars(rarityType: RarityType, evoLevel: string): string {
 			var evo = +evoLevel.split(".")[0],
 				level = +evoLevel.split(".")[1],
@@ -99,7 +70,7 @@ namespace bh {
 		export function createImagesJs() {
 			var allTypes = Object.keys(images),
 				loadedTypes: string[] = [],
-				imageSources = unique($("img").toArray().map(img => img.src)),
+				imageSources: string[] = $("img").toArray().map(img => img.src).reduce((arr, src) => arr.includes(src) ? arr : arr.concat(src), []),
 				output = ``;
 			output += `var bh;(function (bh) {var images;(function (images) {`;
 			$("#data-output").val("Loading, please wait ...");
