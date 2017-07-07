@@ -13,6 +13,7 @@ div.brain-hud-container table { width:100%; margin:0; padding:0; border:0; }
 div.brain-hud-container td { padding:0; margin:0; border:0; }
 div.brain-hud-container select { width:180px; }
 div.brain-hud-container textarea { width:240px; font-size:8pt; display:none; }
+
 div.brain-hud-container .Air { background-color:#f3f3f3; }
 div.brain-hud-container .Earth { background-color:#e0eed5; }
 div.brain-hud-container .Fire { background-color:#fce5cd; }
@@ -61,6 +62,13 @@ div.brain-hud-child-scroller { max-height:125px; overflow:auto; }
 
 div.progress { margin-bottom:0; height:10px; }
 div.progress > div.progress-bar { line-height:10px; font-size:8px; font-weight:bold; clear:none; }
+
+div.brain-hud-container .badge,
+div.brain-hud-container .bs-btn-group-xs > .bs-btn,
+div.brain-hud-container .bs-btn-xs { font-size:11px; }
+
+div.brain-hud-container .badge.bg-success { background-color:#3c763d; }
+div.brain-hud-container .badge.bg-danger { background-color:#a94442; }
 </style>`;
 			$("head").append(css);
 		}
