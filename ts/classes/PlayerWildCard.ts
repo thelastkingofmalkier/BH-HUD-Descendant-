@@ -6,7 +6,7 @@ namespace bh {
 			this._ = data.WildCardRepo.find(guid);
 		}
 
-		public get count() { return (<any>this.player)._pp.wildcards[this.guid]; }
+		public get count() { return (<any>this.player)._pp ? (<any>this.player)._pp.wildcards[this.guid] || 0 : 0; }
 		public get guid() { return this._.guid; }
 		public get html() {
 			var needed = this.needed,

@@ -42,10 +42,10 @@ div.brain-hud-scouter-panel-header { padding:2px 0 0 0; }
 div.brain-hud-scouter-panel-header > button { cursor:default; border:0; width:240px; text-align:left; padding:0; margin:0; }
 div.brain-hud-scouter-panel-header > button[data-action] { cursor:pointer; }
 div.brain-hud-scouter-panel-header > button > span.hero-icon { display:inline-block; width:20px; text-align:center; }
-div.brain-hud-scouter-panel-header > button > span.hero-level { display:inline-block; width:25px; text-align:center; }
+div.brain-hud-scouter-panel-header > button > span.hero-level { display:inline-block; width:30px; text-align:right; }
 div.brain-hud-scouter-panel-header > button > span.hero-name { display:inline-block; width:60px; }
-div.brain-hud-scouter-panel-header > button > span.hero-hp { display:inline-block; width:70px; text-align:center; }
-div.brain-hud-scouter-panel-header > button > span.hero-rating { display:inline-block; width:55px; }
+div.brain-hud-scouter-panel-header > button > span.hero-hp { display:inline-block; width:50px; text-align:center; }
+div.brain-hud-scouter-panel-header > button > span.hero-rating { display:inline-block; width:70px; }
 
 div.brain-hud-inventory-buttons { text-align:center; }
 
@@ -58,7 +58,9 @@ div.brain-hud-container img { height:16px; width:16px; }
 div.brain-hud-container img.icon-12 { height:12px; width:12px; }
 div.brain-hud-container img.icon-20 { height:20px; width:20px; }
 
-div.brain-hud-child-scroller { max-height:125px; overflow:auto; }
+div.brain-hud-child-scroller { max-height:180px; overflow:auto; }
+div.brain-hud-scouter-panel-content.active,
+div.brain-hud-child-scroller.active { border:1px solid #aaa; border-radius:10px; }
 
 div.progress { margin-bottom:0; height:10px; }
 div.progress > div.progress-bar { line-height:10px; font-size:8px; font-weight:bold; clear:none; }
@@ -69,6 +71,7 @@ div.brain-hud-container .bs-btn-xs { font-size:11px; }
 
 div.brain-hud-container .badge.bg-success { background-color:#3c763d; }
 div.brain-hud-container .badge.bg-danger { background-color:#a94442; }
+div.brain-hud-container [data-action="sort-heroes"] { cursor:pointer; }
 </style>`;
 			$("head").append(css);
 		}

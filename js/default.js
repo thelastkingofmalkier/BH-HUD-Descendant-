@@ -1,6 +1,6 @@
 var __extends = (this && this.__extends) || (function () {
-var extendStatics = Object.setPrototypeOf ||
-       ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
+   var extendStatics = Object.setPrototypeOf ||
+        ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
         function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
     return function (d, b) {
         extendStatics(d, b);
@@ -735,13 +735,13 @@ var bh;
         Object.defineProperty(Player.prototype, "wildCards", {
             get: function () {
                 var _this = this;
-                return !this._pp ? [] : Object.keys(this._pp.wildcards).map(function (guid) { return new bh.PlayerWildCard(_this, guid); }).sort(bh.utils.sort.byRarity);
+                return this.fromCache("wildCards", function () { return bh.data.WildCardRepo.all.map(function (wc) { return new bh.PlayerWildCard(_this, wc.guid); }); });
             },
             enumerable: true,
             configurable: true
         });
         Object.defineProperty(Player.prototype, "wildCardRowHtml", {
-            get: function () { return this._pp ? formatRow("cardtypes", "WildCard", "Wild Cards", this.wildCards.map(function (wc) { return bh.RarityType[wc.rarityType][0] + ":" + wc.count; }).join(" / ")) : ""; },
+            get: function () { return this._pp ? formatRow("cardtypes", "WildCard", "Wild Cards", this.wildCards.filter(function (wc) { return wc.count; }).slice(-3).map(function (wc) { return bh.RarityType[wc.rarityType][0] + ":" + wc.count; }).join(" / ")) : ""; },
             enumerable: true,
             configurable: true
         });
@@ -821,12 +821,16 @@ var bh;
                     var item = me.inventory.find(function (item) { return item.guid == recipeItem.item.guid; });
                     html += bh.PlayerInventoryItem.toRowHtml(item, item.count, recipeItem.max * _this.count);
                 });
+                var wcNeeded = bh.data.getMaxWildCardsNeeded(this) * this.count, wcOwned = me.wildCards[this.rarityType] && me.wildCards[this.rarityType].count || 0, wcColor = wcOwned < wcNeeded ? "bg-danger" : "bg-success";
+                html += "<div>" + bh.getImg20("cardtypes", "WildCard") + " " + bh.RarityType[this.rarityType] + " WC <span class=\"badge pull-right " + wcColor + "\">" + bh.utils.formatNumber(wcOwned) + " / " + bh.utils.formatNumber(wcNeeded) + "</span></div>";
+                var goldNeeded = bh.data.getMaxGoldNeeded(this.playerCard, this.evoLevel) * this.count, goldOwned = me.gold, goldColor = goldOwned < goldNeeded ? "bg-danger" : "bg-success";
+                html += "<div>" + bh.getImg20("misc", "Coin") + " Gold <span class=\"badge pull-right " + goldColor + "\">" + bh.utils.formatNumber(goldOwned) + " / " + bh.utils.formatNumber(goldNeeded) + "</span></div>";
             }
             return html;
         };
         PlayerBattleCard.prototype._rowHtml = function (badgeValue) {
             var badgeHtml = badgeValue ? "<span class=\"badge pull-right\">" + badgeValue + "</span>" : "", children = badgeValue || this.isMaxed ? "" : this._rowChildren(), content = bh.renderExpandable(this.playerCard.id, "" + this.fullHtml + badgeHtml, children);
-            return "<div data-element-type=\"" + this.elementType + "\" data-rarity-type=\"" + this.rarityType + "\" data-klass-type=\"" + this.klassType + "\" data-brag=\"" + (this.brag ? "Brag" : "") + "\">" + content + "</div>";
+            return "<div -class=\"" + bh.ElementType[this.elementType] + "\" data-element-type=\"" + this.elementType + "\" data-rarity-type=\"" + this.rarityType + "\" data-klass-type=\"" + this.klassType + "\" data-brag=\"" + (this.brag ? "Brag" : "") + "\">" + content + "</div>";
         };
         Object.defineProperty(PlayerBattleCard.prototype, "brag", {
             get: function () { return this._bc && this._bc.brag || false; },
@@ -1016,7 +1020,7 @@ var bh;
             configurable: true
         });
         Object.defineProperty(PlayerBoosterCard.prototype, "elementType", {
-            get: function () { return bh.ElementType[this._.element]; },
+            get: function () { return this._.elementType; },
             enumerable: true,
             configurable: true
         });
@@ -1036,7 +1040,7 @@ var bh;
             configurable: true
         });
         Object.defineProperty(PlayerBoosterCard.prototype, "rowHtml", {
-            get: function () { return "<div data-element-type=\"" + this.elementType + "\" data-type=\"" + this.type + "\" data-rarity-type=\"" + this.rarityType + "\">" + bh.getImg20("misc", "Boosters") + " " + bh.RarityType[this.rarityType][0] + (this.challenge ? "*" : "") + " " + this.name + " <span class=\"badge pull-right\">" + this.count + "</span></div>"; },
+            get: function () { return "<div class=\"" + bh.ElementType[this.elementType] + "\" data-element-type=\"" + this.elementType + "\" data-type=\"" + this.type + "\" data-rarity-type=\"" + this.rarityType + "\">" + bh.getImg20("misc", "Boosters") + " " + bh.RarityType[this.rarityType][0] + (this.challenge ? "*" : "") + " " + this.name + " <span class=\"badge pull-right\">" + this.count + "</span></div>"; },
             enumerable: true,
             configurable: true
         });
@@ -1047,12 +1051,21 @@ var bh;
 })(bh || (bh = {}));
 var bh;
 (function (bh) {
-    var PlayerHero = (function () {
+    var PlayerHero = (function (_super) {
+        __extends(PlayerHero, _super);
         function PlayerHero(player, archetype) {
-            this.player = player;
-            this.archetype = archetype;
-            this.hero = bh.data.HeroRepo.find(archetype.id);
+            var _this = _super.call(this) || this;
+            _this.player = player;
+            _this.archetype = archetype;
+            _this.hero = bh.data.HeroRepo.find(archetype.id);
+            return _this;
         }
+        PlayerHero.prototype.getAbilityLevel = function (abilityType) {
+            var level = this.archetype.abilityLevels
+                ? this.archetype.abilityLevels[this.hero.abilities[abilityType].guid]
+                : null;
+            return isNaN(level) ? 0 : level + 1;
+        };
         Object.defineProperty(PlayerHero.prototype, "abilities", {
             get: function () { return this.hero.abilities; },
             enumerable: true,
@@ -1064,7 +1077,10 @@ var bh;
             configurable: true
         });
         Object.defineProperty(PlayerHero.prototype, "active", {
-            get: function () { return new bh.PlayerHeroAbility(this, this.hero.active, this.activeLevel); },
+            get: function () {
+                var _this = this;
+                return this.fromCache("active", function () { return new bh.PlayerHeroAbility(_this, _this.hero.active, _this.getAbilityLevel(bh.AbilityType.Active)); });
+            },
             enumerable: true,
             configurable: true
         });
@@ -1089,21 +1105,18 @@ var bh;
             configurable: true
         });
         Object.defineProperty(PlayerHero.prototype, "passive", {
-            get: function () { return new bh.PlayerHeroAbility(this, this.hero.passive, this.passiveLevel); },
+            get: function () {
+                var _this = this;
+                return this.fromCache("passive", function () { return new bh.PlayerHeroAbility(_this, _this.hero.passive, _this.getAbilityLevel(bh.AbilityType.Passive)); });
+            },
             enumerable: true,
             configurable: true
         });
         Object.defineProperty(PlayerHero.prototype, "trait", {
-            get: function () { return new bh.PlayerHeroAbility(this, this.hero.trait, this.traitLevel); },
-            enumerable: true,
-            configurable: true
-        });
-        PlayerHero.prototype.getAbilityLevel = function (abilityType) {
-            var level = this.archetype.abilityLevels ? this.archetype.abilityLevels[this.hero.abilities[abilityType].guid] : null;
-            return isNaN(level) ? 0 : level + 1;
-        };
-        Object.defineProperty(PlayerHero.prototype, "activeLevel", {
-            get: function () { return this.getAbilityLevel(bh.AbilityType.Active); },
+            get: function () {
+                var _this = this;
+                return this.fromCache("trait", function () { return new bh.PlayerHeroAbility(_this, _this.hero.trait, _this.getAbilityLevel(bh.AbilityType.Trait)); });
+            },
             enumerable: true,
             configurable: true
         });
@@ -1138,7 +1151,7 @@ var bh;
             configurable: true
         });
         Object.defineProperty(PlayerHero.prototype, "isActiveCapped", {
-            get: function () { return this.activeLevel == bh.getMaxActive(this.hero, this.level); },
+            get: function () { return this.active.level == bh.getMaxActive(this.hero, this.level); },
             enumerable: true,
             configurable: true
         });
@@ -1152,28 +1165,23 @@ var bh;
             enumerable: true,
             configurable: true
         });
+        Object.defineProperty(PlayerHero.prototype, "isOp", {
+            get: function () { return !!this.deck.find(function (pbc) { return pbc.tier == "OP"; }); },
+            enumerable: true,
+            configurable: true
+        });
         Object.defineProperty(PlayerHero.prototype, "isPassiveCapped", {
-            get: function () { return this.passiveLevel == bh.getMaxPassive(this.hero, this.level); },
+            get: function () { return this.passive.level == bh.getMaxPassive(this.hero, this.level); },
             enumerable: true,
             configurable: true
         });
         Object.defineProperty(PlayerHero.prototype, "isTraitCapped", {
-            get: function () { return this.traitLevel == bh.getMaxTrait(this.level); },
+            get: function () { return this.trait.level == bh.getMaxTrait(this.level); },
             enumerable: true,
             configurable: true
         });
         Object.defineProperty(PlayerHero.prototype, "level", {
             get: function () { return this.archetype.level + 1; },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(PlayerHero.prototype, "opCards", {
-            get: function () { return this.deck.filter(function (pbc) { return pbc.tier == "OP"; }); },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(PlayerHero.prototype, "passiveLevel", {
-            get: function () { return this.getAbilityLevel(bh.AbilityType.Passive); },
             enumerable: true,
             configurable: true
         });
@@ -1202,18 +1210,13 @@ var bh;
             enumerable: true,
             configurable: true
         });
-        Object.defineProperty(PlayerHero.prototype, "traitLevel", {
-            get: function () { return this.getAbilityLevel(bh.AbilityType.Trait); },
-            enumerable: true,
-            configurable: true
-        });
         Object.defineProperty(PlayerHero.prototype, "traitPowerRating", {
             get: function () { return this.trait.powerRating; },
             enumerable: true,
             configurable: true
         });
         return PlayerHero;
-    }());
+    }(bh.Cacheable));
     bh.PlayerHero = PlayerHero;
 })(bh || (bh = {}));
 var bh;
@@ -1664,7 +1667,7 @@ var bh;
             this._ = bh.data.WildCardRepo.find(guid);
         }
         Object.defineProperty(PlayerWildCard.prototype, "count", {
-            get: function () { return this.player._pp.wildcards[this.guid]; },
+            get: function () { return this.player._pp ? this.player._pp.wildcards[this.guid] || 0 : 0; },
             enumerable: true,
             configurable: true
         });
@@ -2115,7 +2118,7 @@ var bh;
         }
         data.wildsForEvo = wildsForEvo;
         function getMinGoldNeeded(rarityType, currentEvoLevel) {
-            return [[1000], [5300, 15300], [8200, 27200, 65000], [33000, 60000, 94000, 187000], [-1, 114000]][rarityType][currentEvoLevel];
+            return [[1000], [5300, 15300], [8200, 27200, 65000], [33000, 60000, 94000, 187000], [-1, 114000, 21200]][rarityType][currentEvoLevel];
         }
         data.getMinGoldNeeded = getMinGoldNeeded;
         function getMinSotNeeded(rarityType, currentEvoLevel) {
@@ -2151,8 +2154,7 @@ var bh;
                 return sotNeeded;
             }
             else {
-                var currentEvoLevel = evoInfo;
-                return [[12600], [18500, 34700], [22000, 57000, 114200], [56600, 114000, 170800, 289800], [-1, 190800]][playerCardOrRarityType][currentEvoLevel];
+                return [[12600], [18500, 34700], [22000, 57000, 114200], [56600, 114000, 170800, 289800], [115000, 190800, 32400, 545800, 800000]][playerCardOrRarityType][evoInfo];
             }
         }
         data.getMaxGoldNeeded = getMaxGoldNeeded;
@@ -2165,8 +2167,7 @@ var bh;
                 return sotNeeded;
             }
             else {
-                var currentEvoLevel = evoInfo;
-                return [[10], [12, 15], [15, 20, 30], [20, 30, 40, 60], [30, 40, 60, 80, 100]][playerCardOrRarityType][currentEvoLevel];
+                return [[10], [12, 15], [15, 20, 30], [20, 30, 40, 60], [30, 40, 60, 80, 100]][playerCardOrRarityType][evoInfo];
             }
         }
         data.getMaxSotNeeded = getMaxSotNeeded;
@@ -2469,9 +2470,28 @@ var bh;
             }
         }
         events.toggle = toggle;
+        function sortHeroes(playerGuid) {
+            var container = $("div.brain-hud-scouter-player" + (playerGuid ? "[data-guid=\"" + playerGuid + "\"]" : ".active")), oldSort = container.data("sort"), newSort = !oldSort || oldSort == "element-klass" ? "power-asc" : "element-klass";
+            container.data("sort", newSort);
+            if (!playerGuid) {
+                playerGuid = container.data("guid");
+            }
+            var player = bh.data.PlayerRepo.find(playerGuid), heroes = player.heroes.sort(function (a, b) {
+                if (newSort == "power-asc") {
+                    var aP = a.powerPercent, bP = b.powerPercent;
+                    if (aP != bP)
+                        return aP < bP ? -1 : 1;
+                }
+                return bh.utils.sort.byElementThenKlass(a, b);
+            });
+            heroes.forEach(function (hero) { return container.find("[data-guid=\"" + playerGuid + "-" + hero.guid + "\"]").appendTo(container); });
+        }
         function onAction(ev) {
             var el = $(ev.target).closest("[data-action]"), action = el.data("action"), guid;
             switch (action) {
+                case "sort-heroes":
+                    sortHeroes();
+                    break;
                 case "refresh-guild":
                     bh.Messenger.instance.postMessage(bh.Messenger.createMessage("refresh-guild", $("#brain-hud-scouter-guild-target").val()));
                     break;
@@ -3030,7 +3050,7 @@ var bh;
         }
         hud.render = render;
         function renderCss() {
-            var css = "<style id=\"brain-hud-styles\" type=\"text/css\">\ndiv.brain-hud-container { font-size:8pt; position:fixed; top:0; right:0; width:250px; background:#FFF; color:#000; border:2px solid #000; z-index:9999; padding:2px; max-height:" + (jQuery(window).height() - 10) + "px; overflow:auto; }\ndiv.brain-hud-container div { clear:both; }\ndiv.brain-hud-container table { width:100%; margin:0; padding:0; border:0; }\ndiv.brain-hud-container td { padding:0; margin:0; border:0; }\ndiv.brain-hud-container select { width:180px; }\ndiv.brain-hud-container textarea { width:240px; font-size:8pt; display:none; }\n\ndiv.brain-hud-container .Air { background-color:#f3f3f3; }\ndiv.brain-hud-container .Earth { background-color:#e0eed5; }\ndiv.brain-hud-container .Fire { background-color:#fce5cd; }\ndiv.brain-hud-container .Spirit { background-color:#f3e2f6; }\ndiv.brain-hud-container .Water { background-color:#deeaf4; }\ndiv.brain-hud-container .grayscale { filter: grayscale(100%); }\n\ndiv.brain-hud-header { text-align:center; font-weight:bold; }\n\ndiv.brain-hud-main-container,\ndiv.brain-hud-scouter-guild-container,\ndiv.brain-hud-scouter-player-container,\ndiv.brain-hud-scouter-player,\ndiv.brain-hud-scouter-panel-content,\ndiv.brain-hud-inventory,\ndiv.brain-hud-inventory-container,\ndiv.brain-hud-child-scroller { display:none; }\n\ndiv.brain-hud-scouter-panel-content,\ndiv.brain-hud-child-scroller { padding-left:10px; }\n\ndiv.brain-hud-scouter-player-report { display:none; padding:0 2px; text-align:left; }\ndiv.brain-hud-scouter-player > div.player-name { font-size:10pt; font-weight:bold; text-align:center; }\n\ndiv.brain-hud-scouter-panel-header { padding:2px 0 0 0; }\ndiv.brain-hud-scouter-panel-header > button { cursor:default; border:0; width:240px; text-align:left; padding:0; margin:0; }\ndiv.brain-hud-scouter-panel-header > button[data-action] { cursor:pointer; }\ndiv.brain-hud-scouter-panel-header > button > span.hero-icon { display:inline-block; width:20px; text-align:center; }\ndiv.brain-hud-scouter-panel-header > button > span.hero-level { display:inline-block; width:25px; text-align:center; }\ndiv.brain-hud-scouter-panel-header > button > span.hero-name { display:inline-block; width:60px; }\ndiv.brain-hud-scouter-panel-header > button > span.hero-hp { display:inline-block; width:70px; text-align:center; }\ndiv.brain-hud-scouter-panel-header > button > span.hero-rating { display:inline-block; width:55px; }\n\ndiv.brain-hud-inventory-buttons { text-align:center; }\n\ndiv.brain-hud-container .active { display:block; }\n\ndiv.brain-hud-container .star { color: darkgoldenrod; text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black; }\ndiv.brain-hud-container .evo-star { color: gold; text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black; }\n\ndiv.brain-hud-container img { height:16px; width:16px; }\ndiv.brain-hud-container img.icon-12 { height:12px; width:12px; }\ndiv.brain-hud-container img.icon-20 { height:20px; width:20px; }\n\ndiv.brain-hud-child-scroller { max-height:125px; overflow:auto; }\n\ndiv.progress { margin-bottom:0; height:10px; }\ndiv.progress > div.progress-bar { line-height:10px; font-size:8px; font-weight:bold; clear:none; }\n\ndiv.brain-hud-container .badge,\ndiv.brain-hud-container .bs-btn-group-xs > .bs-btn,\ndiv.brain-hud-container .bs-btn-xs { font-size:11px; }\n\ndiv.brain-hud-container .badge.bg-success { background-color:#3c763d; }\ndiv.brain-hud-container .badge.bg-danger { background-color:#a94442; }\n</style>";
+            var css = "<style id=\"brain-hud-styles\" type=\"text/css\">\ndiv.brain-hud-container { font-size:8pt; position:fixed; top:0; right:0; width:250px; background:#FFF; color:#000; border:2px solid #000; z-index:9999; padding:2px; max-height:" + (jQuery(window).height() - 10) + "px; overflow:auto; }\ndiv.brain-hud-container div { clear:both; }\ndiv.brain-hud-container table { width:100%; margin:0; padding:0; border:0; }\ndiv.brain-hud-container td { padding:0; margin:0; border:0; }\ndiv.brain-hud-container select { width:180px; }\ndiv.brain-hud-container textarea { width:240px; font-size:8pt; display:none; }\n\ndiv.brain-hud-container .Air { background-color:#f3f3f3; }\ndiv.brain-hud-container .Earth { background-color:#e0eed5; }\ndiv.brain-hud-container .Fire { background-color:#fce5cd; }\ndiv.brain-hud-container .Spirit { background-color:#f3e2f6; }\ndiv.brain-hud-container .Water { background-color:#deeaf4; }\ndiv.brain-hud-container .grayscale { filter: grayscale(100%); }\n\ndiv.brain-hud-header { text-align:center; font-weight:bold; }\n\ndiv.brain-hud-main-container,\ndiv.brain-hud-scouter-guild-container,\ndiv.brain-hud-scouter-player-container,\ndiv.brain-hud-scouter-player,\ndiv.brain-hud-scouter-panel-content,\ndiv.brain-hud-inventory,\ndiv.brain-hud-inventory-container,\ndiv.brain-hud-child-scroller { display:none; }\n\ndiv.brain-hud-scouter-panel-content,\ndiv.brain-hud-child-scroller { padding-left:10px; }\n\ndiv.brain-hud-scouter-player-report { display:none; padding:0 2px; text-align:left; }\ndiv.brain-hud-scouter-player > div.player-name { font-size:10pt; font-weight:bold; text-align:center; }\n\ndiv.brain-hud-scouter-panel-header { padding:2px 0 0 0; }\ndiv.brain-hud-scouter-panel-header > button { cursor:default; border:0; width:240px; text-align:left; padding:0; margin:0; }\ndiv.brain-hud-scouter-panel-header > button[data-action] { cursor:pointer; }\ndiv.brain-hud-scouter-panel-header > button > span.hero-icon { display:inline-block; width:20px; text-align:center; }\ndiv.brain-hud-scouter-panel-header > button > span.hero-level { display:inline-block; width:30px; text-align:right; }\ndiv.brain-hud-scouter-panel-header > button > span.hero-name { display:inline-block; width:60px; }\ndiv.brain-hud-scouter-panel-header > button > span.hero-hp { display:inline-block; width:50px; text-align:center; }\ndiv.brain-hud-scouter-panel-header > button > span.hero-rating { display:inline-block; width:70px; }\n\ndiv.brain-hud-inventory-buttons { text-align:center; }\n\ndiv.brain-hud-container .active { display:block; }\n\ndiv.brain-hud-container .star { color: darkgoldenrod; text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black; }\ndiv.brain-hud-container .evo-star { color: gold; text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black; }\n\ndiv.brain-hud-container img { height:16px; width:16px; }\ndiv.brain-hud-container img.icon-12 { height:12px; width:12px; }\ndiv.brain-hud-container img.icon-20 { height:20px; width:20px; }\n\ndiv.brain-hud-child-scroller { max-height:180px; overflow:auto; }\ndiv.brain-hud-scouter-panel-content.active,\ndiv.brain-hud-child-scroller.active { border:1px solid #aaa; border-radius:10px; }\n\ndiv.progress { margin-bottom:0; height:10px; }\ndiv.progress > div.progress-bar { line-height:10px; font-size:8px; font-weight:bold; clear:none; }\n\ndiv.brain-hud-container .badge,\ndiv.brain-hud-container .bs-btn-group-xs > .bs-btn,\ndiv.brain-hud-container .bs-btn-xs { font-size:11px; }\n\ndiv.brain-hud-container .badge.bg-success { background-color:#3c763d; }\ndiv.brain-hud-container .badge.bg-danger { background-color:#a94442; }\ndiv.brain-hud-container [data-action=\"sort-heroes\"] { cursor:pointer; }\n</style>";
             bh.$("head").append(css);
         }
         function renderBootstrapCss() {
@@ -3068,9 +3088,9 @@ var bh;
             }
             function loadPlayer(player, arenaIndex) {
                 if (arenaIndex === void 0) { arenaIndex = -1; }
-                var star = player.isFullMeat ? "&#9734;" : "", averagePercentText = player.powerPercent == player.averagePowerPercent ? "" : "; Avg " + player.averagePowerPercent + "%", percentText = player.isArena ? "" : " <span style=\"white-space:nowrap;\">(" + player.powerPercent + "%" + averagePercentText + ")</span>", html = "<div class=\"player-name\">" + star + " " + bh.utils.htmlFriendly(player.name) + " " + percentText + "</div>", playerHeroes = player.heroes.sort(bh.utils.sort.byElementThenKlass);
+                var star = player.isFullMeat ? "&#9734;" : "", averagePercentText = player.powerPercent == player.averagePowerPercent ? "" : "; Avg " + player.averagePowerPercent + "%", percentText = player.isArena ? "" : " <span style=\"white-space:nowrap;\">(" + player.powerPercent + "%" + averagePercentText + ")</span>", html = "<div class=\"player-name\" data-action=\"sort-heroes\">" + star + " " + bh.utils.htmlFriendly(player.name) + " " + percentText + "</div>", playerHeroes = player.heroes.sort(bh.utils.sort.byElementThenKlass);
                 playerHeroes.forEach(function (hero) {
-                    var id = player.guid + "-" + hero.guid, icon = bh.getImg("heroes", hero.name), level = hero.level == bh.MaxLevel ? hero.isMeat ? "<span class=\"evo-star\">&#9734;</span>" : "<span class=\"star\">&#9734;</span>" : "(" + hero.level + ")", powerPercent = hero.powerPercent, opCardNames = hero.opCards.map(function (card) { return card.name; }), striped = opCardNames.length ? "progress-bar-striped" : "", color = powerPercent < 25 ? "progress-bar-info" : powerPercent < 50 ? "progress-bar-success" : powerPercent < 75 ? "progress-bar-warning" : "progress-bar-danger", progressBar = "<div class=\"progress\"><div class=\"progress-bar " + striped + " " + color + "\" style=\"width:" + powerPercent + "%;\"><span>" + powerPercent + "%</span></div></div>", power = opCardNames.length ? opCardNames.map(function (name) { return bh.getImg("battlecards", "icons", name.replace(/\W/g, "")); }).join("") : "Power", title = "<span class=\"hero-icon\">" + icon + "</span><span class=\"hero-name\">" + hero.name + "</span><span class=\"hero-level\">" + level + "</span><span class=\"hero-hp\">" + bh.utils.formatNumber(hero.hitPoints) + " HP</span><span class=\"hero-rating\">" + progressBar + "</span>", content = "";
+                    var id = player.guid + "-" + hero.guid, icon = bh.getImg("heroes", hero.name), level = hero.level == bh.MaxLevel ? hero.isMeat ? "<span class=\"evo-star\">&#9734;</span>" : "<span class=\"star\">&#9734;</span>" : "(" + hero.level + ")", powerPercent = hero.powerPercent, progressBG = hero.isOp ? "background-color:pink;" : "", color = powerPercent < 25 ? "progress-bar-info" : powerPercent < 50 ? "progress-bar-success" : powerPercent < 75 ? "progress-bar-warning" : "progress-bar-danger", progressBar = "<div class=\"progress\" style=\"" + progressBG + "\"><div class=\"progress-bar " + color + "\" style=\"width:" + powerPercent + "%;\"><span>" + powerPercent + "%</span></div></div>", title = "<span class=\"hero-icon\">" + icon + "</span><span class=\"hero-name\">" + hero.name + "</span><span class=\"hero-level\">" + level + "</span><span class=\"hero-hp\">" + bh.utils.truncateNumber(hero.hitPoints) + " HP</span><span class=\"hero-rating\">" + progressBar + "</span>", content = "";
                     if (player.isMe || player.isAlly) {
                         var abilities = hero.playerHeroAbilities
                             .map(function (playerHeroAbility) {

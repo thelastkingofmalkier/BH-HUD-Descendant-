@@ -12,8 +12,14 @@ namespace bh {
 					var item = me.inventory.find(item => item.guid == recipeItem.item.guid);
 					html += PlayerInventoryItem.toRowHtml(item, item.count, recipeItem.max * this.count);
 				});
-				// GOLD
-				// WILDCARDS
+				var wcNeeded = data.getMaxWildCardsNeeded(this) * this.count,
+					wcOwned = me.wildCards[this.rarityType] && me.wildCards[this.rarityType].count || 0,
+					wcColor = wcOwned < wcNeeded ? `bg-danger` : `bg-success`;
+				html += `<div>${getImg20("cardtypes", "WildCard")} ${RarityType[this.rarityType]} WC <span class="badge pull-right ${wcColor}">${utils.formatNumber(wcOwned)} / ${utils.formatNumber(wcNeeded)}</span></div>`;
+				var goldNeeded = data.getMaxGoldNeeded(this.playerCard, this.evoLevel) * this.count,
+					goldOwned = me.gold,
+					goldColor = goldOwned < goldNeeded ? `bg-danger` : `bg-success`;
+				html += `<div>${getImg20("misc", "Coin")} Gold <span class="badge pull-right ${goldColor}">${utils.formatNumber(goldOwned)} / ${utils.formatNumber(goldNeeded)}</span></div>`;
 			}
 			return html;
 		}
@@ -21,7 +27,7 @@ namespace bh {
 			var badgeHtml = badgeValue ? `<span class="badge pull-right">${badgeValue}</span>` : ``,
 				children = badgeValue || this.isMaxed ? `` : this._rowChildren(),
 				content = renderExpandable(this.playerCard.id, `${this.fullHtml}${badgeHtml}`, children);
-			return `<div data-element-type="${this.elementType}" data-rarity-type="${this.rarityType}" data-klass-type="${this.klassType}" data-brag="${this.brag ? "Brag" : ""}">${content}</div>`;
+			return `<div -class="${ElementType[this.elementType]}" data-element-type="${this.elementType}" data-rarity-type="${this.rarityType}" data-klass-type="${this.klassType}" data-brag="${this.brag ? "Brag" : ""}">${content}</div>`;
 		}
 
 		public constructor(public playerCard: IPlayer.PlayerCard) {

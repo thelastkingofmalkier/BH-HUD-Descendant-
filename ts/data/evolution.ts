@@ -4,13 +4,14 @@ namespace bh {
 			return [[1], [1,2], [1,2,4], [1,2,4,5], [1,2,3,4,5]][rarityType][currentEvoLevel];
 		}
 		export function getMinGoldNeeded(rarityType: RarityType, currentEvoLevel: number): number {
-			return [[1000], [5300,15300], [8200,27200,65000], [33000,60000,94000,187000], [-1,114000]][rarityType][currentEvoLevel];
+			return [[1000], [5300,15300], [8200,27200,65000], [33000,60000,94000,187000], [-1,114000,21200]][rarityType][currentEvoLevel];
 			/*
 				C1:  base (1k) + sot_count * u_value (800) + c_count * c_value (300) >> 1000 - 12600
 			*/
 		}
 		export function getMinSotNeeded(rarityType: RarityType, currentEvoLevel: number): number {
 			return [[0], [2,5], [5,10,20], [10,20,30,40], [20,30,40,60,60]][rarityType][currentEvoLevel];
+			// return [0, 2, 5, 10, 20, 30, 40, 60, 60].slice(rarityType, rarityType + 1)[currentEvoLevel];
 		}
 		export function getMinCrystalsNeeded(rarityType: RarityType, currentEvoLevel: number) {
 			return rarityType == RarityType.Legendary && currentEvoLevel == 4 ? 30 : 0;
@@ -45,8 +46,7 @@ namespace bh {
 				}
 				return sotNeeded;
 			}else {
-				var currentEvoLevel = evoInfo;
-				return [[12600], [18500,34700], [22000,57000,114200], [56600,114000,170800,289800], [-1,190800]][<RarityType>playerCardOrRarityType][currentEvoLevel];
+				return [[12600], [18500,34700], [22000,57000,114200], [56600,114000,170800,289800], [115000,190800,32400,545800,800000]][<RarityType>playerCardOrRarityType][evoInfo];
 			}
 		}
 		export function getMaxSotNeeded(rarityType: RarityType, currentEvoLevel: number): number;
@@ -65,8 +65,8 @@ namespace bh {
 				}
 				return sotNeeded;
 			}else {
-				var currentEvoLevel = evoInfo;
-				return [[10], [12,15], [15,20,30], [20,30,40,60], [30,40,60,80,100]][<RarityType>playerCardOrRarityType][currentEvoLevel];
+				return [[10], [12,15], [15,20,30], [20,30,40,60], [30,40,60,80,100]][<RarityType>playerCardOrRarityType][evoInfo];
+				// return [10, 12, 15, 20, 30, 40, 60, 80, 100].slice(<RarityType>playerCardOrRarityType, <RarityType>playerCardOrRarityType + 1)[evoInfo];
 			}
 		}
 		export function getMaxCrystalsNeeded(rarityType: RarityType, currentEvoLevel: number): number;

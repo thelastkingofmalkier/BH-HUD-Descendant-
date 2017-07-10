@@ -25,19 +25,17 @@ namespace bh {
 				var star = player.isFullMeat ? `&#9734;` : ``,
 					averagePercentText = player.powerPercent == player.averagePowerPercent ? `` : `; Avg ${player.averagePowerPercent}%`,
 					percentText = player.isArena ? `` : ` <span style="white-space:nowrap;">(${player.powerPercent}%${averagePercentText})</span>`,
-					html = `<div class="player-name">${star} ${utils.htmlFriendly(player.name)} ${percentText}</div>`,
+					html = `<div class="player-name" data-action="sort-heroes">${star} ${utils.htmlFriendly(player.name)} ${percentText}</div>`,
 					playerHeroes: PlayerHero[] = player.heroes.sort(utils.sort.byElementThenKlass);
 				playerHeroes.forEach(hero => {
 					var id = `${player.guid}-${hero.guid}`,
-						icon = getImg("heroes", hero.name), // hero.isMeat ? getImg("heroes", hero.name) : getImgG("heroes", hero.name),
+						icon = getImg("heroes", hero.name),
 						level = hero.level == MaxLevel ? hero.isMeat ? `<span class="evo-star">&#9734;</span>` : `<span class="star">&#9734;</span>` : `(${hero.level})`,
 						powerPercent = hero.powerPercent,
-						opCardNames = hero.opCards.map(card => card.name),
-						striped = opCardNames.length ? "progress-bar-striped" : "",
+						progressBG = hero.isOp ? "background-color:pink;" : "",
 						color = powerPercent < 25 ? "progress-bar-info" : powerPercent < 50 ? "progress-bar-success" : powerPercent < 75 ? "progress-bar-warning" : "progress-bar-danger",
-						progressBar = `<div class="progress"><div class="progress-bar ${striped} ${color}" style="width:${powerPercent}%;"><span>${powerPercent}%</span></div></div>`,
-						power = opCardNames.length ? opCardNames.map(name => getImg("battlecards", "icons", name.replace(/\W/g, ""))).join("") : `Power`,
-						title = `<span class="hero-icon">${icon}</span><span class="hero-name">${hero.name}</span><span class="hero-level">${level}</span><span class="hero-hp">${utils.formatNumber(hero.hitPoints)} HP</span><span class="hero-rating">${progressBar}</span>`,
+						progressBar = `<div class="progress" style="${progressBG}"><div class="progress-bar ${color}" style="width:${powerPercent}%;"><span>${powerPercent}%</span></div></div>`,
+						title = `<span class="hero-icon">${icon}</span><span class="hero-name">${hero.name}</span><span class="hero-level">${level}</span><span class="hero-hp">${utils.truncateNumber(hero.hitPoints)} HP</span><span class="hero-rating">${progressBar}</span>`,
 						content = "";
 					if (player.isMe || player.isAlly) {
 						var abilities = hero.playerHeroAbilities

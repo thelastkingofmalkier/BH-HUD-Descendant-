@@ -88,8 +88,8 @@ namespace bh {
 		public get boosterCount() { var count = 0, map = this._pp && this._pp.feederCardsMap; Object.keys(map || {}).map(guid => count += map[guid]); return count; }
 		public get boosterRowHtml() { return this._pp ? PlayerBoosterCard.rowHtml(this.boosterCount) : ""; }
 		public get inventory() { var mats = this._pp && this._pp.craftingMaterials, playerHeroes = this.heroes; return !mats ? [] : Object.keys(mats).map(guid => new PlayerInventoryItem(this, data.ItemRepo.find(guid), mats[guid])).sort(utils.sort.byRarityThenName); }
-		public get wildCards() { return !this._pp ? [] : Object.keys(this._pp.wildcards).map(guid => new PlayerWildCard(this, guid)).sort(utils.sort.byRarity); }
-		public get wildCardRowHtml() { return this._pp ? formatRow("cardtypes", "WildCard", "Wild Cards", this.wildCards.map(wc => RarityType[wc.rarityType][0] + ":" + wc.count).join(" / ")) : ""; }
+		public get wildCards(): PlayerWildCard[] { return this.fromCache("wildCards", () => data.WildCardRepo.all.map(wc => new PlayerWildCard(this, wc.guid))); }
+		public get wildCardRowHtml() { return this._pp ? formatRow("cardtypes", "WildCard", "Wild Cards", this.wildCards.filter(wc => wc.count).slice(-3).map(wc => RarityType[wc.rarityType][0] + ":" + wc.count).join(" / ")) : ""; }
 
 		private battleCardToPlayerBattleInfo(guid: string) {
 			var playerCard = this._pp.playerCards.cards[guid];

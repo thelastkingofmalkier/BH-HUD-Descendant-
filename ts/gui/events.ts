@@ -67,11 +67,33 @@ namespace bh {
 			}
 		}
 
+		function sortHeroes(playerGuid?: string) {
+			var container = $(`div.brain-hud-scouter-player${playerGuid ? `[data-guid="${playerGuid}"]` : `.active`}`),
+				oldSort = container.data("sort"),
+				newSort = !oldSort || oldSort == "element-klass" ? "power-asc" : "element-klass";
+			container.data("sort", newSort);
+			if (!playerGuid) {
+				playerGuid = container.data("guid");
+			}
+			var player = data.PlayerRepo.find(playerGuid),
+				heroes = player.heroes.sort((a, b) => {
+					if (newSort == "power-asc") {
+						var aP = a.powerPercent, bP = b.powerPercent;
+						if (aP != bP) return aP < bP ? -1 : 1;
+					}
+					return utils.sort.byElementThenKlass(a, b);
+				});
+			heroes.forEach(hero => container.find(`[data-guid="${playerGuid}-${hero.guid}"]`).appendTo(container));
+		}
+
 		function onAction(ev: JQueryEventObject) {
 			var el = $(ev.target).closest("[data-action]"),
 				action = el.data("action"),
 				guid: string;
 			switch (action) {
+				case "sort-heroes":
+					sortHeroes();
+					break;
 				case "refresh-guild":
 					Messenger.instance.postMessage(Messenger.createMessage("refresh-guild", $("#brain-hud-scouter-guild-target").val()));
 					break;
