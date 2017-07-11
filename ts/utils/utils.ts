@@ -2,7 +2,7 @@ namespace bh {
 
 	export namespace utils {
 		export function htmlFriendly(value: string) {
-			return String(value).replace(/\</g, "&lt;").replace(/\>/g, "&rt;");
+			return String(value).replace(/\</g, "&lt;").replace(/\>/g, "&gt;");
 		}
 		// Numbers
 		export function formatNumber(value: number) {

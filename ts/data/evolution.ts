@@ -4,7 +4,7 @@ namespace bh {
 			return [[1], [1,2], [1,2,4], [1,2,4,5], [1,2,3,4,5]][rarityType][currentEvoLevel];
 		}
 		export function getMinGoldNeeded(rarityType: RarityType, currentEvoLevel: number): number {
-			return [[1000], [5300,15300], [8200,27200,65000], [33000,60000,94000,187000], [-1,114000,21200]][rarityType][currentEvoLevel];
+			return [[1000], [5300,15300], [8200,27200,65000], [33000,60000,94000,187000], [61000,114000,21200,408000]][rarityType][currentEvoLevel];
 			/*
 				C1:  base (1k) + sot_count * u_value (800) + c_count * c_value (300) >> 1000 - 12600
 			*/

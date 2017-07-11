@@ -2118,7 +2118,7 @@ var bh;
         }
         data.wildsForEvo = wildsForEvo;
         function getMinGoldNeeded(rarityType, currentEvoLevel) {
-            return [[1000], [5300, 15300], [8200, 27200, 65000], [33000, 60000, 94000, 187000], [-1, 114000, 21200]][rarityType][currentEvoLevel];
+            return [[1000], [5300, 15300], [8200, 27200, 65000], [33000, 60000, 94000, 187000], [61000, 114000, 21200, 408000]][rarityType][currentEvoLevel];
         }
         data.getMinGoldNeeded = getMinGoldNeeded;
         function getMinSotNeeded(rarityType, currentEvoLevel) {
@@ -3183,7 +3183,7 @@ var bh;
     var utils;
     (function (utils) {
         function htmlFriendly(value) {
-            return String(value).replace(/\</g, "&lt;").replace(/\>/g, "&rt;");
+            return String(value).replace(/\</g, "&lt;").replace(/\>/g, "&gt;");
         }
         utils.htmlFriendly = htmlFriendly;
         function formatNumber(value) {
