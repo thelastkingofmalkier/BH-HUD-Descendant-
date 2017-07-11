@@ -2,7 +2,7 @@ namespace bh {
 
 	export class PlayerInventoryItem {
 
-		public constructor(public player: Player, public item: InventoryItem, public count = 0) { }
+		public constructor(public player: Player, public item: IDataInventoryItem, public count = 0) { }
 
 		// Passthrough for InventoryItem
 		public get elementType() { return this.item.elementType; }

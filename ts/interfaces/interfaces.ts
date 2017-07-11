@@ -39,9 +39,13 @@ interface IDataBattleCard extends IHasGuid, IHasName, IHasElementType, IHasKlass
 	base: number;
 	delta: number;
 	tier: GameBattleCardTier;
+	mats: string;
 }
 interface IDataBoosterCard extends IHasGuid, IHasName, IHasElementType, IHasRarityType {
 	challenge?: GameBoosterCardChallenge;
+}
+interface IDataInventoryItem extends IHasGuid, IHasName, IHasElementType, IHasRarityType {
+	itemType: bh.ItemType;
 }
 interface IDataWildCard extends IHasGuidAndName { }
 

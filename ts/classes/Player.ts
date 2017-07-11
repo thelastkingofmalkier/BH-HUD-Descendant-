@@ -23,39 +23,27 @@ namespace bh {
 		public get gems() { return this._pp && this._pp.gems || 0; }
 		public get gemsRowHtml() { return this._pp ? formatRow("misc", "GemStone", "Gems", this.gems) : ""; }
 		public get gold() { return this._pp && this._pp.gold || 0; }
-		public get goldNeeded() {
-			var needed = 0;
-			this.activeBattleCards.forEach(battleCard => {
-				if (!battleCard.maxMaxGoldNeeded) {
-					if (0 < needed) needed *= -1;
-				}else {
-					var neg = needed < 0;
-					needed = Math.abs(needed) + battleCard.maxMaxGoldNeeded;
-					if (neg) needed *= -1;
-				}
+		public get goldNeeded(): number {
+			return this.fromCache("goldNeeded", () => {
+				var needed = 0;
+				this.activeBattleCards.forEach(battleCard => needed += battleCard.maxMaxGoldNeeded);
+				this.heroes.forEach(playerHero => needed += playerHero ? playerHero.trait.maxGoldCost + playerHero.active.maxGoldCost + playerHero.passive.maxGoldCost : 0);
+				return needed;
 			});
-			this.heroes.forEach(playerHero => {
-				if (playerHero) {
-					var neg = needed < 0;
-					needed = Math.abs(needed) + playerHero.trait.maxGoldCost + playerHero.active.maxGoldCost + playerHero.passive.maxGoldCost;
-					if (neg) needed *= -1;
-				}
-			});
-			return needed;
 		}
 		public get goldRowHtml() {
 			var needed = this.goldNeeded,
-				// asterisk = needed < 0 ? "<sup>*</sup>" : "", // AT SOME POINT REMOVE THIS WHEN ALL MATH IS ACCOUNTED FOR
-				asterisk = "<sup>*</sup>",
+				asterisk = "<sup>*</sup>", // AT SOME POINT REMOVE THIS WHEN ALL MATH IS ACCOUNTED FOR
 				badge = needed ? `${utils.formatNumber(this.gold)} / ${utils.formatNumber(Math.abs(needed))}${asterisk}` : utils.formatNumber(this.gold);
 			return this._pp ? formatRow("misc", "Coin", "Gold", badge) : "";
 		}
 		public get guid() { return this._pp && this._pp.id || this._gp.playerId; }
 		public get guild() { return data.guilds.findByGuid(this.guildGuid); }
 		public get guildGuid() { return this._pp ? this._pp.playerGuild || null : this._gp && this._gp.guildId || null; }
-		public get guildName() { return data.guilds.findNameByGuid(this.guildGuid); }
-		public get guildParent() { var guildName = this.guildName; return guildName && guildName.parent || null; }
-		public get guilds() { return data.guilds.filterNamesByParent(this.guildParent); }
+		public get guildParent() { var guildName = data.guilds.findNameByGuid(this.guildGuid); return guildName && guildName.parent || null; }
+		public get guilds(): IGuild.Name[] {
+			return this.fromCache("guilds", () => data.guilds.filterNamesByParent(this.guildParent));
+		}
 		public get heroes(): PlayerHero[] {
 			return this.fromCache("heroes", () => {
 				var archetypes: IPlayer.Hero[];
@@ -69,7 +57,9 @@ namespace bh {
 				return archetypes.map(archetype => new PlayerHero(this, archetype));
 			});
 		}
-		public get isAlly() { var me = Player.me; return !!me.guilds.find(g => g.guid == this.guildGuid); }
+		public get isAlly(): boolean {
+			return this.fromCache("isAlly", () => !!Player.me.guilds.find(g => g.guid == this.guildGuid));
+		}
 		public get canScout() { return !!this.guildParent || this.guid == "b0a8b57b-54f5-47d8-8b7a-f9dac8300ca0"; }
 		public get isExtended() { return !!this._pp; }
 		public get isFullMeat() { return this.heroes.length == data.HeroRepo.length && !this.heroes.find(hero => !hero.isMeat); }
@@ -83,7 +73,7 @@ namespace bh {
 		public get raidTickets() { return this._pp && this._pp.raidKeys || 0; }
 		public get battleCards(): PlayerBattleCard[] { return this.fromCache("battleCards", () => !(this._pp && this._pp.playerCards && this._pp.playerCards.cards) ? [] : this.sortAndReduceBattleCards(Object.keys(this._pp.playerCards.cards))); }
 		public get activeBattleCards(): PlayerBattleCard[] { return this.fromCache("activeBattleCards", () => this.battleCards.filter(battleCard => battleCard.isActive)); }
-		public get activeRecipes(): Recipe[] { return this.fromCache("activeRecipes", () => this.activeBattleCards.map(bc => data.RecipeRepo.createPartialRecipe(bc)).filter(r => !!r)); }
+		public get activeRecipes(): Recipe[] { return this.fromCache("activeRecipes", () => this.activeBattleCards.map(bc => new Recipe(bc).createPartial(bc)).filter(r => !!r)); }
 		public get boosterCards() { var map = this._pp && this._pp.feederCardsMap; return !map ? [] : Object.keys(map).map(guid => new PlayerBoosterCard(guid, map[guid])).sort(utils.sort.byElementThenRarityThenName); }
 		public get boosterCount() { var count = 0, map = this._pp && this._pp.feederCardsMap; Object.keys(map || {}).map(guid => count += map[guid]); return count; }
 		public get boosterRowHtml() { return this._pp ? PlayerBoosterCard.rowHtml(this.boosterCount) : ""; }

@@ -4,8 +4,7 @@ namespace bh {
 
 		private _rowChildren() {
 			var me = Player.me,
-				recipe = data.RecipeRepo.find(this.guid),
-				activeRecipe = recipe && recipe.createPartial(this),
+				activeRecipe = new Recipe(this).createPartial(this),
 				html = "";
 			if (activeRecipe) {
 				activeRecipe.all.forEach(recipeItem => {
@@ -16,7 +15,7 @@ namespace bh {
 					wcOwned = me.wildCards[this.rarityType] && me.wildCards[this.rarityType].count || 0,
 					wcColor = wcOwned < wcNeeded ? `bg-danger` : `bg-success`;
 				html += `<div>${getImg20("cardtypes", "WildCard")} ${RarityType[this.rarityType]} WC <span class="badge pull-right ${wcColor}">${utils.formatNumber(wcOwned)} / ${utils.formatNumber(wcNeeded)}</span></div>`;
-				var goldNeeded = data.getMaxGoldNeeded(this.playerCard, this.evoLevel) * this.count,
+				var goldNeeded = data.calcMaxGoldNeeded(this.playerCard, this.evoLevel) * this.count,
 					goldOwned = me.gold,
 					goldColor = goldOwned < goldNeeded ? `bg-danger` : `bg-success`;
 				html += `<div>${getImg20("misc", "Coin")} Gold <span class="badge pull-right ${goldColor}">${utils.formatNumber(goldOwned)} / ${utils.formatNumber(goldNeeded)}</span></div>`;
@@ -45,6 +44,7 @@ namespace bh {
 		public get rarityType() { return this._bc ? this._bc.rarityType : null; }
 		public get type() { return this._bc && this._bc.type || null; }
 		public get tier() { return this._bc && this._bc.tier || null; }
+		public get mats() { return this._bc && this._bc.mats || null; }
 
 		// PlayerCard pass-through
 		public get evo() { return this.playerCard && this.playerCard.evolutionLevel || 0; }
@@ -67,16 +67,15 @@ namespace bh {
 		public get isMaxed() { return this.evoLevel == ["1.10", "2.20", "3.35", "4.50", "5.50"][this.rarityType]; }
 		public get maxWildCardsNeeded() { return data.getMaxWildCardsNeeded(this) * this.count; }
 		public get nextWildCardsNeeded() { return data.getNextWildCardsNeeded(this) * this.count; }
-		public get maxMaxSotNeeded() { return data.getMaxSotNeeded(this.playerCard, this.evoLevel) * this.count; }
+		public get maxMaxSotNeeded() { return data.calcMaxSotNeeded(this.playerCard, this.evoLevel) * this.count; }
 		public get nextMaxSotNeeded() { return data.getMaxSotNeeded(this.rarityType, this.evo) * this.count; }
-		public get maxMaxGoldNeeded() { return data.getMaxGoldNeeded(this.playerCard, this.evoLevel) * this.count; }
+		public get maxMaxGoldNeeded() { return data.calcMaxGoldNeeded(this.playerCard, this.evoLevel) * this.count; }
 		public get nextMaxGoldNeeded() { return data.getMaxGoldNeeded(this.rarityType, this.evo) * this.count; }
 		public get powerRating() { return PowerRating.ratePlayerCard(this.playerCard); }
 		public get rarityEvoLevel() { return `${RarityType[this.rarityType][0]}.${this.evoLevel}`; }
 		public get rowHtml() { return this._rowHtml();  }
 		public get evoHtml() { return this._rowHtml(this.count * 60);  }
 		public get goldHtml() { return this._rowHtml(this.maxMaxGoldNeeded);  }
-		// public get sotHtml() { return this._rowHtml(this.maxMaxSotNeeded);  }
 		public get wcHtml() { return this._rowHtml(this.maxWildCardsNeeded);  }
 		public get scoutHtml() { return `${this.rarityEvoLevel} ${this.name} ${this.count > 1 ? `x${this.count}` : ``}`; }
 		public get typeImage() { return this.type ? getImg("cardtypes", this.type) : ``; }

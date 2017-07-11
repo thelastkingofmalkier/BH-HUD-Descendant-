@@ -162,15 +162,21 @@ namespace bh {
 			return getImg("skills", this.playerHero.name + AbilityType[this.type]);
 		}
 		public get materialHtml() {
+			var player = this.playerHero.player,
+				count = this.type == AbilityType.Trait ? player.inventory.find(item => item.itemType == ItemType.Rune && item.elementType == this.playerHero.elementType).count
+					: player.inventory.find(item => item.itemType == ItemType.Crystal && item.elementType == this.playerHero.elementType).count;
+			var color = this.maxMaterialCount <= count ? "bg-success" : "bg-danger";
 			return this.type == AbilityType.Trait
-				? `<div>${getImg("runes", this.name.replace(/\W/g, ""))} ${(this.hero.name + "'s").replace("s's", "s'")} ${ElementType[this.hero.elementType]} Rune <span class="badge pull-right">${utils.formatNumber(this.maxMaterialCount || 0)}</span></div>`
-				: `<div>${getImg("crystals", ElementType[this.hero.elementType])} ${ElementType[this.hero.elementType]} Crystals <span class="badge pull-right">${utils.formatNumber(this.maxMaterialCount || 0)}</span></div>`;
+				? `<div>${getImg("runes", this.name.replace(/\W/g, ""))} ${(this.hero.name + "'s").replace("s's", "s'")} ${ElementType[this.hero.elementType]} Rune <span class="badge pull-right ${color}">${utils.formatNumber(count)} / ${utils.formatNumber(this.maxMaterialCount || 0)}</span></div>`
+				: `<div>${getImg("crystals", ElementType[this.hero.elementType])} ${ElementType[this.hero.elementType]} Crystals <span class="badge pull-right ${color}">${utils.formatNumber(count)} / ${utils.formatNumber(this.maxMaterialCount || 0)}</span></div>`;
 		}
 		public get evoHtml() {
 			return `<div>${this.img} ${this.playerHero.name} ${AbilityType[this.type]} <span class="badge pull-right">${utils.formatNumber(this.maxMaterialCount || 0)}</span></div>`;
 		}
 		public get goldHtml() {
-			return `<div>${getImg("misc", "Coin")} Gold <span class="badge pull-right">${utils.formatNumber(this.maxGoldCost || 0)}</span></div>`;
+			var gold = this.playerHero.player.gold || 0,
+				color = this.maxGoldCost <= gold ? "bg-success" : "bg-danger";
+			return `<div>${getImg("misc", "Coin")} Gold <span class="badge pull-right ${color}">${utils.formatNumber(gold)} / ${utils.formatNumber(this.maxGoldCost || 0)}</span></div>`;
 		}
 		public get powerRating() {
 			return PowerRating.ratePlayerHeroAbility(this) * (this.level / getAbilityMaxLevel(this.hero, this.type));

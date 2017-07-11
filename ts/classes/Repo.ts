@@ -79,20 +79,44 @@ namespace bh {
 					var parts = line.split(/\t/).map(s => s.trim()),
 						value: { [key: string]: string | boolean | number; } = { };
 					keys.forEach((key, index) => {
-						if (key == "element") {
-							value["elementType"] = ElementType[<GameElement>parts[index]];
+						switch(key) {
+							case "element":
+							case "elementType":
+								value["elementType"] = ElementType[<GameElement>parts[index]];
+								break;
 
-						}else if (key == "rarity") {
-							value["rarityType"] = RarityType[<GameRarity>parts[index].replace(/ /g, "")];
+							case "rarity":
+							case "rarityType":
+								value["rarityType"] = RarityType[<GameRarity>parts[index].replace(/ /g, "")];
+								break;
 
-						}else if (key == "klass") {
-							value["klassType"] = KlassType[<GameKlass>parts[index]];
+							case "klass":
+							case "klassType":
+								value["klassType"] = KlassType[<GameKlass>parts[index]];
+								break;
 
-						}else {
-							value[key] = key == "brag" ? !!parts[index].match(/\d+(,\d+)*/) //utils.parseBoolean(parts[index])
-										: key == "turns" ? +parts[index]
-										: parts[index];
-							if (key == "name") value["lower"] = parts[index].toLowerCase();
+							case "itemType":
+								value["itemType"] = ItemType[<GameItemType>parts[index].replace(/ /g, "")];
+								break;
+
+							case "abilityType":
+								value["abilityType"] = AbilityType[<GameAbilityType>parts[index]];
+								break;
+
+							case "brag":
+								value["brag"] = !!parts[index].match(/\d+(,\d+)*/);
+								break;
+
+							case "turns":
+								value["turns"] = +parts[index];
+								break;
+
+							case "name":
+								value["lower"] = parts[index].toLowerCase();
+							default:
+								value[key] = parts[index];
+								break;
+
 						}
 					});
 					return <T><any>value;
@@ -101,8 +125,8 @@ namespace bh {
 		}
 
 		private static AllRepos: Repo<any>[] = [];
-		// public static init(): Promise<boolean, any> {
-		// 	return Promise.all(abilities.init()
-		// }
+		public static init(): Promise<any>[] {
+			return Repo.AllRepos.map(repo => repo.init());
+		}
 	}
 }

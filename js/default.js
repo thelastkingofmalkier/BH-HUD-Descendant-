@@ -284,30 +284,48 @@ var bh;
                 }
                 var parts = line.split(/\t/).map(function (s) { return s.trim(); }), value = {};
                 keys.forEach(function (key, index) {
-                    if (key == "element") {
-                        value["elementType"] = bh.ElementType[parts[index]];
-                    }
-                    else if (key == "rarity") {
-                        value["rarityType"] = bh.RarityType[parts[index].replace(/ /g, "")];
-                    }
-                    else if (key == "klass") {
-                        value["klassType"] = bh.KlassType[parts[index]];
-                    }
-                    else {
-                        value[key] = key == "brag" ? !!parts[index].match(/\d+(,\d+)*/)
-                            : key == "turns" ? +parts[index]
-                                : parts[index];
-                        if (key == "name")
+                    switch (key) {
+                        case "element":
+                        case "elementType":
+                            value["elementType"] = bh.ElementType[parts[index]];
+                            break;
+                        case "rarity":
+                        case "rarityType":
+                            value["rarityType"] = bh.RarityType[parts[index].replace(/ /g, "")];
+                            break;
+                        case "klass":
+                        case "klassType":
+                            value["klassType"] = bh.KlassType[parts[index]];
+                            break;
+                        case "itemType":
+                            value["itemType"] = bh.ItemType[parts[index].replace(/ /g, "")];
+                            break;
+                        case "abilityType":
+                            value["abilityType"] = bh.AbilityType[parts[index]];
+                            break;
+                        case "brag":
+                            value["brag"] = !!parts[index].match(/\d+(,\d+)*/);
+                            break;
+                        case "turns":
+                            value["turns"] = +parts[index];
+                            break;
+                        case "name":
                             value["lower"] = parts[index].toLowerCase();
+                        default:
+                            value[key] = parts[index];
+                            break;
                     }
                 });
                 return value;
             })
                 .filter(function (value) { return value != null; });
         };
+        Repo.init = function () {
+            return Repo.AllRepos.map(function (repo) { return repo.init(); });
+        };
+        Repo.AllRepos = [];
         return Repo;
     }());
-    Repo.AllRepos = [];
     bh.Repo = Repo;
 })(bh || (bh = {}));
 var bh;
@@ -352,33 +370,11 @@ var bh;
 })(bh || (bh = {}));
 var bh;
 (function (bh) {
-    var InventoryItem = (function () {
-        function InventoryItem(line) {
-            var values = line.split(/\t/).map(function (s) { return s.trim(); });
-            this.guid = values.shift();
-            this.name = values.shift();
-            this.itemType = bh.ItemType[values.shift().replace(/ /g, "")];
-            this.rarityType = bh.RarityType[values.shift()];
-            this.elementType = bh.ElementType[values.shift()];
-        }
-        return InventoryItem;
-    }());
-    bh.InventoryItem = InventoryItem;
-})(bh || (bh = {}));
-var bh;
-(function (bh) {
     var ItemRepo = (function (_super) {
         __extends(ItemRepo, _super);
         function ItemRepo() {
             return _super.call(this, 879699541) || this;
         }
-        ItemRepo.prototype.parseTsv = function (tsv) {
-            var _this = this;
-            return new Promise(function (resolvefn) {
-                _this.data = tsv.trim().split(/\n/).slice(1).map(function (line) { return new bh.InventoryItem(line); });
-                resolvefn(_this.data);
-            });
-        };
         Object.defineProperty(ItemRepo.prototype, "evoJars", {
             get: function () {
                 return this.data.filter(function (item) { return item.itemType === bh.ItemType.EvoJar; });
@@ -397,6 +393,18 @@ var bh;
             get: function () {
                 return this.data.filter(function (item) { return item.itemType === bh.ItemType.Rune; });
             },
+            enumerable: true,
+            configurable: true
+        });
+        ItemRepo.getValue = function (itemType, rarityType) {
+            if (itemType == bh.ItemType.Crystal)
+                return 1000;
+            if (itemType == bh.ItemType.Rune)
+                return 2000;
+            return [300, 800, 1500, 3000][rarityType];
+        };
+        Object.defineProperty(ItemRepo, "sandsOfTime", {
+            get: function () { return bh.data.ItemRepo.find("Sands of Time"); },
             enumerable: true,
             configurable: true
         });
@@ -537,28 +545,13 @@ var bh;
         });
         Object.defineProperty(Player.prototype, "goldNeeded", {
             get: function () {
-                var needed = 0;
-                this.activeBattleCards.forEach(function (battleCard) {
-                    if (!battleCard.maxMaxGoldNeeded) {
-                        if (0 < needed)
-                            needed *= -1;
-                    }
-                    else {
-                        var neg = needed < 0;
-                        needed = Math.abs(needed) + battleCard.maxMaxGoldNeeded;
-                        if (neg)
-                            needed *= -1;
-                    }
+                var _this = this;
+                return this.fromCache("goldNeeded", function () {
+                    var needed = 0;
+                    _this.activeBattleCards.forEach(function (battleCard) { return needed += battleCard.maxMaxGoldNeeded; });
+                    _this.heroes.forEach(function (playerHero) { return needed += playerHero ? playerHero.trait.maxGoldCost + playerHero.active.maxGoldCost + playerHero.passive.maxGoldCost : 0; });
+                    return needed;
                 });
-                this.heroes.forEach(function (playerHero) {
-                    if (playerHero) {
-                        var neg = needed < 0;
-                        needed = Math.abs(needed) + playerHero.trait.maxGoldCost + playerHero.active.maxGoldCost + playerHero.passive.maxGoldCost;
-                        if (neg)
-                            needed *= -1;
-                    }
-                });
-                return needed;
             },
             enumerable: true,
             configurable: true
@@ -586,18 +579,16 @@ var bh;
             enumerable: true,
             configurable: true
         });
-        Object.defineProperty(Player.prototype, "guildName", {
-            get: function () { return bh.data.guilds.findNameByGuid(this.guildGuid); },
-            enumerable: true,
-            configurable: true
-        });
         Object.defineProperty(Player.prototype, "guildParent", {
-            get: function () { var guildName = this.guildName; return guildName && guildName.parent || null; },
+            get: function () { var guildName = bh.data.guilds.findNameByGuid(this.guildGuid); return guildName && guildName.parent || null; },
             enumerable: true,
             configurable: true
         });
         Object.defineProperty(Player.prototype, "guilds", {
-            get: function () { return bh.data.guilds.filterNamesByParent(this.guildParent); },
+            get: function () {
+                var _this = this;
+                return this.fromCache("guilds", function () { return bh.data.guilds.filterNamesByParent(_this.guildParent); });
+            },
             enumerable: true,
             configurable: true
         });
@@ -623,8 +614,7 @@ var bh;
         Object.defineProperty(Player.prototype, "isAlly", {
             get: function () {
                 var _this = this;
-                var me = Player.me;
-                return !!me.guilds.find(function (g) { return g.guid == _this.guildGuid; });
+                return this.fromCache("isAlly", function () { return !!Player.me.guilds.find(function (g) { return g.guid == _this.guildGuid; }); });
             },
             enumerable: true,
             configurable: true
@@ -703,7 +693,7 @@ var bh;
         Object.defineProperty(Player.prototype, "activeRecipes", {
             get: function () {
                 var _this = this;
-                return this.fromCache("activeRecipes", function () { return _this.activeBattleCards.map(function (bc) { return bh.data.RecipeRepo.createPartialRecipe(bc); }).filter(function (r) { return !!r; }); });
+                return this.fromCache("activeRecipes", function () { return _this.activeBattleCards.map(function (bc) { return new bh.Recipe(bc).createPartial(bc); }).filter(function (r) { return !!r; }); });
             },
             enumerable: true,
             configurable: true
@@ -815,7 +805,7 @@ var bh;
         }
         PlayerBattleCard.prototype._rowChildren = function () {
             var _this = this;
-            var me = bh.Player.me, recipe = bh.data.RecipeRepo.find(this.guid), activeRecipe = recipe && recipe.createPartial(this), html = "";
+            var me = bh.Player.me, activeRecipe = new bh.Recipe(this).createPartial(this), html = "";
             if (activeRecipe) {
                 activeRecipe.all.forEach(function (recipeItem) {
                     var item = me.inventory.find(function (item) { return item.guid == recipeItem.item.guid; });
@@ -823,7 +813,7 @@ var bh;
                 });
                 var wcNeeded = bh.data.getMaxWildCardsNeeded(this) * this.count, wcOwned = me.wildCards[this.rarityType] && me.wildCards[this.rarityType].count || 0, wcColor = wcOwned < wcNeeded ? "bg-danger" : "bg-success";
                 html += "<div>" + bh.getImg20("cardtypes", "WildCard") + " " + bh.RarityType[this.rarityType] + " WC <span class=\"badge pull-right " + wcColor + "\">" + bh.utils.formatNumber(wcOwned) + " / " + bh.utils.formatNumber(wcNeeded) + "</span></div>";
-                var goldNeeded = bh.data.getMaxGoldNeeded(this.playerCard, this.evoLevel) * this.count, goldOwned = me.gold, goldColor = goldOwned < goldNeeded ? "bg-danger" : "bg-success";
+                var goldNeeded = bh.data.calcMaxGoldNeeded(this.playerCard, this.evoLevel) * this.count, goldOwned = me.gold, goldColor = goldOwned < goldNeeded ? "bg-danger" : "bg-success";
                 html += "<div>" + bh.getImg20("misc", "Coin") + " Gold <span class=\"badge pull-right " + goldColor + "\">" + bh.utils.formatNumber(goldOwned) + " / " + bh.utils.formatNumber(goldNeeded) + "</span></div>";
             }
             return html;
@@ -869,6 +859,11 @@ var bh;
         });
         Object.defineProperty(PlayerBattleCard.prototype, "tier", {
             get: function () { return this._bc && this._bc.tier || null; },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(PlayerBattleCard.prototype, "mats", {
+            get: function () { return this._bc && this._bc.mats || null; },
             enumerable: true,
             configurable: true
         });
@@ -931,7 +926,7 @@ var bh;
             configurable: true
         });
         Object.defineProperty(PlayerBattleCard.prototype, "maxMaxSotNeeded", {
-            get: function () { return bh.data.getMaxSotNeeded(this.playerCard, this.evoLevel) * this.count; },
+            get: function () { return bh.data.calcMaxSotNeeded(this.playerCard, this.evoLevel) * this.count; },
             enumerable: true,
             configurable: true
         });
@@ -941,7 +936,7 @@ var bh;
             configurable: true
         });
         Object.defineProperty(PlayerBattleCard.prototype, "maxMaxGoldNeeded", {
-            get: function () { return bh.data.getMaxGoldNeeded(this.playerCard, this.evoLevel) * this.count; },
+            get: function () { return bh.data.calcMaxGoldNeeded(this.playerCard, this.evoLevel) * this.count; },
             enumerable: true,
             configurable: true
         });
@@ -1485,9 +1480,13 @@ var bh;
         });
         Object.defineProperty(PlayerHeroAbility.prototype, "materialHtml", {
             get: function () {
+                var _this = this;
+                var player = this.playerHero.player, count = this.type == bh.AbilityType.Trait ? player.inventory.find(function (item) { return item.itemType == bh.ItemType.Rune && item.elementType == _this.playerHero.elementType; }).count
+                    : player.inventory.find(function (item) { return item.itemType == bh.ItemType.Crystal && item.elementType == _this.playerHero.elementType; }).count;
+                var color = this.maxMaterialCount <= count ? "bg-success" : "bg-danger";
                 return this.type == bh.AbilityType.Trait
-                    ? "<div>" + bh.getImg("runes", this.name.replace(/\W/g, "")) + " " + (this.hero.name + "'s").replace("s's", "s'") + " " + bh.ElementType[this.hero.elementType] + " Rune <span class=\"badge pull-right\">" + bh.utils.formatNumber(this.maxMaterialCount || 0) + "</span></div>"
-                    : "<div>" + bh.getImg("crystals", bh.ElementType[this.hero.elementType]) + " " + bh.ElementType[this.hero.elementType] + " Crystals <span class=\"badge pull-right\">" + bh.utils.formatNumber(this.maxMaterialCount || 0) + "</span></div>";
+                    ? "<div>" + bh.getImg("runes", this.name.replace(/\W/g, "")) + " " + (this.hero.name + "'s").replace("s's", "s'") + " " + bh.ElementType[this.hero.elementType] + " Rune <span class=\"badge pull-right " + color + "\">" + bh.utils.formatNumber(count) + " / " + bh.utils.formatNumber(this.maxMaterialCount || 0) + "</span></div>"
+                    : "<div>" + bh.getImg("crystals", bh.ElementType[this.hero.elementType]) + " " + bh.ElementType[this.hero.elementType] + " Crystals <span class=\"badge pull-right " + color + "\">" + bh.utils.formatNumber(count) + " / " + bh.utils.formatNumber(this.maxMaterialCount || 0) + "</span></div>";
             },
             enumerable: true,
             configurable: true
@@ -1501,7 +1500,8 @@ var bh;
         });
         Object.defineProperty(PlayerHeroAbility.prototype, "goldHtml", {
             get: function () {
-                return "<div>" + bh.getImg("misc", "Coin") + " Gold <span class=\"badge pull-right\">" + bh.utils.formatNumber(this.maxGoldCost || 0) + "</span></div>";
+                var gold = this.playerHero.player.gold || 0, color = this.maxGoldCost <= gold ? "bg-success" : "bg-danger";
+                return "<div>" + bh.getImg("misc", "Coin") + " Gold <span class=\"badge pull-right " + color + "\">" + bh.utils.formatNumber(gold) + " / " + bh.utils.formatNumber(this.maxGoldCost || 0) + "</span></div>";
             },
             enumerable: true,
             configurable: true
@@ -1793,25 +1793,92 @@ var bh;
 (function (bh) {
     var Recipe = (function (_super) {
         __extends(Recipe, _super);
-        function Recipe(guid, name, rarityType) {
+        function Recipe(card) {
             var _this = _super.call(this) || this;
-            _this.guid = guid;
+            _this.card = card;
             _this.evos = [];
-            _this.card = bh.data.cards.battle.find(guid);
-            _this.name = _this.card && _this.card.name || name;
-            _this.lower = _this.name.toLowerCase();
-            _this.rarityType = rarityType;
-            if (!_this.card)
-                console.log(name + " (" + bh.RarityType[rarityType][0] + ")");
+            var matItems = (card.mats || "").split(",")
+                .map(function (mat) { return bh.data.ItemRepo.find(mat.trim()); }).filter(function (item) { return !!item; })
+                .sort(bh.utils.sort.byRarity);
+            [0, 1, 2, 3, 4].slice(0, card.rarityType + 1).forEach(function (evoFrom) {
+                var sands = bh.ItemRepo.sandsOfTime;
+                _this.addItem(evoFrom, bh.data.getMinSotNeeded(card.rarityType, evoFrom), bh.data.getMaxSotNeeded(card.rarityType, evoFrom), sands.name);
+                matItems.forEach(function (item) {
+                    _this.addItem(evoFrom, 0, bh.data.getMaxMatNeeded(card.rarityType, evoFrom, item.rarityType), item.name);
+                });
+            });
             return _this;
         }
+        Object.defineProperty(Recipe.prototype, "lower", {
+            get: function () { return this.card.lower; },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Recipe.prototype, "name", {
+            get: function () { return this.card.name; },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Recipe.prototype, "rarityType", {
+            get: function () { return this.card.rarityType; },
+            enumerable: true,
+            configurable: true
+        });
         Recipe.prototype.addItem = function (evoFrom, min, max, itemName) {
-            if (typeof (min) !== "number" || typeof (max) !== "number" || !itemName) {
-                return;
-            }
             var evo = this.evos[evoFrom] || (this.evos[evoFrom] = { evoFrom: evoFrom, evoTo: evoFrom + 1, items: [] }), evoItem = { item: bh.data.ItemRepo.find(itemName), min: min, max: max };
             evo.items.push(evoItem);
         };
+        Object.defineProperty(Recipe.prototype, "common", {
+            get: function () {
+                var _this = this;
+                return this.fromCache("common", function () {
+                    var recipeItem = _this.all.find(function (item) { return item.item.rarityType == bh.RarityType.Common; });
+                    return recipeItem && recipeItem.item;
+                });
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Recipe.prototype, "uncommon", {
+            get: function () {
+                var _this = this;
+                return this.fromCache("uncommon", function () {
+                    var recipeItem = _this.all.find(function (item) { return item.item.rarityType == bh.RarityType.Uncommon && item.item.name != "Sands of Time"; });
+                    return recipeItem && recipeItem.item;
+                });
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Recipe.prototype, "rare", {
+            get: function () {
+                var _this = this;
+                return this.fromCache("rare", function () {
+                    var recipeItem = _this.all.find(function (item) { return item.item.rarityType == bh.RarityType.Rare; });
+                    return recipeItem && recipeItem.item;
+                });
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Recipe.prototype, "superRare", {
+            get: function () {
+                var _this = this;
+                return this.fromCache("superRare", function () {
+                    var recipeItem = _this.all.find(function (item) { return item.item.rarityType == bh.RarityType.SuperRare; });
+                    return recipeItem && recipeItem.item;
+                });
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Recipe.prototype, "inventoryItems", {
+            get: function () {
+                return [this.common, this.uncommon, this.rare, this.superRare];
+            },
+            enumerable: true,
+            configurable: true
+        });
         Object.defineProperty(Recipe.prototype, "all", {
             get: function () {
                 var _this = this;
@@ -1841,7 +1908,7 @@ var bh;
             return max * multiplier;
         };
         Recipe.prototype.createPartial = function (card) {
-            var recipe = new Recipe(this.guid, this.name, this.rarityType);
+            var recipe = new Recipe(card);
             recipe.card = card;
             this.evos.slice(card.evo).forEach(function (evo) {
                 return evo.items.forEach(function (item) {
@@ -1853,83 +1920,6 @@ var bh;
         return Recipe;
     }(bh.Cacheable));
     bh.Recipe = Recipe;
-})(bh || (bh = {}));
-var bh;
-(function (bh) {
-    function cleanMatName(mat) {
-        if (mat == "Gunpowder")
-            return "Ore Particles";
-        if (mat == "Dehydrated Water")
-            return "Water Vapour";
-        if (mat == "Dragons Breath")
-            return "Dragon's Breath";
-        if (mat == "Snapweed")
-            return "SnapWeed";
-        if (mat.endsWith("Rune")) {
-            mat = mat
-                .replace("Fire Mage", "Monty's Fire")
-                .replace("Fire Berserker", "Fergus' Fire")
-                .replace("Fire Rogue", "Red's Fire")
-                .replace("Earth Witch", "Trix's Earth")
-                .replace("Earth Warrior", "Thrudd's Earth")
-                .replace("Earth Elf", "Bree's Earth")
-                .replace("Air Paladin", "Brom's Air")
-                .replace("Air Ranger", "Hawkeye's Air")
-                .replace("Spirit Sorcerer", "Krell's Spirit")
-                .replace("Spirit Thief", "Jinx's Spirit")
-                .replace("Water Monk", "Logan's Water")
-                .replace("Water Valkyrie", "Gilda's Water")
-                .replace("Water Pirate", "Peg's Water");
-            switch (mat) {
-                case "Fire Mage Rune": return "";
-            }
-        }
-        if (!bh.data.ItemRepo.find(mat))
-            console.warn(mat);
-        return mat;
-    }
-    var RecipeRepo = (function (_super) {
-        __extends(RecipeRepo, _super);
-        function RecipeRepo() {
-            return _super.call(this, "1bL9SkXb7pjw6ucy9BE5JehFWhlGmrJaiaw4xpPb6eQQ", 0) || this;
-        }
-        RecipeRepo.prototype.parseTsv = function (tsv) {
-            var _this = this;
-            return new Promise(function (resolvefn) {
-                var recipes = {};
-                var lastLine;
-                var parsed = tsv.split(/\n/).slice(1).map(function (line) {
-                    if (lastLine == line)
-                        return;
-                    lastLine = line;
-                    var parts = line.trim().split(/\t/), guid = parts.shift(), name = parts.shift(), rarityType = bh.RarityType[parts.shift().replace(/ /g, "")], evoNumber = +parts.shift()[0], recipe = recipes[guid] || (recipes[guid] = new bh.Recipe(guid, name, rarityType));
-                    while (parts.length) {
-                        recipe.addItem(evoNumber, +parts.shift().trim(), +parts.shift().trim(), cleanMatName(parts.shift().trim()));
-                    }
-                });
-                _this.data = Object.keys(recipes).map(function (key) { return recipes[key]; });
-                resolvefn(_this.data);
-            });
-        };
-        RecipeRepo.prototype.findByItem = function (item) {
-            var name = item && item.name || item;
-            return this.data.filter(function (recipe) {
-                return recipe.evos.find(function (evo) {
-                    return evo.items.find(function (recipeItem) { return name == recipeItem.item.name; }) != null;
-                }) != null;
-            });
-        };
-        RecipeRepo.prototype.findByBattleCard = function (card) {
-            return this.data.find(function (r) { return r.lower == card.lower && r.rarityType === card.rarityType; })
-                || console.log(card.name + ": " + card.rarityType);
-        };
-        RecipeRepo.prototype.createPartialRecipe = function (card) {
-            var recipe = this.findByBattleCard(card);
-            return recipe && recipe.createPartial(card) || null;
-        };
-        return RecipeRepo;
-    }(bh.Repo));
-    bh.RecipeRepo = RecipeRepo;
 })(bh || (bh = {}));
 var bh;
 (function (bh) {
@@ -2059,7 +2049,6 @@ var bh;
         data.HeroRepo = new bh.HeroRepo();
         data.ItemRepo = new bh.ItemRepo();
         data.PlayerRepo = new bh.Repo();
-        data.RecipeRepo = new bh.RecipeRepo();
         data.WildCardRepo = new bh.Repo(2106503523);
         function arenaToPlayers(json) {
             var players = [];
@@ -2102,7 +2091,7 @@ var bh;
         var _init;
         function init() {
             if (!_init) {
-                _init = Promise.all([data.cards.battle.init(), data.BoosterCardRepo.init(), data.HeroRepo.init(), data.ItemRepo.init(), data.PlayerRepo.init(), data.RecipeRepo.init(), data.guilds.init(), data.WildCardRepo.init()]);
+                _init = Promise.all([data.cards.battle.init(), data.guilds.init()].concat(bh.Repo.init()));
             }
             return _init;
         }
@@ -2117,22 +2106,6 @@ var bh;
             return [[1], [1, 2], [1, 2, 4], [1, 2, 4, 5], [1, 2, 3, 4, 5]][rarityType][currentEvoLevel];
         }
         data.wildsForEvo = wildsForEvo;
-        function getMinGoldNeeded(rarityType, currentEvoLevel) {
-            return [[1000], [5300, 15300], [8200, 27200, 65000], [33000, 60000, 94000, 187000], [61000, 114000, 21200, 408000]][rarityType][currentEvoLevel];
-        }
-        data.getMinGoldNeeded = getMinGoldNeeded;
-        function getMinSotNeeded(rarityType, currentEvoLevel) {
-            return [[0], [2, 5], [5, 10, 20], [10, 20, 30, 40], [20, 30, 40, 60, 60]][rarityType][currentEvoLevel];
-        }
-        data.getMinSotNeeded = getMinSotNeeded;
-        function getMinCrystalsNeeded(rarityType, currentEvoLevel) {
-            return rarityType == bh.RarityType.Legendary && currentEvoLevel == 4 ? 30 : 0;
-        }
-        data.getMinCrystalsNeeded = getMinCrystalsNeeded;
-        function getMinRunesNeeded(rarityType, currentEvoLevel) {
-            return rarityType == bh.RarityType.Legendary && currentEvoLevel == 4 ? 30 : 0;
-        }
-        data.getMinRunesNeeded = getMinRunesNeeded;
         function getNextWildCardsNeeded(playerCard) {
             return wildsForEvo(playerCard.rarityType, playerCard.evo);
         }
@@ -2145,58 +2118,86 @@ var bh;
             return needed;
         }
         data.getMaxWildCardsNeeded = getMaxWildCardsNeeded;
-        function getMaxGoldNeeded(playerCardOrRarityType, evoInfo) {
-            if (typeof evoInfo == "string") {
-                var sotNeeded = 0, evoParts = evoInfo.split(/\./), evo = +evoParts[0], level = +evoParts[1], card = data.cards.battle.find(playerCardOrRarityType.configId), rarityType = card ? card.rarityType : playerCardOrRarityType, evoCap = bh.data.cards.battle.getMaxEvo(rarityType);
-                for (var i = evo; i < evoCap; i++) {
-                    sotNeeded += data.getMaxGoldNeeded(rarityType, i);
-                }
-                return sotNeeded;
-            }
-            else {
-                return [[12600], [18500, 34700], [22000, 57000, 114200], [56600, 114000, 170800, 289800], [115000, 190800, 32400, 545800, 800000]][playerCardOrRarityType][evoInfo];
-            }
+        function getBaseGoldNeeded(rarityType, currentEvoLevel) {
+            return [[1000], [3700, 11300], [4200, 19200, 49000], [25000, 44000, 70000, 155000], [45000, 90000, 180000, 360000, 540000]][rarityType][currentEvoLevel];
+        }
+        data.getBaseGoldNeeded = getBaseGoldNeeded;
+        function getMinGoldNeeded(rarityType, currentEvoLevel) {
+            var sands = bh.ItemRepo.sandsOfTime;
+            return getBaseGoldNeeded(rarityType, currentEvoLevel) + getMinSotNeeded(rarityType, currentEvoLevel) * bh.ItemRepo.getValue(sands.itemType, sands.rarityType);
+        }
+        data.getMinGoldNeeded = getMinGoldNeeded;
+        function getMaxGoldNeeded(rarityType, currentEvoLevel) {
+            var base = getBaseGoldNeeded(rarityType, currentEvoLevel), sands = bh.ItemRepo.sandsOfTime, sotCosts = getMaxSotNeeded(rarityType, currentEvoLevel) * bh.ItemRepo.getValue(sands.itemType, sands.rarityType), matCounts = [0, 1, 2, 3].map(function (matRarityType) { return getMaxMatNeeded(rarityType, currentEvoLevel, matRarityType); }), matCosts = matCounts.map(function (count, rarityType) { return count * bh.ItemRepo.getValue(bh.ItemType.EvoJar, rarityType); }), matCostsSum = matCosts.reduce(function (sum, cost) { return sum + cost; }, 0), runeCosts = getMaxRunesNeeded(rarityType, currentEvoLevel) * bh.ItemRepo.getValue(bh.ItemType.Rune, bh.RarityType.Rare), crystalCosts = getMaxCrystalsNeeded(rarityType, currentEvoLevel) * bh.ItemRepo.getValue(bh.ItemType.Crystal, bh.RarityType.Uncommon);
+            return base + sotCosts + matCostsSum + runeCosts + crystalCosts;
         }
         data.getMaxGoldNeeded = getMaxGoldNeeded;
-        function getMaxSotNeeded(playerCardOrRarityType, evoInfo) {
-            if (typeof evoInfo == "string") {
-                var sotNeeded = 0, evoParts = evoInfo.split(/\./), evo = +evoParts[0], level = +evoParts[1], card = data.cards.battle.find(playerCardOrRarityType.configId), rarityType = card ? card.rarityType : playerCardOrRarityType, evoCap = bh.data.cards.battle.getMaxEvo(rarityType);
-                for (var i = evo; i < evoCap; i++) {
-                    sotNeeded += data.getMaxSotNeeded(rarityType, i);
-                }
-                return sotNeeded;
+        function calcMaxGoldNeeded(playerCard, evoAndLevel) {
+            var needed = 0, card = data.cards.battle.find(playerCard.configId), evoCap = bh.data.cards.battle.getMaxEvo(card.rarityType);
+            for (var i = +evoAndLevel.split(/\./)[0]; i < evoCap; i++) {
+                needed += getMaxGoldNeeded(card.rarityType, i);
             }
-            else {
-                return [[10], [12, 15], [15, 20, 30], [20, 30, 40, 60], [30, 40, 60, 80, 100]][playerCardOrRarityType][evoInfo];
-            }
+            return needed;
+        }
+        data.calcMaxGoldNeeded = calcMaxGoldNeeded;
+        function getMinSotNeeded(rarityType, currentEvoLevel) {
+            return [[0], [2, 5], [5, 10, 20], [10, 20, 30, 40], [20, 30, 40, 60, 60]][rarityType][currentEvoLevel];
+        }
+        data.getMinSotNeeded = getMinSotNeeded;
+        function getMaxSotNeeded(rarityType, currentEvoLevel) {
+            return [[10], [12, 15], [15, 20, 30], [20, 30, 40, 60], [30, 40, 60, 80, 100]][rarityType][currentEvoLevel];
         }
         data.getMaxSotNeeded = getMaxSotNeeded;
-        function getMaxCrystalsNeeded(playerCardOrRarityType, evoInfo) {
-            if (typeof evoInfo == "string") {
-                var sotNeeded = 0, evoParts = evoInfo.split(/\./), evo = +evoParts[0], level = +evoParts[1], card = data.cards.battle.find(playerCardOrRarityType.configId), rarityType = card ? card.rarityType : playerCardOrRarityType, evoCap = bh.data.cards.battle.getMaxEvo(rarityType);
-                for (var i = evo; i < evoCap; i++) {
-                    sotNeeded += data.getMaxCrystalsNeeded(rarityType, i);
-                }
-                return sotNeeded;
+        function calcMaxSotNeeded(playerCard, evoAndLevel) {
+            var needed = 0, card = data.cards.battle.find(playerCard.configId), evoCap = bh.data.cards.battle.getMaxEvo(card.rarityType);
+            for (var i = +evoAndLevel.split(/\./)[0]; i < evoCap; i++) {
+                needed += getMaxSotNeeded(card.rarityType, i);
             }
-            else {
-                return playerCardOrRarityType == bh.RarityType.Legendary && evoInfo == 4 ? 60 : 0;
-            }
+            return needed;
+        }
+        data.calcMaxSotNeeded = calcMaxSotNeeded;
+        function getMaxMatNeeded(cardRarityType, currentEvoLevel, matRarityType) {
+            return ([
+                [[12]],
+                [[12, 2], [12, 6, 2]],
+                [[14, 2], [26, 10, 4], [, 14, 8, 6]],
+                [[26, 6, 2], [40, 20, 12], [, 26, 16, 8], [, 26, 20, 12]],
+                [[40, 20, 12], [, 26, 16, 8], [, 30, 24, 12], [, 36, 30, 16]]
+            ][cardRarityType][currentEvoLevel] || [])[matRarityType] || 0;
+        }
+        data.getMaxMatNeeded = getMaxMatNeeded;
+        function getMinCrystalsNeeded(rarityType, currentEvoLevel) {
+            return rarityType == bh.RarityType.Legendary && currentEvoLevel == 4 ? 30 : 0;
+        }
+        data.getMinCrystalsNeeded = getMinCrystalsNeeded;
+        function getMaxCrystalsNeeded(rarityType, currentEvoLevel) {
+            return rarityType == bh.RarityType.Legendary && currentEvoLevel == 4 ? 60 : 0;
         }
         data.getMaxCrystalsNeeded = getMaxCrystalsNeeded;
-        function getMaxRunesNeeded(playerCardOrRarityType, evoInfo) {
-            if (typeof evoInfo == "string") {
-                var sotNeeded = 0, evoParts = evoInfo.split(/\./), evo = +evoParts[0], level = +evoParts[1], card = data.cards.battle.find(playerCardOrRarityType.configId), rarityType = card ? card.rarityType : playerCardOrRarityType, evoCap = bh.data.cards.battle.getMaxEvo(rarityType);
-                for (var i = evo; i < evoCap; i++) {
-                    sotNeeded += data.getMaxCrystalsNeeded(rarityType, i);
-                }
-                return sotNeeded;
+        function calcMaxCrystalsNeeded(playerCard, evoAndLevel) {
+            var needed = 0, card = data.cards.battle.find(playerCard.configId), evoCap = bh.data.cards.battle.getMaxEvo(card.rarityType);
+            for (var i = +evoAndLevel.split(/\./)[0]; i < evoCap; i++) {
+                needed += data.getMaxCrystalsNeeded(card.rarityType, i);
             }
-            else {
-                return playerCardOrRarityType == bh.RarityType.Legendary && evoInfo == 4 ? 60 : 0;
-            }
+            return needed;
+        }
+        data.calcMaxCrystalsNeeded = calcMaxCrystalsNeeded;
+        function getMinRunesNeeded(rarityType, currentEvoLevel) {
+            return rarityType == bh.RarityType.Legendary && currentEvoLevel == 4 ? 30 : 0;
+        }
+        data.getMinRunesNeeded = getMinRunesNeeded;
+        function getMaxRunesNeeded(rarityType, currentEvoLevel) {
+            return rarityType == bh.RarityType.Legendary && currentEvoLevel == 4 ? 60 : 0;
         }
         data.getMaxRunesNeeded = getMaxRunesNeeded;
+        function calcMaxRunesNeeded(playerCard, evoAndLevel) {
+            var needed = 0, card = data.cards.battle.find(playerCard.configId), evoCap = bh.data.cards.battle.getMaxEvo(card.rarityType);
+            for (var i = +evoAndLevel.split(/\./)[0]; i < evoCap; i++) {
+                needed += data.getMaxRunesNeeded(card.rarityType, i);
+            }
+            return needed;
+        }
+        data.calcMaxRunesNeeded = calcMaxRunesNeeded;
     })(data = bh.data || (bh.data = {}));
 })(bh || (bh = {}));
 var bh;
@@ -2973,7 +2974,7 @@ var bh;
                 }
                 bh.data.PlayerRepo.put(player);
                 hud.scouter.loadPlayer(player);
-                if (json.id == bh.Messenger.ActivePlayerGuid) {
+                if (player.isMe) {
                     loadPlayer(player);
                     var guilds = player.guilds;
                     if (guilds.length && hud.guild.addGuildReport) {
@@ -3151,6 +3152,10 @@ var bh;
             sort.byEvoLevelThenName = byEvoLevelThenName;
             function byName(a, b) {
                 var an = a.lower || a.name.toLowerCase(), bn = a.lower || b.name.toLowerCase();
+                if (an == "sands of time")
+                    return -1;
+                if (bn == "sands of time")
+                    return 1;
                 return an == bn ? 0 : an < bn ? -1 : 1;
             }
             sort.byName = byName;
@@ -3554,11 +3559,11 @@ var XmlHttpRequest = (function () {
             xhr.send(data);
         });
     };
+    XmlHttpRequest.DONE = XMLHttpRequest.DONE;
+    XmlHttpRequest.HEADERS_RECEIVED = XMLHttpRequest.HEADERS_RECEIVED;
+    XmlHttpRequest.LOADING = XMLHttpRequest.LOADING;
+    XmlHttpRequest.OPENED = XMLHttpRequest.OPENED;
+    XmlHttpRequest.UNSENT = XMLHttpRequest.UNSENT;
+    XmlHttpRequest.globalListeners = [];
     return XmlHttpRequest;
 }());
-XmlHttpRequest.DONE = XMLHttpRequest.DONE;
-XmlHttpRequest.HEADERS_RECEIVED = XMLHttpRequest.HEADERS_RECEIVED;
-XmlHttpRequest.LOADING = XMLHttpRequest.LOADING;
-XmlHttpRequest.OPENED = XMLHttpRequest.OPENED;
-XmlHttpRequest.UNSENT = XMLHttpRequest.UNSENT;
-XmlHttpRequest.globalListeners = [];

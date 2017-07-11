@@ -8,33 +8,64 @@ namespace bh {
 		items: IRecipeItem[];
 	}
 	export interface IRecipeItem {
-		item: InventoryItem;
+		item: IDataInventoryItem;
 		min: number;
 		max: number;
 	}
 
 	export class Recipe extends Cacheable {
 
-		public card: IDataBattleCard | PlayerBattleCard;
 		public evos: IRecipeEvo[] = [];
-		public lower: string;
-		public name: string;
-		public rarityType: RarityType;
+		public get lower() { return this.card.lower; }
+		public get name() { return this.card.name; }
+		public get rarityType() { return this.card.rarityType; }
 
-		public constructor(public guid: string, name: string, rarityType: RarityType) {
-			super();
-			this.card = bh.data.cards.battle.find(guid);
-			this.name = this.card && this.card.name || name;
-			this.lower = this.name.toLowerCase();
-			this.rarityType = rarityType;
-			if (!this.card) console.log(`${name} (${RarityType[rarityType][0]})`);
-		}
-
-		public addItem(evoFrom: number, min: number, max: number, itemName: string) {
-			if (typeof(min) !== "number" || typeof(max) !== "number" || !itemName) { return; }
+		private addItem(evoFrom: number, min: number, max: number, itemName: string) {
 			var evo = this.evos[evoFrom] || (this.evos[evoFrom] = { evoFrom:evoFrom, evoTo:evoFrom+1, items:[] }),
 				evoItem = { item:data.ItemRepo.find(itemName), min:min, max:max };
 			evo.items.push(evoItem);
+		}
+
+		public constructor(public card: IDataBattleCard | PlayerBattleCard) {
+			super();
+			var matItems = (card.mats||"").split(",")
+				.map(mat => data.ItemRepo.find(mat.trim())).filter(item => !!item)
+				.sort(utils.sort.byRarity);
+			[0,1,2,3,4].slice(0, card.rarityType + 1).forEach(evoFrom => {
+				var sands = bh.ItemRepo.sandsOfTime;
+				this.addItem(evoFrom, bh.data.getMinSotNeeded(card.rarityType, evoFrom), data.getMaxSotNeeded(card.rarityType, evoFrom), sands.name);
+				matItems.forEach(item => {
+					this.addItem(evoFrom, 0, bh.data.getMaxMatNeeded(card.rarityType, evoFrom, item.rarityType), item.name);
+				});
+			});
+		}
+
+		public get common(): IDataInventoryItem {
+			return this.fromCache("common", () => {
+				var recipeItem = this.all.find(item => item.item.rarityType == RarityType.Common);
+				return recipeItem && recipeItem.item;
+			});
+		}
+		public get uncommon(): IDataInventoryItem {
+			return this.fromCache("uncommon", () => {
+				var recipeItem = this.all.find(item => item.item.rarityType == RarityType.Uncommon && item.item.name != "Sands of Time");
+				return recipeItem && recipeItem.item;
+			});
+		}
+		public get rare(): IDataInventoryItem {
+			return this.fromCache("rare", () => {
+				var recipeItem = this.all.find(item => item.item.rarityType == RarityType.Rare);
+				return recipeItem && recipeItem.item;
+			});
+		}
+		public get superRare(): IDataInventoryItem {
+			return this.fromCache("superRare", () => {
+				var recipeItem = this.all.find(item => item.item.rarityType == RarityType.SuperRare);
+				return recipeItem && recipeItem.item;
+			});
+		}
+		public get inventoryItems() {
+			return [this.common, this.uncommon, this.rare, this.superRare];
 		}
 
 		public get all(): IRecipeItem[] {
@@ -54,11 +85,11 @@ namespace bh {
 			});
 		}
 
-		public getItem(item: InventoryItem | PlayerInventoryItem) {
+		public getItem(item: IDataInventoryItem | PlayerInventoryItem) {
 			return this.all.find(recipeItem => recipeItem.item.name == item.name);
 		}
 
-		public getMaxNeeded(item: InventoryItem | PlayerInventoryItem) {
+		public getMaxNeeded(item: IDataInventoryItem | PlayerInventoryItem) {
 			var recipeItem = this.getItem(item),
 				max = recipeItem && recipeItem.max,
 				multiplier = this.card instanceof PlayerBattleCard ? (<PlayerBattleCard>this.card).count : 1;
@@ -66,7 +97,7 @@ namespace bh {
 		}
 
 		public createPartial(card: PlayerBattleCard) {
-			var recipe = new Recipe(this.guid, this.name, this.rarityType);
+			var recipe = new Recipe(card);
 			recipe.card = card;
 			this.evos.slice(card.evo).forEach(evo =>
 				evo.items.forEach(item =>

@@ -93,7 +93,7 @@ namespace bh {
 		export function asyncForEach<T>(array: T[], callbackfn: (value: T, index: number, array: T[]) => void, thisArg: any): Promise<T[]>;
 		export function asyncForEach<T>(array: T[], callbackfn: (value: T, index: number, array: T[]) => Promise<any>): Promise<T[]>;
 		export function asyncForEach<T>(array: T[], callbackfn: (value: T, index: number, array: T[]) => Promise<any>, thisArg: any): Promise<T[]>;
-		export function asyncForEach<T>(array: T[], callbackfn: (value: T, index: number, array: T[]) => Promise<any>, thisArg?: any): Promise<T[]> {
+		export function asyncForEach<T>(array: T[], callbackfn: (value: T, index: number, array: T[]) => any, thisArg?: any): Promise<T[]> {
 			return new Promise<T[]>((resolvefn: (values: T[]) => void, rejectfn: (reason: any) => void) => {
 				var functions = array.map((value: T, index: number, array: T[]) => {
 					return function(value: T, index: number, array: T[]) {

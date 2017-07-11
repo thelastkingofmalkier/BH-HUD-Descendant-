@@ -28,6 +28,8 @@ namespace bh {
 
 			export function byName(a: IHasName, b: IHasName): number {
 				var an = a.lower || a.name.toLowerCase(), bn = a.lower || b.name.toLowerCase();
+				if (an == "sands of time") return -1;
+				if (bn == "sands of time") return 1;
 				return an == bn ? 0 : an < bn ? -1 : 1;
 			}
 

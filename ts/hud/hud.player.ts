@@ -36,7 +36,7 @@ namespace bh {
 				}
 				data.PlayerRepo.put(player);
 				scouter.loadPlayer(player);
-				if (json.id == Messenger.ActivePlayerGuid) {
+				if (player.isMe) {
 					loadPlayer(player);
 					var guilds = player.guilds;
 					if (guilds.length && guild.addGuildReport) {
