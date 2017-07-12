@@ -2,15 +2,16 @@
 namespace bh {
 	export class HeroRepo extends Repo<Hero> {
 		constructor() {
-			super(742427723);
+			super(411895816, true);
 		}
-		protected parseTsv(heroTsv: string) {
+		protected parseTsv(tsv: string) {
 			return new Promise<Hero[]>((resolvefn: (heroes: Hero[]) => void) => {
-				Repo.fetchTsv(null, 73325800).then((heroAbilitiesTsv: string) => {
-					var parsedAbilities = heroAbilitiesTsv.trim().split(/\n/).slice(1).map(line => line.split(/\t/).map(s => s.trim()));
-					this.data = heroTsv.trim().split(/\n/).slice(1).map(line => new Hero(line, parsedAbilities.filter(abil => line.startsWith(abil[3]))));
-					resolvefn(this.data);
-				}, () => resolvefn(this.data = []));
+				var mapped = Repo.mapTsv<IDataHeroAbility>(tsv),
+					heroes: Hero[] = [];
+				while (mapped.length) {
+					heroes.push(new Hero([mapped.shift(), mapped.shift(), mapped.shift()]));
+				}
+				resolvefn(this.data = heroes);
 			});
 		}
 

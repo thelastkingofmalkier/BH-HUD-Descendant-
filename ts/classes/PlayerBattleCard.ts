@@ -43,6 +43,8 @@ namespace bh {
 		public get lower() { return this.name.toLowerCase(); }
 		public get rarityType() { return this._bc ? this._bc.rarityType : null; }
 		public get type() { return this._bc && this._bc.type || null; }
+		public get baseValue() { return this._bc && this._bc.base || 0; }
+		public get maxValue() { return this._bc && this._bc.max || 0; }
 		public get tier() { return this._bc && this._bc.tier || null; }
 		public get mats() { return this._bc && this._bc.mats || null; }
 

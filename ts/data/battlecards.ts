@@ -32,18 +32,29 @@ namespace bh {
 					return level == [10,20,35,50,50][<any>RarityType[<any>(rarity||"").replace(/ /, "")]];
 				}
 
-				export function calculateValue(playerCard: IPlayer.PlayerCard): number {
-					var card = find(playerCard.configId),
-						delta = card && card.delta || 0,
-						levels = !card ? 0 : card.rarityType == RarityType.Common ? 9 : card.rarityType == RarityType.Uncommon ? 19 : card.rarityType == RarityType.Rare ? 34 : 49,
-						value = card && card.base || 0;
-					if (0 < playerCard.evolutionLevel) { value = (value + levels * delta) * 0.80; }
-					if (1 < playerCard.evolutionLevel) { value = (value + levels * delta) * 0.85; }
-					if (2 < playerCard.evolutionLevel) { value = (value + levels * delta) * 0.88; }
-					if (3 < playerCard.evolutionLevel) { value = (value + levels * delta) * 0.90; }
-					if (4 < playerCard.evolutionLevel) { value = (value + levels * delta) * 1.00; }
-					value += playerCard.level * delta;
+				export function calcDelta(base: number, max: number, rarityType: RarityType) {
+					if (rarityType == RarityType.Common) { return (5 * max - 4 * base) / 81; }
+					if (rarityType == RarityType.Uncommon) { return (100 * max - 68 * base) / 4807; }
+					if (rarityType == RarityType.Rare) { return 625 * max / 68561 - 22 * base / 4033; }
+					if (rarityType == RarityType.SuperRare) { return (12500 * max - 6732 * base) / 2391053; }
+					if (rarityType == RarityType.Legendary) { return (12500 * max - 6732 * base) / 3003553; }
+					return 0;
+				}
+				export function calcValue(base: number, max: number, rarityType: RarityType, evo: number, level: number) {
+					var delta = calcDelta(base, max, rarityType),
+						levels = rarityType == RarityType.Common ? 9 : rarityType == RarityType.Uncommon ? 19 : rarityType == RarityType.Rare ? 34 : 49,
+						value = base;
+					if (0 < evo) { value = Math.floor((value + levels * delta) * 0.80); }
+					if (1 < evo) { value = Math.floor((value + levels * delta) * 0.85); }
+					if (2 < evo) { value = Math.floor((value + levels * delta) * 0.88); }
+					if (3 < evo) { value = Math.floor((value + levels * delta) * 0.90); }
+					if (4 < evo) { value = Math.floor((value + levels * delta) * 1.00); }
+					value += level * delta;
 					return Math.floor(value);
+				}
+				export function calculateValue(playerCard: IPlayer.PlayerCard): number {
+					var card = find(playerCard.configId);
+					return !card || !card.base || !card.max ? 0 : calcValue(card.base, card.max, card.rarityType, playerCard.evolutionLevel, playerCard.level);
 				}
 
 				var _init: Promise<IDataBattleCard[]>;
@@ -68,11 +79,3 @@ namespace bh {
 		}
 	}
 }
-/*
-Turn count tag list:
-• VERYSLOW = 5
-• SLOW = 4
-• MEDIUM = 3
-• FAST = 2
-• VERYFAST = 1
-*/

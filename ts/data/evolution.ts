@@ -2,7 +2,7 @@ namespace bh {
 	export namespace data {
 
 		export function wildsForEvo(rarityType: RarityType, currentEvoLevel: number) {
-			return [[1], [1,2], [1,2,4], [1,2,4,5], [1,2,3,4,5]][rarityType][currentEvoLevel];
+			return [[1], [1,2], [1,2,4], [1,2,4,5], [1,2,3,4,5]][rarityType || 0][currentEvoLevel || 0];
 		}
 		export function getNextWildCardsNeeded(playerCard: PlayerBattleCard) {
 			return wildsForEvo(playerCard.rarityType, playerCard.evo);
@@ -36,26 +36,26 @@ namespace bh {
 		}
 		export function calcMaxGoldNeeded(playerCard: IPlayer.PlayerCard, evoAndLevel: string): number {
 			var needed = 0,
-				card = cards.battle.find(playerCard.configId),
-				evoCap = bh.data.cards.battle.getMaxEvo(card.rarityType);
+				rarityType = (cards.battle.find(playerCard.configId) || <IDataBattleCard><any>{}).rarityType || 0,
+				evoCap = bh.data.cards.battle.getMaxEvo(rarityType);
 			for (var i = +evoAndLevel.split(/\./)[0]; i < evoCap; i++) {
-				needed += getMaxGoldNeeded(card.rarityType, i);
+				needed += getMaxGoldNeeded(rarityType, i);
 			}
 			return needed;
 		}
 
 		export function getMinSotNeeded(rarityType: RarityType, currentEvoLevel: number) {
-			return [[0], [2,5], [5,10,20], [10,20,30,40], [20,30,40,60,60]][rarityType][currentEvoLevel];
+			return [[0], [2,5], [5,10,20], [10,20,30,40], [20,30,40,60,60]][rarityType || 0][currentEvoLevel || 0];
 		}
 		export function getMaxSotNeeded(rarityType: RarityType, currentEvoLevel: number) {
-			return [[10], [12,15], [15,20,30], [20,30,40,60], [30,40,60,80,100]][rarityType][currentEvoLevel];
+			return [[10], [12,15], [15,20,30], [20,30,40,60], [30,40,60,80,100]][rarityType || 0][currentEvoLevel || 0];
 		}
 		export function calcMaxSotNeeded(playerCard: IPlayer.PlayerCard, evoAndLevel: string): number {
 			var needed = 0,
-				card = cards.battle.find(playerCard.configId),
-				evoCap = bh.data.cards.battle.getMaxEvo(card.rarityType);
+				rarityType = (cards.battle.find(playerCard.configId) || <IDataBattleCard><any>{}).rarityType || 0,
+				evoCap = bh.data.cards.battle.getMaxEvo(rarityType);
 			for (var i = +evoAndLevel.split(/\./)[0]; i < evoCap; i++) {
-				needed += getMaxSotNeeded(card.rarityType, i);
+				needed += getMaxSotNeeded(rarityType, i);
 			}
 			return needed;
 		}
@@ -78,10 +78,10 @@ namespace bh {
 		}
 		export function calcMaxCrystalsNeeded(playerCard: IPlayer.PlayerCard, evoAndLevel: string): number {
 			var needed = 0,
-				card = cards.battle.find(playerCard.configId),
-				evoCap = bh.data.cards.battle.getMaxEvo(card.rarityType);
+				rarityType = (cards.battle.find(playerCard.configId) || <IDataBattleCard><any>{}).rarityType || 0,
+				evoCap = bh.data.cards.battle.getMaxEvo(rarityType);
 			for (var i = +evoAndLevel.split(/\./)[0]; i < evoCap; i++) {
-				needed += data.getMaxCrystalsNeeded(card.rarityType, i);
+				needed += data.getMaxCrystalsNeeded(rarityType, i);
 			}
 			return needed;
 		}
@@ -94,10 +94,10 @@ namespace bh {
 		}
 		export function calcMaxRunesNeeded(playerCard: IPlayer.PlayerCard, evoAndLevel: string): number {
 			var needed = 0,
-				card = cards.battle.find(playerCard.configId),
-				evoCap = bh.data.cards.battle.getMaxEvo(card.rarityType);
+				rarityType = (cards.battle.find(playerCard.configId) || <IDataBattleCard><any>{}).rarityType || 0,
+				evoCap = bh.data.cards.battle.getMaxEvo(rarityType);
 			for (var i = +evoAndLevel.split(/\./)[0]; i < evoCap; i++) {
-				needed += data.getMaxRunesNeeded(card.rarityType, i);
+				needed += data.getMaxRunesNeeded(rarityType, i);
 			}
 			return needed;
 		}

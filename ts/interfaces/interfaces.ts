@@ -16,20 +16,16 @@ type GameKlass = "Magic" | "Might" | "Skill";
 type GamePowerRatingAbilityType = "HP" | "Trait" | "Active" | "Passive";
 type GameRarity = "Common" | "Uncommon" | "Rare" | "SuperRare" | "Legendary";
 
-interface IHasGuid { guid: string; }
+interface IHasAbilityType { abilityType: bh.AbilityType; }
 interface IHasElementType { elementType: bh.ElementType; }
+interface IHasEvoLevel { evoLevel: string; }
+interface IHasGuid { guid: string; }
 interface IHasKlassType { klassType: bh.KlassType; }
 interface IHasName { name: string; lower?: string; }
 interface IHasPosition { position: GameGuildPosition; }
 interface IHasRarityType { rarityType: bh.RarityType; }
-interface IHasEvoLevel { evoLevel: string; }
 
 interface IHasGuidAndName extends IHasGuid, IHasName { }
-
-interface IDataAbility extends IHasGuid, IHasName {
-	hero: string; // guid
-	type: GameAbilityType;
-}
 
 interface IDataBattleCard extends IHasGuid, IHasName, IHasElementType, IHasKlassType, IHasRarityType {
 	turns: number;
@@ -37,12 +33,18 @@ interface IDataBattleCard extends IHasGuid, IHasName, IHasElementType, IHasKlass
 	target: GameBattleCardTarget;
 	brag: boolean;
 	base: number;
-	delta: number;
+	max: number;
 	tier: GameBattleCardTier;
 	mats: string;
 }
 interface IDataBoosterCard extends IHasGuid, IHasName, IHasElementType, IHasRarityType {
 	challenge?: GameBoosterCardChallenge;
+}
+interface IDataHeroAbility extends IHasElementType, IHasKlassType, IHasAbilityType {
+	heroGuid: string;
+	heroName: string;
+	abilityGuid: string;
+	abilityName: string;
 }
 interface IDataInventoryItem extends IHasGuid, IHasName, IHasElementType, IHasRarityType {
 	itemType: bh.ItemType;

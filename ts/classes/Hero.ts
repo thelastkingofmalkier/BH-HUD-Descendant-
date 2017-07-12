@@ -2,8 +2,8 @@ namespace bh {
 	export enum AbilityType { Trait, Active, Passive }
 
 	export interface HeroAbility { hero: Hero; guid: string; name: string; type: AbilityType; }
-	function createHeroAbility(hero: Hero, values: string[]): HeroAbility {
-		return { hero: hero, guid: values.shift(), name: values.shift(), type: <any>AbilityType[<any>values.shift()] };
+	function createHeroAbility(hero: Hero, heroAbility: IDataHeroAbility): HeroAbility {
+		return { hero: hero, guid: heroAbility.abilityGuid, name: heroAbility.abilityName, type:heroAbility.abilityType };
 	}
 
 	export class Hero {
@@ -17,15 +17,17 @@ namespace bh {
 		public passive: HeroAbility;
 		public trait: HeroAbility;
 
-		public constructor(line: string, abilities: string[][]) {
-			var values = line.split(/\t/).map(s => s.trim());
-			this.guid = values.shift();
-			this.name = values.shift();
-			this.elementType = <any>ElementType[<any>values.shift()];
-			this.klassType = <any>KlassType[<any>values.shift()];
-			this.trait = createHeroAbility(this, abilities.shift());
-			this.active = createHeroAbility(this, abilities.shift());
-			this.passive = createHeroAbility(this, abilities.shift());
+		public constructor(heroAbilities: IDataHeroAbility[]) {
+			var trait = heroAbilities[0],
+				active = heroAbilities[1],
+				passive = heroAbilities[2];
+			this.guid = trait.heroGuid;
+			this.name = trait.heroName;
+			this.elementType = trait.elementType;
+			this.klassType = trait.klassType;
+			this.trait = createHeroAbility(this, trait);
+			this.active = createHeroAbility(this, active);
+			this.passive = createHeroAbility(this, passive);
 			this.lower = this.name.toLowerCase();
 		}
 

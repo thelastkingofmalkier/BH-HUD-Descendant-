@@ -3,15 +3,19 @@ namespace bh {
 	export class Repo<T extends IHasGuidAndName> {
 		private id: string;
 		private gid: number;
+		private cacheable: boolean;
 		protected data: T[];
 
 		constructor();
 		constructor(gid: number);
-		constructor(id: string, gid: number)
-		constructor(idOrGid?: string|number, gid?: number) {
+		constructor(id: string, gid: number);
+		constructor(gid: number, cacheable: boolean);
+		constructor(id: string, gid: number, cacheable: boolean);
+		constructor(idOrGid?: string|number, gidOrCacheable?: number|boolean, cacheable?: boolean) {
 			Repo.AllRepos.push(this);
-			this.id = typeof(gid) == "number" ? <string>idOrGid : null,
-			this.gid = typeof(gid) == "number" ? gid : <number>idOrGid;
+			this.id = typeof(gidOrCacheable) == "number" ? <string>idOrGid : null,
+			this.gid = typeof(gidOrCacheable) == "number" ? gidOrCacheable : <number>idOrGid;
+			this.cacheable = gidOrCacheable === true || cacheable === true;
 		}
 
 		private _init: Promise<T[]>;
@@ -19,6 +23,15 @@ namespace bh {
 			if (!this._init) {
 				this._init = new Promise<T[]>((resolvefn: (data: T[]) => void) => {
 					var tsv = (TSV||{})[String(this.gid||this.id)];
+					if (!tsv && this.cacheable) {
+						try {
+							var cache: { tsv:string, date:number } = JSON.parse(localStorage.getItem(`${this.id}-${this.gid}`) || null);
+							console.log(cache)
+							if (cache && cache.date && (new Date().getTime() < cache.date + 1000 * 60 * 60 * 24)) {
+								tsv = cache.tsv || null;
+							}
+						}catch(ex) { }
+					}
 					if (tsv) {
 						this.resolveTsv(tsv, resolvefn);
 					}else if (typeof(this.gid) == "number") {
@@ -31,6 +44,11 @@ namespace bh {
 			return this._init;
 		}
 		private resolveTsv(tsv: string, resolvefn: (data: T[]) => void) {
+			if (this.cacheable) {
+				try {
+					localStorage.setItem(`${this.id}-${this.gid}`, JSON.stringify({ tsv:tsv, date:new Date().getTime() }));
+				}catch(ex) { }
+			}
 			var parsed = this.parseTsv(tsv);
 			if (parsed instanceof Promise) {
 				parsed.then(data => resolvefn(data), () => this.unresolveTsv());

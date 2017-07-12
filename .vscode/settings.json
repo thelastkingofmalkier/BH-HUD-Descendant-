@@ -6,7 +6,6 @@
 	"editor.renderWhitespace": "all",
 	"editor.tabSize": 4,
 	"editor.wordWrap": "off",
-	"editor.wordWrapColumn": 1000,
 	"editor.minimap.enabled": false,
 	"files.trimTrailingWhitespace": true,
 

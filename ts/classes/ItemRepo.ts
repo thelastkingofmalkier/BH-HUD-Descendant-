@@ -2,7 +2,7 @@
 namespace bh {
 	export class ItemRepo extends Repo<IDataInventoryItem> {
 		constructor() {
-			super(879699541);
+			super(879699541, true);
 		}
 		public get evoJars() {
 			return this.data.filter(item => item.itemType === ItemType.EvoJar);

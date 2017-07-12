@@ -37,12 +37,11 @@ namespace bh {
 	export function isRarity(rarity: string) { return String(rarity).replace(/ /g, "") in RarityType; }
 
 	export namespace data {
-		export var BoosterCardRepo = new Repo<IDataBoosterCard>(1709781959);
+		export var BoosterCardRepo = new Repo<IDataBoosterCard>(1709781959, true);
 		export var HeroRepo = new bh.HeroRepo();
 		export var ItemRepo = new bh.ItemRepo();
 		export var PlayerRepo = new Repo<Player>();
-		// export var RecipeRepo = new bh.RecipeRepo();
-		export var WildCardRepo = new Repo<IDataWildCard>(2106503523);
+		export var WildCardRepo = new Repo<IDataWildCard>(2106503523, true);
 
 		export function arenaToPlayers(json: any): IPlayer.Player[] {
 			var players: IPlayer.Player[] = [];
