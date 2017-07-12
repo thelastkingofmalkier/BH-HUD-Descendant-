@@ -60,7 +60,7 @@ namespace bh {
 		public get isAlly(): boolean {
 			return this.fromCache("isAlly", () => !!Player.me.guilds.find(g => g.guid == this.guildGuid));
 		}
-		public get canScout() { return !!this.guildParent || this.guid == "b0a8b57b-54f5-47d8-8b7a-f9dac8300ca0"; }
+		public get canScout() { return this.guid == "b0a8b57b-54f5-47d8-8b7a-f9dac8300ca0"; }
 		public get isExtended() { return !!this._pp; }
 		public get isFullMeat() { return this.heroes.length == data.HeroRepo.length && !this.heroes.find(hero => !hero.isMeat); }
 		public get isMe() { return [Messenger.ActivePlayerGuid, "b0a8b57b-54f5-47d8-8b7a-f9dac8300ca0"].includes(this.guid); }

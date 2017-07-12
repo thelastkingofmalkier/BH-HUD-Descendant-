@@ -1,5 +1,5 @@
 var __extends = (this && this.__extends) || (function () {
-   var extendStatics = Object.setPrototypeOf ||
+  var extendStatics = Object.setPrototypeOf ||
         ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
         function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
     return function (d, b) {
@@ -637,7 +637,7 @@ var bh;
             configurable: true
         });
         Object.defineProperty(Player.prototype, "canScout", {
-            get: function () { return !!this.guildParent || this.guid == "b0a8b57b-54f5-47d8-8b7a-f9dac8300ca0"; },
+            get: function () { return this.guid == "b0a8b57b-54f5-47d8-8b7a-f9dac8300ca0"; },
             enumerable: true,
             configurable: true
         });
