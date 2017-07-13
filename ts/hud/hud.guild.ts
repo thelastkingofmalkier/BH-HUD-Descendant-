@@ -5,7 +5,7 @@ namespace bh {
 			function showContainer() {
 				var container = $("div.brain-hud-scouter-guild-container");
 				if (!container.length) {
-					var textarea = "";//Player.me.canScout ? `<textarea id="brain-hud-scouter-guild-report" rows="1" type="text" class="active"></textarea>` : "";
+					var textarea = Player.me.canScout ? `<textarea id="brain-hud-scouter-guild-report" rows="1" type="text" class="active"></textarea>` : "";
 					$("div.brain-hud-scouter-player-container").before(`<div class="brain-hud-scouter-guild-container"><button class="bs-btn bs-btn-link bs-btn-xs brain-hud-toggle pull-right" data-action="toggle-guild-scouter">[-]</button><button class="bs-btn bs-btn-link bs-btn-xs brain-hud-toggle pull-right" data-action="refresh-guild">${getImg12("icons", "glyphicons-82-refresh")}</button><select id="brain-hud-scouter-guild-target" data-action="toggle-scouter-guild"></select>${textarea}</div>`);
 				}
 				$("div.brain-hud-scouter-guild-container").addClass("active");
