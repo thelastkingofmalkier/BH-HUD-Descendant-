@@ -4,9 +4,13 @@ namespace bh {
 
 		private _rowChildren() {
 			var me = Player.me,
-				activeRecipe = new Recipe(this).createPartial(this),
+				activeRecipe = new Recipe(this, true),
 				html = "";
 			if (activeRecipe) {
+				var goldNeeded = data.calcMaxGoldNeeded(this.playerCard, this.evoLevel) * this.count,
+					goldOwned = me.gold,
+					goldColor = goldOwned < goldNeeded ? `bg-danger` : `bg-success`;
+				html += `<div>${getImg20("misc", "Coin")} Gold <span class="badge pull-right ${goldColor}">${utils.formatNumber(goldOwned)} / ${utils.formatNumber(goldNeeded)}</span></div>`;
 				activeRecipe.all.forEach(recipeItem => {
 					var item = me.inventory.find(item => item.guid == recipeItem.item.guid);
 					html += PlayerInventoryItem.toRowHtml(item, item.count, recipeItem.max * this.count);
@@ -15,16 +19,12 @@ namespace bh {
 					wcOwned = me.wildCards[this.rarityType] && me.wildCards[this.rarityType].count || 0,
 					wcColor = wcOwned < wcNeeded ? `bg-danger` : `bg-success`;
 				html += `<div>${getImg20("cardtypes", "WildCard")} ${RarityType[this.rarityType]} WC <span class="badge pull-right ${wcColor}">${utils.formatNumber(wcOwned)} / ${utils.formatNumber(wcNeeded)}</span></div>`;
-				var goldNeeded = data.calcMaxGoldNeeded(this.playerCard, this.evoLevel) * this.count,
-					goldOwned = me.gold,
-					goldColor = goldOwned < goldNeeded ? `bg-danger` : `bg-success`;
-				html += `<div>${getImg20("misc", "Coin")} Gold <span class="badge pull-right ${goldColor}">${utils.formatNumber(goldOwned)} / ${utils.formatNumber(goldNeeded)}</span></div>`;
 			}
 			return html;
 		}
-		private _rowHtml(badgeValue?: number) {
-			var badgeHtml = badgeValue ? `<span class="badge pull-right">${badgeValue}</span>` : ``,
-				children = badgeValue || this.isMaxed ? `` : this._rowChildren(),
+		private _rowHtml(badgeValue?: number, badgeCss?: string) {
+			var badgeHtml = badgeValue ? `<span class="badge pull-right ${badgeCss||""}">${badgeValue}</span>` : ``,
+				children = typeof(badgeValue) == "number" || this.isMaxed ? `` : this._rowChildren(),
 				content = renderExpandable(this.playerCard.id, `${this.fullHtml}${badgeHtml}`, children);
 			return `<div -class="${ElementType[this.elementType]}" data-element-type="${this.elementType}" data-rarity-type="${this.rarityType}" data-klass-type="${this.klassType}" data-brag="${this.brag ? "Brag" : ""}">${content}</div>`;
 		}
@@ -76,9 +76,8 @@ namespace bh {
 		public get powerRating() { return PowerRating.ratePlayerCard(this.playerCard); }
 		public get rarityEvoLevel() { return `${RarityType[this.rarityType][0]}.${this.evoLevel}`; }
 		public get rowHtml() { return this._rowHtml();  }
-		public get evoHtml() { return this._rowHtml(this.count * 60);  }
-		public get goldHtml() { return this._rowHtml(this.maxMaxGoldNeeded);  }
-		public get wcHtml() { return this._rowHtml(this.maxWildCardsNeeded);  }
+		// public get goldHtml() { return this._rowHtml(this.maxMaxGoldNeeded);  }
+		// public get wcHtml() { return this._rowHtml(this.maxWildCardsNeeded);  }
 		public get scoutHtml() { return `${this.rarityEvoLevel} ${this.name} ${this.count > 1 ? `x${this.count}` : ``}`; }
 		public get typeImage() { return this.type ? getImg("cardtypes", this.type) : ``; }
 		public get value() { return this.playerCard && data.cards.battle.calculateValue(this.playerCard) || 0; };
@@ -87,6 +86,6 @@ namespace bh {
 		public matchesElement(element: GameElement) { return !element || this.elementType === ElementType[element]; }
 		public matchesHero(hero: Hero) { return !hero || (this.matchesElement(<GameElement>ElementType[hero.elementType]) && this.klassType === hero.klassType); }
 		public matchesRarity(rarity: GameRarity) { return !rarity || this.rarityType === RarityType[rarity]; }
-		public toRowHtml(badge: number) { return this._rowHtml(badge); }
+		public toRowHtml(needed: number, owned: number) { return this._rowHtml(needed, owned < needed ? "bg-danger" : "bg-success"); }
 	}
 }

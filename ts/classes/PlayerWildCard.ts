@@ -11,7 +11,8 @@ namespace bh {
 		public get html() {
 			var needed = this.needed,
 				ofContent = needed ? ` / ${utils.formatNumber(needed)}` : "",
-				badge = `<span class="badge pull-right">${this.count}${ofContent}</span>`;
+				css = needed ? this.count < needed ? "bg-danger" : "bg-success" : "",
+				badge = `<span class="badge pull-right ${css}">${this.count}${ofContent}</span>`;
 			return `${getImg("cardtypes", "WildCard")} ${this.name} WC ${badge}`;
 		}
 		public get name() { return this._.name; }
@@ -32,7 +33,7 @@ namespace bh {
 				children = `<div class="brain-hud-child-scroller" data-parent-guid="${this.guid}">`;
 				this.player
 					.filterActiveBattleCards(RarityType[<any>this.rarityType])
-					.forEach(playerBattleCard => children += playerBattleCard.wcHtml);
+					.forEach(playerBattleCard => children += playerBattleCard.toRowHtml(playerBattleCard.maxWildCardsNeeded, this.count));
 				children += "</div>";
 			}
 			return `<div data-type="${this.type}" data-rarity-type="${this.rarityType}"><div>${html} ${expander}</div>${children}</div>`;

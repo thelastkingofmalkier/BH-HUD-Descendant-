@@ -5,8 +5,7 @@ namespace bh {
 			function showContainer() {
 				var container = $("div.brain-hud-scouter-guild-container");
 				if (!container.length) {
-					var player = data.PlayerRepo.find(Messenger.ActivePlayerGuid),
-						textarea = player && player.canScout ? `<textarea id="brain-hud-scouter-guild-report" rows="1" type="text" class="active"></textarea>` : "";
+					var textarea = "";//Player.me.canScout ? `<textarea id="brain-hud-scouter-guild-report" rows="1" type="text" class="active"></textarea>` : "";
 					$("div.brain-hud-scouter-player-container").before(`<div class="brain-hud-scouter-guild-container"><button class="bs-btn bs-btn-link bs-btn-xs brain-hud-toggle pull-right" data-action="toggle-guild-scouter">[-]</button><button class="bs-btn bs-btn-link bs-btn-xs brain-hud-toggle pull-right" data-action="refresh-guild">${getImg12("icons", "glyphicons-82-refresh")}</button><select id="brain-hud-scouter-guild-target" data-action="toggle-scouter-guild"></select>${textarea}</div>`);
 				}
 				$("div.brain-hud-scouter-guild-container").addClass("active");
@@ -58,14 +57,14 @@ namespace bh {
 					isGuild = player && player.guildGuid == guid;
 				if (!guilds.find(g => g.guid == guid) && !canScout && !isGuild) return;
 
+				showContainer();
 				var select = $("#brain-hud-scouter-guild-target");
 				if (!select.find(`option[value="${guid}"]`).length) {
 					select.append(`<option value="${guid}">${guildName.name}</option>`);
-					select.children().toArray().slice(1)
+					select.children().toArray().filter(opt => opt.value != player.guildGuid)
 						.sort((a: HTMLOptionElement, b: HTMLOptionElement) => { return a.text < b.text ? -1 : a.text == b.text ? 0 : 1 })
 						.forEach(el => select.append(el));
 				}
-				showContainer();
 				select.val(guid);
 				selectGuildReport();
 			}

@@ -170,9 +170,6 @@ namespace bh {
 				? `<div>${getImg("runes", this.name.replace(/\W/g, ""))} ${(this.hero.name + "'s").replace("s's", "s'")} ${ElementType[this.hero.elementType]} Rune <span class="badge pull-right ${color}">${utils.formatNumber(count)} / ${utils.formatNumber(this.maxMaterialCount || 0)}</span></div>`
 				: `<div>${getImg("crystals", ElementType[this.hero.elementType])} ${ElementType[this.hero.elementType]} Crystals <span class="badge pull-right ${color}">${utils.formatNumber(count)} / ${utils.formatNumber(this.maxMaterialCount || 0)}</span></div>`;
 		}
-		public get evoHtml() {
-			return `<div>${this.img} ${this.playerHero.name} ${AbilityType[this.type]} <span class="badge pull-right">${utils.formatNumber(this.maxMaterialCount || 0)}</span></div>`;
-		}
 		public get goldHtml() {
 			var gold = this.playerHero.player.gold || 0,
 				color = this.maxGoldCost <= gold ? "bg-success" : "bg-danger";
@@ -180,6 +177,15 @@ namespace bh {
 		}
 		public get powerRating() {
 			return PowerRating.ratePlayerHeroAbility(this) * (this.level / getAbilityMaxLevel(this.hero, this.type));
+		}
+
+		public toRowHtml(): string;
+		public toRowHtml(needed: number): string;
+		public toRowHtml(needed: number, owned: number): string;
+		public toRowHtml(needed?: number, owned?: number) {
+			var badgeCss = needed && owned ? owned < needed ? "bg-danger" : "bg-success" : "",
+				badgeHtml = typeof(needed) == "number" ? `<span class="badge pull-right ${badgeCss}">${utils.formatNumber(needed)}</span>` : ``;
+			return `<div>${this.img} ${this.playerHero.name} ${AbilityType[this.type]} ${badgeHtml}</div>`;
 		}
 	}
 }

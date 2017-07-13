@@ -53,42 +53,65 @@ namespace bh {
 				needed = this.needed,
 				ofContent = needed ? ` / ${utils.formatNumber(needed)}` : "",
 				color = needed ? this.count >= needed ? "bg-success" : "bg-danger" : "",
-				hud = this.isSandsOfTime,
 				badge = `<span class="badge pull-right ${color}">${utils.formatNumber(this.count)}${ofContent}</span>`,
 				children = "";
 			if (needed) {
 				if (this.isCrystal) {
 					this.player
 						.filterHeroes(ElementType[this.elementType])
-						.forEach(playerHero => children += playerHero.active.evoHtml + playerHero.passive.evoHtml);
+						.forEach(playerHero => {
+							var active = playerHero.active, maxNeededActive: number,
+								passive = playerHero.passive, maxNeededPassive: number;
+							if (maxNeededActive = active.maxMaterialCount) {
+								children += active.toRowHtml(maxNeededActive, this.count);
+							}
+							if (maxNeededPassive = passive.maxMaterialCount) {
+								children += passive.toRowHtml(maxNeededPassive, this.count);
+							}
+						});
 					this.player
 						.filterActiveBattleCards(ElementType[this.elementType], "Legendary")
-						.forEach(battleCard => children += battleCard.evoHtml);
+						.forEach(battleCard => {
+							var maxNeeded = battleCard.count * data.calcMaxCrystalsNeeded(battleCard.playerCard, battleCard.evoLevel);
+							children += battleCard.toRowHtml(maxNeeded, this.count);
+						});
 
 				}else if (this.isRune) {
 					var heroName = this.name.split(`'`)[0];
 					this.player
 						.filterHeroes(heroName)
-						.forEach(playerHero => children += playerHero.trait.evoHtml);
+						.forEach(playerHero => {
+							var trait = playerHero.trait, maxNeeded: number;
+							if (maxNeeded = trait.maxMaterialCount) {
+								children += trait.toRowHtml(maxNeeded, this.count);
+							}
+						});
 					this.player
 						.filterActiveBattleCards(heroName, "Legendary")
-						.forEach(battleCard => children += battleCard.evoHtml);
+						.forEach(battleCard => {
+							var maxNeeded = battleCard.count * data.calcMaxRunesNeeded(battleCard.playerCard, battleCard.evoLevel);
+							children += battleCard.toRowHtml(maxNeeded, this.count);
+						});
 
 				}else if (this.isSandsOfTime) {
 					this.player
 						.activeBattleCards
-						.forEach(playerBattleCard => children += playerBattleCard.toRowHtml(playerBattleCard.maxMaxSotNeeded));
+						.forEach(playerBattleCard => {
+							var maxNeeded = playerBattleCard.maxMaxSotNeeded;
+							children += playerBattleCard.toRowHtml(playerBattleCard.maxMaxSotNeeded, this.count);
+						});
 
 				}else {
 					var activeRecipes = this.player.activeRecipes,
-						filtered = activeRecipes.filter(recipe => !!recipe.getItem(this));
+						filtered = activeRecipes.filter(recipe => { var recipeItem = recipe.getItem(this); return recipeItem && recipeItem.max != 0; });
 					filtered.forEach(recipe => {
-						children += (<PlayerBattleCard>recipe.card).toRowHtml(recipe.getMaxNeeded(this));
+						var maxNeeded = recipe.getMaxNeeded(this);
+						children += (<PlayerBattleCard>recipe.card).toRowHtml(maxNeeded, this.count);
 					});
 
 				}
 			}
-			return `<div data-element-type="${this.elementType}" data-rarity-type="${this.rarityType}" data-item-type="${this.itemType}" data-hud="${hud}">${renderExpandable(this.guid, `${image} ${this.name} ${badge}`, children)}</div>`;
+			return `<div data-element-type="${this.elementType}" data-rarity-type="${this.rarityType}" data-item-type="${this.itemType}" data-hud="${this.isSandsOfTime}">${renderExpandable(this.guid, `${image} ${this.name} ${badge}`, children)}</div>`;
 		}
 		public static toRowHtml(item: PlayerInventoryItem, count: number, needed: number) {
 			var folder = ItemType[item.itemType].toLowerCase() + "s",

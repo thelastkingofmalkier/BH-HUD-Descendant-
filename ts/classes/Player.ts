@@ -73,7 +73,7 @@ namespace bh {
 		public get raidTickets() { return this._pp && this._pp.raidKeys || 0; }
 		public get battleCards(): PlayerBattleCard[] { return this.fromCache("battleCards", () => !(this._pp && this._pp.playerCards && this._pp.playerCards.cards) ? [] : this.sortAndReduceBattleCards(Object.keys(this._pp.playerCards.cards))); }
 		public get activeBattleCards(): PlayerBattleCard[] { return this.fromCache("activeBattleCards", () => this.battleCards.filter(battleCard => battleCard.isActive)); }
-		public get activeRecipes(): Recipe[] { return this.fromCache("activeRecipes", () => this.activeBattleCards.map(bc => new Recipe(bc).createPartial(bc)).filter(r => !!r)); }
+		public get activeRecipes(): Recipe[] { return this.fromCache("activeRecipes", () => this.activeBattleCards.map(bc => new Recipe(bc, true)).filter(r => !!r)); }
 		public get boosterCards() { var map = this._pp && this._pp.feederCardsMap; return !map ? [] : Object.keys(map).map(guid => new PlayerBoosterCard(guid, map[guid])).sort(utils.sort.byElementThenRarityThenName); }
 		public get boosterCount() { var count = 0, map = this._pp && this._pp.feederCardsMap; Object.keys(map || {}).map(guid => count += map[guid]); return count; }
 		public get boosterRowHtml() { return this._pp ? PlayerBoosterCard.rowHtml(this.boosterCount) : ""; }

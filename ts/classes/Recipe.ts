@@ -26,18 +26,23 @@ namespace bh {
 			evo.items.push(evoItem);
 		}
 
-		public constructor(public card: IDataBattleCard | PlayerBattleCard) {
+		public constructor(card: IDataBattleCard | PlayerBattleCard);
+		public constructor(card: IDataBattleCard | PlayerBattleCard, partial: boolean);
+		public constructor(public card: IDataBattleCard | PlayerBattleCard, partial: boolean = false) {
 			super();
 			var matItems = (card.mats||"").split(",")
 				.map(mat => data.ItemRepo.find(mat.trim())).filter(item => !!item)
 				.sort(utils.sort.byRarity);
-			[0,1,2,3,4].slice(0, card.rarityType + 1).forEach(evoFrom => {
-				var sands = bh.ItemRepo.sandsOfTime;
-				this.addItem(evoFrom, bh.data.getMinSotNeeded(card.rarityType, evoFrom), data.getMaxSotNeeded(card.rarityType, evoFrom), sands.name);
-				matItems.forEach(item => {
-					this.addItem(evoFrom, 0, bh.data.getMaxMatNeeded(card.rarityType, evoFrom, item.rarityType), item.name);
+			[0,1,2,3,4]
+				.slice(0, card.rarityType + 1)
+				.slice(partial ? (<PlayerBattleCard>card).evo : 0)
+				.forEach(evoFrom => {
+					var sands = bh.ItemRepo.sandsOfTime;
+					this.addItem(evoFrom, bh.data.getMinSotNeeded(card.rarityType, evoFrom), data.getMaxSotNeeded(card.rarityType, evoFrom), sands.name);
+					matItems.forEach(item => {
+						this.addItem(evoFrom, 0, bh.data.getMaxMatNeeded(card.rarityType, evoFrom, item.rarityType), item.name);
+					});
 				});
-			});
 		}
 
 		public get common(): IDataInventoryItem {
@@ -96,15 +101,15 @@ namespace bh {
 			return max * multiplier;
 		}
 
-		public createPartial(card: PlayerBattleCard) {
-			var recipe = new Recipe(card);
-			recipe.card = card;
-			this.evos.slice(card.evo).forEach(evo =>
-				evo.items.forEach(item =>
-					recipe.addItem(evo.evoFrom, item.min, item.max, item.item.name)
-				)
-			);
-			return recipe;
-		}
+		// public createPartial(card: PlayerBattleCard) {
+		// 	var recipe = new Recipe(card);
+		// 	recipe.card = card;
+		// 	this.evos.slice(card.evo).forEach(evo =>
+		// 		evo.items.forEach(item =>
+		// 			recipe.addItem(evo.evoFrom, item.min, item.max, item.item.name)
+		// 		)
+		// 	);
+		// 	return recipe;
+		// }
 	}
 }

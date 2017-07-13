@@ -26,7 +26,6 @@ namespace bh {
 					if (!tsv && this.cacheable) {
 						try {
 							var cache: { tsv:string, date:number } = JSON.parse(localStorage.getItem(`${this.id}-${this.gid}`) || null);
-							console.log(cache)
 							if (cache && cache.date && (new Date().getTime() < cache.date + 1000 * 60 * 60 * 24)) {
 								tsv = cache.tsv || null;
 							}
