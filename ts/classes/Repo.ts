@@ -90,6 +90,7 @@ namespace bh {
 		public static mapTsv<T>(raw: string): T[] {
 			var lines = raw.split(/\n/),
 				keys = lines.shift().split(/\t/).map(s => s.trim());
+console.log(keys)
 			return lines
 				.map(line => {
 					if (!line.trim().length) { return null; }
@@ -124,8 +125,10 @@ namespace bh {
 								value["brag"] = !!parts[index].match(/\d+(,\d+)*/);
 								break;
 
+							case "base":
+							case "max":
 							case "turns":
-								value["turns"] = +parts[index];
+								value[key] = +parts[index];
 								break;
 
 							case "name":
