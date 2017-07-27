@@ -1,4 +1,5 @@
 namespace bh {
+	export enum AbilityType { Trait, Active, Passive }
 	export enum ElementType { Fire, Earth, Air, Spirit, Water, Neutral }
 	export enum ItemType { EvoJar, Crystal, Rune }
 	export enum KlassType { Magic, Might, Skill }
