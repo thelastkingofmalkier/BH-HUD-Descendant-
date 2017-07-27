@@ -83,8 +83,9 @@ namespace bh {
 						level = playerHero ? playerHero.level : "/",
 						hp = playerHero ? utils.truncateNumber(playerHero.hitPoints) : "/",
 						// power = playerHero ? utils.truncateNumber(playerHero.powerRating) : "/";
-						power = playerHero ? playerHero.powerPercent+"%" : "/";
-					return level + "|" + hp + "|" + power;
+						op = playerHero && playerHero.isOp ? "-" : "",
+						power = playerHero ? playerHero.powerPercent + "%" : "/";
+					return level + "|" + hp + "|" + op + power;
 				}
 			}
 			function calculateBattleData(war: IGuildWar, member: IGuild.Player) {
