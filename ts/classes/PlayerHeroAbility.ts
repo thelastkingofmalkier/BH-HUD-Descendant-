@@ -163,12 +163,12 @@ namespace bh {
 		}
 		public get materialHtml() {
 			var player = this.playerHero.player,
-				count = this.type == AbilityType.Trait ? player.inventory.find(item => item.itemType == ItemType.Rune && item.elementType == this.playerHero.elementType).count
-					: player.inventory.find(item => item.itemType == ItemType.Crystal && item.elementType == this.playerHero.elementType).count;
-			var color = this.maxMaterialCount <= count ? "bg-success" : "bg-danger";
-			return this.type == AbilityType.Trait
-				? `<div>${getImg("runes", this.name.replace(/\W/g, ""))} ${(this.hero.name + "'s").replace("s's", "s'")} ${ElementType[this.hero.elementType]} Rune <span class="badge pull-right ${color}">${utils.formatNumber(count)} / ${utils.formatNumber(this.maxMaterialCount || 0)}</span></div>`
-				: `<div>${getImg("crystals", ElementType[this.hero.elementType])} ${ElementType[this.hero.elementType]} Crystals <span class="badge pull-right ${color}">${utils.formatNumber(count)} / ${utils.formatNumber(this.maxMaterialCount || 0)}</span></div>`;
+				item = AbilityType.Trait ? player.inventory.find(item => item.isRune && item.name.startsWith(this.name))
+					: player.inventory.find(item => item.isCrystal && item.elementType == this.playerHero.elementType),
+				count = item.count,
+				color = this.maxMaterialCount <= count ? "bg-success" : "bg-danger",
+				img = this.type == AbilityType.Trait ? getImg("runes", this.name.replace(/\W/g, "")) : getImg("crystals", ElementType[this.hero.elementType]);
+			return `<div>${img} ${item.name} <span class="badge pull-right ${color}">${utils.formatNumber(count)} / ${utils.formatNumber(this.maxMaterialCount || 0)}</span></div>`;
 		}
 		public get goldHtml() {
 			var gold = this.playerHero.player.gold || 0,
