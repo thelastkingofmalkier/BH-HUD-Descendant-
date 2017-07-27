@@ -6,7 +6,7 @@ namespace IGuild {
 	export interface PlayerGuild {
 		id: string; // guid
 		name: string;
-		members: Player[];
+		members: PlayerGuildPlayer[];
 		minFameLevel: number;
 		motto: string;
 		language: string;
@@ -14,7 +14,7 @@ namespace IGuild {
 		crestIcon: number;
 		crestBGColor: number;
 		accessType: GameGuildWarAccessType;
-		boosterCardRequests: any[];
+		boosterCardRequests: BoosterRequest[];
 		messages: { timestamp: number; content: string; id: string; playerId: string; }[];
 		joinRequests: any[];
 		guildScore: any;
@@ -22,19 +22,35 @@ namespace IGuild {
 		currentWarEvent: string; // guid
 		eventWars: string[] // guids
 		memberScoreSummary: { [guid: string]: IPlayerGuildMemberScoreSummary; };
+		guildChatMessages: { id:string; timestamp: number; guildId: string; message: string; data: string; playerName: string; playerId: string; }[];
 		empty: boolean;
+	}
+	export interface BoosterRequest {
+		id: string;
+		timeStamp: number;
+		chatTimeStamp: number;
+		playerId: string;
+		element: GameElement;
+		donations: { playerId:string; boosterId:string; collected:false; }[];
 	}
 	export interface Guild {
 		playerGuild: PlayerGuild;
-		booster_requests: any[];
+		booster_requests: BoosterRequest[];
 		seconds_to_next_booster_card_request: number;
 		active_guild_members: number;
 		remaining_donations: number;
 		members: Player[];
 		seconds_to_next_donations_interval: number;
 		arenaScore: number;
+		seconds_to_next_message_all: number;
 		gift_collections: number;
 		seconds_to_next_gift_points_interval: number;
+	}
+	export interface PlayerGuildPlayer {
+		playerId: string;
+		position: GameGuildPosition;
+		giftPointsPerInterval: { [interval: number]: number; };
+		giftCollectionsPerInterval: { [interval: number]: number; };
 	}
 	export interface Player {
 		name: string;

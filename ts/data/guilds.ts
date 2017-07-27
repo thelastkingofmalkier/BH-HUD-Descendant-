@@ -64,12 +64,13 @@ namespace bh {
 							guildName = findNameByGuid(guid),
 							existing = guildName && findByGuid(guildName.guid);
 						if (existing) {
-							existing.playerGuild.members = guidOrGuild;
+							existing.members = guidOrGuild;
 						}else {
-							_guilds.push(<any>{ playerGuild:{ members:guidOrGuild, id:guid, name:guildName.name }  });
+							_guilds.push(<any>{ playerGuild:{ members:(<IGuild.Player[]>guidOrGuild).map(player => { return { playerId:player.playerId } }), id:guid, name:guildName.name }, members:guidOrGuild });
 						}
 					}else {
-						var playerGuild = (<IGuild.Guild>guidOrGuild).playerGuild;
+						var guild = <IGuild.Guild>guidOrGuild,
+							playerGuild = guild.playerGuild;
 						if (playerGuild) {
 							put(playerGuild.id, playerGuild.name);
 							var index = _guilds.findIndex(g => g.playerGuild.id == playerGuild.id);
@@ -78,7 +79,7 @@ namespace bh {
 							}else {
 								_guilds.push(<IGuild.Guild>guidOrGuild);
 							}
-							playerGuild.members.forEach(member => PlayerRepo.put(new Player(member)));
+							guild.members.forEach(player => PlayerRepo.put(new Player(player)));
 						}
 					}
 				}
