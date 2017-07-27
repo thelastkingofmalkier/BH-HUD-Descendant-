@@ -165,14 +165,14 @@ namespace bh {
 			var player = this.playerHero.player,
 				item = AbilityType.Trait ? player.inventory.find(item => item.isRune && item.name.startsWith(this.name))
 					: player.inventory.find(item => item.isCrystal && item.elementType == this.playerHero.elementType),
-				count = item.count,
-				color = this.maxMaterialCount <= count ? "bg-success" : "bg-danger",
+				owned = item.count,
+				color = owned < this.maxMaterialCount ? "bg-danger" : "bg-success",
 				img = this.type == AbilityType.Trait ? getImg("runes", this.name.replace(/\W/g, "")) : getImg("crystals", ElementType[this.hero.elementType]);
-			return `<div>${img} ${item.name} <span class="badge pull-right ${color}">${utils.formatNumber(count)} / ${utils.formatNumber(this.maxMaterialCount || 0)}</span></div>`;
+			return `<div>${img} ${item.name} <span class="badge pull-right ${color}">${utils.formatNumber(owned)} / ${utils.formatNumber(this.maxMaterialCount || 0)}</span></div>`;
 		}
 		public get goldHtml() {
 			var gold = this.playerHero.player.gold || 0,
-				color = this.maxGoldCost <= gold ? "bg-success" : "bg-danger";
+				color = gold < this.maxGoldCost ? "bg-danger" : "bg-success";
 			return `<div>${getImg("misc", "Coin")} Gold <span class="badge pull-right ${color}">${utils.formatNumber(gold)} / ${utils.formatNumber(this.maxGoldCost || 0)}</span></div>`;
 		}
 		public get powerRating() {

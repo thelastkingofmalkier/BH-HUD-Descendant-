@@ -52,7 +52,7 @@ namespace bh {
 				image = getImg20(folder, name),
 				needed = this.needed,
 				ofContent = needed ? ` / ${utils.formatNumber(needed)}` : "",
-				color = needed ? this.count >= needed ? "bg-success" : "bg-danger" : "",
+				color = needed ? this.count < needed ? "bg-danger" : "bg-success" : "",
 				badge = `<span class="badge pull-right ${color}">${utils.formatNumber(this.count)}${ofContent}</span>`,
 				children = "";
 			if (needed) {
@@ -117,7 +117,7 @@ namespace bh {
 			var folder = ItemType[item.itemType].toLowerCase() + "s",
 				name = item.isEvoJar ? item.name.replace(/\W/g, "") : item.isCrystal ? item.name.split(/ /)[0] : data.HeroRepo.find(item.name.split("'")[0]).abilities[0].name.replace(/\W/g, ""),
 				image = getImg20(folder, name),
-				color = count > needed ? "bg-success" : "bg-danger",
+				color = count < needed ? "bg-danger" : "bg-success",
 				badge = `<span class="badge pull-right ${color}">${utils.formatNumber(count)} / ${utils.formatNumber(needed)}</span>`;
 			return `<div>${image} ${item.name} ${badge}</div>`;
 		}
