@@ -29,7 +29,7 @@ namespace bh {
 					return rarityType + 1;
 				}
 				export function isMaxLevel(rarity: GameRarity, level: number): boolean {
-					return level == [10,20,35,50,50][<any>RarityType[<any>(rarity||"").replace(/ /, "")]];
+					return level == levelsPerRarity(RarityType[<GameRarity>(rarity||"").replace(/ /, "")]);
 				}
 
 				export function calcDelta(base: number, max: number, rarityType: RarityType) {
@@ -40,17 +40,23 @@ namespace bh {
 					if (rarityType == RarityType.Legendary) { return (12500 * max - 6732 * base) / 3003553; }
 					return 0;
 				}
+				export function levelsPerRarity(rarity: RarityType) {
+					return [10,20,35,50,50][rarity];
+				}
+				function round(value: number) {
+					return Math.round(value);
+				}
 				export function calcValue(base: number, max: number, rarityType: RarityType, evo: number, level: number) {
 					var delta = calcDelta(base, max, rarityType),
-						levels = rarityType == RarityType.Common ? 9 : rarityType == RarityType.Uncommon ? 19 : rarityType == RarityType.Rare ? 34 : 49,
+						levels = levelsPerRarity(rarityType) - 1,
 						value = base;
-					if (0 < evo) { value = Math.floor((value + levels * delta) * 0.80); }
-					if (1 < evo) { value = Math.floor((value + levels * delta) * 0.85); }
-					if (2 < evo) { value = Math.floor((value + levels * delta) * 0.88); }
-					if (3 < evo) { value = Math.floor((value + levels * delta) * 0.90); }
-					if (4 < evo) { value = Math.floor((value + levels * delta) * 1.00); }
+					if (0 < evo) { value = round((value + levels * delta) * 0.80); }
+					if (1 < evo) { value = round((value + levels * delta) * 0.85); }
+					if (2 < evo) { value = round((value + levels * delta) * 0.88); }
+					if (3 < evo) { value = round((value + levels * delta) * 0.90); }
+					if (4 < evo) { value = round((value + levels * delta) * 1.00); }
 					value += level * delta;
-					return Math.floor(value);
+					return round(value);
 				}
 				export function calculateValue(playerCard: IPlayer.PlayerCard): number {
 					var card = find(playerCard.configId);
@@ -78,4 +84,35 @@ namespace bh {
 			}
 		}
 	}
+}
+interface INewCard { [key: string]: string; }
+function parseMinMax(card: INewCard, key: string) {
+	var value = card[key];
+	if (value.includes("/")) {
+		var parts = value.split(/\s*\/\s*/);
+		if (parts[0] != parts[1]) console.log(`${card.Name} ${value}`);
+		return +parts[0];
+	}
+	return +value;
+}
+function compareData() {
+	var cards = bh.Repo.mapTsv<INewCard>($("#data-output").val());
+	cards.forEach(card => {
+		var name = card["Name"],
+			rarity = bh.RarityType[<GameRarity>card["Rarity"].replace(/ /g, "")],
+			levels = bh.data.cards.battle.levelsPerRarity(rarity),
+			mins = [0,1,2,3,4,5].map(i => parseMinMax(card, `${i}* Min`)).filter(val => !!val),
+			maxs = [0,1,2,3,4,5].map(i => parseMinMax(card, `${i}* Max`)).filter(val => !!val),
+			deltas = mins.map((min, i) => (maxs[i] - mins[i]) / (levels - 1)),
+			min = mins[0],
+			max = maxs[maxs.length - 1];
+
+		if (!deltas[0]||deltas.find(val => deltas[0] != val)) console.log(name + " " + deltas);
+
+		// mins.forEach((val, i) => {
+		// 	var value = bh.data.cards.battle.calcValue(min, max, rarity, i, levels-1);
+		// 	if (value != maxs[i]) console.log(`${name} evo ${i} max ${value} != ${maxs[i]}`);
+		// });
+		// console.log(`${name} (${rarity}) ${min} - ${max}`);
+	});
 }

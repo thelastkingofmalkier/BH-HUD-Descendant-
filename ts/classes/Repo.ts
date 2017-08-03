@@ -90,7 +90,6 @@ namespace bh {
 		public static mapTsv<T>(raw: string): T[] {
 			var lines = raw.split(/\n/),
 				keys = lines.shift().split(/\t/).map(s => s.trim());
-console.log(keys)
 			return lines
 				.map(line => {
 					if (!line.trim().length) { return null; }
