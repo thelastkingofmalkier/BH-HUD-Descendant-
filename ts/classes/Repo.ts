@@ -94,7 +94,7 @@ namespace bh {
 				.map(line => {
 					if (!line.trim().length) { return null; }
 					var parts = line.split(/\t/).map(s => s.trim()),
-						value: { [key: string]: string | boolean | number; } = { };
+						value: { [key: string]: string | boolean | number | number[]; } = { };
 					keys.forEach((key, index) => {
 						switch(key) {
 							case "element":
@@ -121,11 +121,16 @@ namespace bh {
 								break;
 
 							case "brag":
-								value["brag"] = !!parts[index].match(/\d+(,\d+)*/);
+								value["brag"] = utils.parseBoolean(parts[index]) || !!parts[index].match(/\d+(,\d+)*/);
 								break;
 
-							case "base":
-							case "max":
+							case "minValues":
+							case "minValues2nd":
+								value[key] = parts[index].split(",").map(s => +s);
+								break;
+
+							case "maxValue":
+							case "maxValue2nd":
 							case "turns":
 								value[key] = +parts[index];
 								break;

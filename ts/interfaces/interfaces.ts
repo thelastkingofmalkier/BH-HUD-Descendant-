@@ -4,7 +4,7 @@ interface BaseWindowMessage { data: any; originalEvent?: { data?: any; } }
 interface IMessage { action: string; playerGuid: string; sessionKey: string; guildGuid: string; data: any; }
 
 type GameAbilityType = "Trait" | "Active" | "Passive";
-type GameBattleCardTarget = "Multi" | "Multi Flurry" | "Self" | "Single" | "Single Flurry" | "Splash";
+type GameBattleCardTarget = "Single" | "Multi" | "Single Flurry" | "Multi Flurry" | "Self Flurry" | "Self" | "Splash";
 type GameBattleCardTier = "OP" | "S" | "A" | "B" | "C" | "D";
 type GameBattleCardType = "Attack" | "Heal" | "Shield";
 type GameBoosterCardChallenge = "Halloween" | "Christmas";
@@ -31,9 +31,13 @@ interface IDataBattleCard extends IHasGuid, IHasName, IHasElementType, IHasKlass
 	turns: number;
 	type: GameBattleCardType;
 	target: GameBattleCardTarget;
+	type2nd?: GameBattleCardType;
+	target2nd?: GameBattleCardTarget;
 	brag: boolean;
-	base: number;
-	max: number;
+	minValues: number[];
+	maxValue: number;
+	minValues2nd?: number[];
+	maxValue2nd?: number;
 	tier: GameBattleCardTier;
 	mats: string;
 }

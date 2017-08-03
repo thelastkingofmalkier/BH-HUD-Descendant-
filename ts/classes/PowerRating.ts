@@ -57,8 +57,8 @@ namespace bh {
 		}
 		public static ratePlayerCard(playerCard: IPlayer.PlayerCard) {
 			var card = data.cards.battle.find(playerCard.configId),
-				multiplier = PowerRating.tierToMultiplier(card.tier),
-				score = calculateCardScore(card.rarityType, playerCard.evolutionLevel, playerCard.level + 1, multiplier);
+				multiplier = PowerRating.tierToMultiplier(card && card.tier || ""),
+				score = calculateCardScore(card && card.rarityType || RarityType.Common, playerCard.evolutionLevel, playerCard.level + 1, multiplier);
 			return score;
 		}
 		public static ratePlayerHeroAbility(playerHeroAbility: PlayerHeroAbility) {

@@ -1,5 +1,5 @@
 var __extends = (this && this.__extends) || (function () {
-   var extendStatics = Object.setPrototypeOf ||
+    var extendStatics = Object.setPrototypeOf ||
         ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
         function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
     return function (d, b) {
@@ -29,6 +29,12 @@ var bh;
 })(bh || (bh = {}));
 var bh;
 (function (bh) {
+    var AbilityType;
+    (function (AbilityType) {
+        AbilityType[AbilityType["Trait"] = 0] = "Trait";
+        AbilityType[AbilityType["Active"] = 1] = "Active";
+        AbilityType[AbilityType["Passive"] = 2] = "Passive";
+    })(AbilityType = bh.AbilityType || (bh.AbilityType = {}));
     var ElementType;
     (function (ElementType) {
         ElementType[ElementType["Fire"] = 0] = "Fire";
@@ -122,12 +128,6 @@ var bh;
 })(bh || (bh = {}));
 var bh;
 (function (bh) {
-    var AbilityType;
-    (function (AbilityType) {
-        AbilityType[AbilityType["Trait"] = 0] = "Trait";
-        AbilityType[AbilityType["Active"] = 1] = "Active";
-        AbilityType[AbilityType["Passive"] = 2] = "Passive";
-    })(AbilityType = bh.AbilityType || (bh.AbilityType = {}));
     function createHeroAbility(hero, heroAbility) {
         return { hero: hero, guid: heroAbility.abilityGuid, name: heroAbility.abilityName, type: heroAbility.abilityType };
     }
@@ -320,10 +320,16 @@ var bh;
                             value["abilityType"] = bh.AbilityType[parts[index]];
                             break;
                         case "brag":
-                            value["brag"] = !!parts[index].match(/\d+(,\d+)*/);
+                            value["brag"] = bh.utils.parseBoolean(parts[index]) || !!parts[index].match(/\d+(,\d+)*/);
                             break;
+                        case "minValues":
+                        case "minValues2nd":
+                            value[key] = parts[index].split(",").map(function (s) { return +s; });
+                            break;
+                        case "maxValue":
+                        case "maxValue2nd":
                         case "turns":
-                            value["turns"] = +parts[index];
+                            value[key] = +parts[index];
                             break;
                         case "name":
                             value["lower"] = parts[index].toLowerCase();
@@ -813,24 +819,28 @@ var bh;
 (function (bh) {
     var PlayerBattleCard = (function () {
         function PlayerBattleCard(playerCard) {
-            this.playerCard = playerCard;
             this.count = 1;
-            if (!(this._bc = bh.data.cards.battle.find(playerCard.configId))) {
-                console.log("Missing BattleCard:", this.name + ": " + playerCard.id + " (" + this.evoLevel + ")");
+            this.playerCard = playerCard;
+            this._bc = bh.data.cards.battle.find(playerCard.configId);
+            if (!this._bc) {
+                bh.utils.logMissingCard(this);
             }
         }
         PlayerBattleCard.prototype._rowChildren = function () {
             var _this = this;
-            var me = bh.Player.me, activeRecipe = new bh.Recipe(this, true), html = "";
-            if (activeRecipe) {
-                var goldNeeded = bh.data.calcMaxGoldNeeded(this.playerCard, this.evoLevel) * this.count, goldOwned = me.gold, goldColor = goldOwned < goldNeeded ? "bg-danger" : "bg-success";
-                html += "<div>" + bh.getImg20("misc", "Coin") + " Gold <span class=\"badge pull-right " + goldColor + "\">" + bh.utils.formatNumber(goldOwned) + " / " + bh.utils.formatNumber(goldNeeded) + "</span></div>";
-                activeRecipe.all.forEach(function (recipeItem) {
-                    var item = me.inventory.find(function (item) { return item.guid == recipeItem.item.guid; });
-                    html += bh.PlayerInventoryItem.toRowHtml(item, item.count, recipeItem.max * _this.count);
-                });
-                var wcNeeded = bh.data.getMaxWildCardsNeeded(this) * this.count, wcOwned = me.wildCards[this.rarityType] && me.wildCards[this.rarityType].count || 0, wcColor = wcOwned < wcNeeded ? "bg-danger" : "bg-success";
-                html += "<div>" + bh.getImg20("cardtypes", "WildCard") + " " + bh.RarityType[this.rarityType] + " WC <span class=\"badge pull-right " + wcColor + "\">" + bh.utils.formatNumber(wcOwned) + " / " + bh.utils.formatNumber(wcNeeded) + "</span></div>";
+            var html = "";
+            if (!this.isUnknown) {
+                var me = bh.Player.me, activeRecipe = new bh.Recipe(this, true);
+                if (activeRecipe) {
+                    var goldNeeded = bh.data.calcMaxGoldNeeded(this.playerCard, this.evoLevel) * this.count, goldOwned = me.gold, goldColor = goldOwned < goldNeeded ? "bg-danger" : "bg-success";
+                    html += "<div>" + bh.getImg20("misc", "Coin") + " Gold <span class=\"badge pull-right " + goldColor + "\">" + bh.utils.formatNumber(goldOwned) + " / " + bh.utils.formatNumber(goldNeeded) + "</span></div>";
+                    activeRecipe.all.forEach(function (recipeItem) {
+                        var item = me.inventory.find(function (item) { return item.guid == recipeItem.item.guid; });
+                        html += bh.PlayerInventoryItem.toRowHtml(item, item.count, recipeItem.max * _this.count);
+                    });
+                    var wcNeeded = bh.data.getMaxWildCardsNeeded(this) * this.count, wcOwned = me.wildCards[this.rarityType] && me.wildCards[this.rarityType].count || 0, wcColor = wcOwned < wcNeeded ? "bg-danger" : "bg-success";
+                    html += "<div>" + bh.getImg20("cardtypes", "WildCard") + " " + bh.RarityType[this.rarityType] + " WC <span class=\"badge pull-right " + wcColor + "\">" + bh.utils.formatNumber(wcOwned) + " / " + bh.utils.formatNumber(wcNeeded) + "</span></div>";
+                }
             }
             return html;
         };
@@ -873,13 +883,18 @@ var bh;
             enumerable: true,
             configurable: true
         });
-        Object.defineProperty(PlayerBattleCard.prototype, "baseValue", {
-            get: function () { return this._bc && this._bc.base || 0; },
+        Object.defineProperty(PlayerBattleCard.prototype, "target", {
+            get: function () { return this._bc && this._bc.target || null; },
             enumerable: true,
             configurable: true
         });
-        Object.defineProperty(PlayerBattleCard.prototype, "maxValue", {
-            get: function () { return this._bc && this._bc.max || 0; },
+        Object.defineProperty(PlayerBattleCard.prototype, "type2nd", {
+            get: function () { return this._bc && this._bc.type2nd || null; },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(PlayerBattleCard.prototype, "target2nd", {
+            get: function () { return this._bc && this._bc.target2nd || null; },
             enumerable: true,
             configurable: true
         });
@@ -925,7 +940,10 @@ var bh;
         });
         Object.defineProperty(PlayerBattleCard.prototype, "fullHtml", {
             get: function () {
-                var count = this.count > 1 ? "x" + this.count : "", typeAndValue = this.value ? " (" + this.typeImage + " " + this.formattedValue : "", stars = bh.utils.evoToStars(this.rarityType, this.evoLevel), name = this.name.replace(/Mischievous/, "Misch.").replace(/Protection/, "Prot.");
+                var count = this.count > 1 ? "x" + this.count : "", typeAndValue = this.value ? " (" + this.typeImage + " " + this.formattedValue : "", stars = bh.utils.evoToStars(this.rarityType, this.evoLevel), name = this.name
+                    .replace(/Mischievous/, "Misch.")
+                    .replace(/Protection/, "Prot.")
+                    .replace(/-[\w-]+-/, "-...-");
                 return this.battleOrBragImage + " " + this.evoLevel + " <small>" + stars + "</small> " + name + " " + count;
             },
             enumerable: true,
@@ -938,6 +956,11 @@ var bh;
         });
         Object.defineProperty(PlayerBattleCard.prototype, "isMaxed", {
             get: function () { return this.evoLevel == ["1.10", "2.20", "3.35", "4.50", "5.50"][this.rarityType]; },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(PlayerBattleCard.prototype, "isUnknown", {
+            get: function () { return !this._bc; },
             enumerable: true,
             configurable: true
         });
@@ -997,11 +1020,10 @@ var bh;
             configurable: true
         });
         Object.defineProperty(PlayerBattleCard.prototype, "value", {
-            get: function () { return this.playerCard && bh.data.cards.battle.calculateValue(this.playerCard) || 0; },
+            get: function () { return 0; },
             enumerable: true,
             configurable: true
         });
-        ;
         PlayerBattleCard.prototype.matches = function (other) { return this._bc && other._bc && this._bc.guid == other._bc.guid && this.evoLevel == other.evoLevel; };
         PlayerBattleCard.prototype.matchesElement = function (element) { return !element || this.elementType === bh.ElementType[element]; };
         PlayerBattleCard.prototype.matchesHero = function (hero) { return !hero || (this.matchesElement(bh.ElementType[hero.elementType]) && this.klassType === hero.klassType); };
@@ -1492,19 +1514,16 @@ var bh;
         Object.defineProperty(PlayerHeroAbility.prototype, "materialHtml", {
             get: function () {
                 var _this = this;
-                var player = this.playerHero.player, count = this.type == bh.AbilityType.Trait ? player.inventory.find(function (item) { return item.itemType == bh.ItemType.Rune && item.elementType == _this.playerHero.elementType; }).count
-                    : player.inventory.find(function (item) { return item.itemType == bh.ItemType.Crystal && item.elementType == _this.playerHero.elementType; }).count;
-                var color = this.maxMaterialCount <= count ? "bg-success" : "bg-danger";
-                return this.type == bh.AbilityType.Trait
-                    ? "<div>" + bh.getImg("runes", this.name.replace(/\W/g, "")) + " " + (this.hero.name + "'s").replace("s's", "s'") + " " + bh.ElementType[this.hero.elementType] + " Rune <span class=\"badge pull-right " + color + "\">" + bh.utils.formatNumber(count) + " / " + bh.utils.formatNumber(this.maxMaterialCount || 0) + "</span></div>"
-                    : "<div>" + bh.getImg("crystals", bh.ElementType[this.hero.elementType]) + " " + bh.ElementType[this.hero.elementType] + " Crystals <span class=\"badge pull-right " + color + "\">" + bh.utils.formatNumber(count) + " / " + bh.utils.formatNumber(this.maxMaterialCount || 0) + "</span></div>";
+                var player = this.playerHero.player, item = bh.AbilityType.Trait ? player.inventory.find(function (item) { return item.isRune && item.name.startsWith(_this.name); })
+                    : player.inventory.find(function (item) { return item.isCrystal && item.elementType == _this.playerHero.elementType; }), owned = item.count, color = owned < this.maxMaterialCount ? "bg-danger" : "bg-success", img = this.type == bh.AbilityType.Trait ? bh.getImg("runes", this.name.replace(/\W/g, "")) : bh.getImg("crystals", bh.ElementType[this.hero.elementType]);
+                return "<div>" + img + " " + item.name + " <span class=\"badge pull-right " + color + "\">" + bh.utils.formatNumber(owned) + " / " + bh.utils.formatNumber(this.maxMaterialCount || 0) + "</span></div>";
             },
             enumerable: true,
             configurable: true
         });
         Object.defineProperty(PlayerHeroAbility.prototype, "goldHtml", {
             get: function () {
-                var gold = this.playerHero.player.gold || 0, color = this.maxGoldCost <= gold ? "bg-success" : "bg-danger";
+                var gold = this.playerHero.player.gold || 0, color = gold < this.maxGoldCost ? "bg-danger" : "bg-success";
                 return "<div>" + bh.getImg("misc", "Coin") + " Gold <span class=\"badge pull-right " + color + "\">" + bh.utils.formatNumber(gold) + " / " + bh.utils.formatNumber(this.maxGoldCost || 0) + "</span></div>";
             },
             enumerable: true,
@@ -1615,7 +1634,7 @@ var bh;
         Object.defineProperty(PlayerInventoryItem.prototype, "rowHtml", {
             get: function () {
                 var _this = this;
-                var folder = bh.ItemType[this.itemType].toLowerCase() + "s", name = this.isEvoJar ? this.name.replace(/\W/g, "") : this.isCrystal ? this.name.split(/ /)[0] : bh.data.HeroRepo.find(this.name.split("'")[0]).abilities[0].name.replace(/\W/g, ""), image = bh.getImg20(folder, name), needed = this.needed, ofContent = needed ? " / " + bh.utils.formatNumber(needed) : "", color = needed ? this.count >= needed ? "bg-success" : "bg-danger" : "", badge = "<span class=\"badge pull-right " + color + "\">" + bh.utils.formatNumber(this.count) + ofContent + "</span>", children = "";
+                var folder = bh.ItemType[this.itemType].toLowerCase() + "s", name = this.isEvoJar ? this.name.replace(/\W/g, "") : this.isCrystal ? this.name.split(/ /)[0] : bh.data.HeroRepo.find(this.name.split("'")[0]).abilities[0].name.replace(/\W/g, ""), image = bh.getImg20(folder, name), needed = this.needed, ofContent = needed ? " / " + bh.utils.formatNumber(needed) : "", color = needed ? this.count < needed ? "bg-danger" : "bg-success" : "", badge = "<span class=\"badge pull-right " + color + "\">" + bh.utils.formatNumber(this.count) + ofContent + "</span>", children = "";
                 if (needed) {
                     if (this.isCrystal) {
                         this.player
@@ -1675,7 +1694,7 @@ var bh;
             configurable: true
         });
         PlayerInventoryItem.toRowHtml = function (item, count, needed) {
-            var folder = bh.ItemType[item.itemType].toLowerCase() + "s", name = item.isEvoJar ? item.name.replace(/\W/g, "") : item.isCrystal ? item.name.split(/ /)[0] : bh.data.HeroRepo.find(item.name.split("'")[0]).abilities[0].name.replace(/\W/g, ""), image = bh.getImg20(folder, name), color = count > needed ? "bg-success" : "bg-danger", badge = "<span class=\"badge pull-right " + color + "\">" + bh.utils.formatNumber(count) + " / " + bh.utils.formatNumber(needed) + "</span>";
+            var folder = bh.ItemType[item.itemType].toLowerCase() + "s", name = item.isEvoJar ? item.name.replace(/\W/g, "") : item.isCrystal ? item.name.split(/ /)[0] : bh.data.HeroRepo.find(item.name.split("'")[0]).abilities[0].name.replace(/\W/g, ""), image = bh.getImg20(folder, name), color = count < needed ? "bg-danger" : "bg-success", badge = "<span class=\"badge pull-right " + color + "\">" + bh.utils.formatNumber(count) + " / " + bh.utils.formatNumber(needed) + "</span>";
             return "<div>" + image + " " + item.name + " " + badge + "</div>";
         };
         return PlayerInventoryItem;
@@ -1805,7 +1824,7 @@ var bh;
             return PowerRating.ratePlayerCard({ configId: battleCard.guid, evolutionLevel: evo, level: level - 1 });
         };
         PowerRating.ratePlayerCard = function (playerCard) {
-            var card = bh.data.cards.battle.find(playerCard.configId), multiplier = PowerRating.tierToMultiplier(card.tier), score = calculateCardScore(card.rarityType, playerCard.evolutionLevel, playerCard.level + 1, multiplier);
+            var card = bh.data.cards.battle.find(playerCard.configId), multiplier = PowerRating.tierToMultiplier(card && card.tier || ""), score = calculateCardScore(card && card.rarityType || bh.RarityType.Common, playerCard.evolutionLevel, playerCard.level + 1, multiplier);
             return score;
         };
         PowerRating.ratePlayerHeroAbility = function (playerHeroAbility) {
@@ -1982,9 +2001,17 @@ var bh;
                 }
                 battle.getMaxEvo = getMaxEvo;
                 function isMaxLevel(rarity, level) {
-                    return level == [10, 20, 35, 50, 50][bh.RarityType[(rarity || "").replace(/ /, "")]];
+                    return level == levelsPerRarity(bh.RarityType[(rarity || "").replace(/ /, "")]);
                 }
                 battle.isMaxLevel = isMaxLevel;
+                function truncDecimal(value, places) {
+                    if (places === void 0) { places = 0; }
+                    var s = String(value), parts = s.split(".");
+                    if (parts.length == 1 || places < 1)
+                        return +parts[0];
+                    return +(parts[0] + "." + parts[1].slice(0, places));
+                }
+                battle.truncDecimal = truncDecimal;
                 function calcDelta(base, max, rarityType) {
                     if (rarityType == bh.RarityType.Common) {
                         return (5 * max - 4 * base) / 81;
@@ -2004,32 +2031,23 @@ var bh;
                     return 0;
                 }
                 battle.calcDelta = calcDelta;
-                function calcValue(base, max, rarityType, evo, level) {
-                    var delta = calcDelta(base, max, rarityType), levels = rarityType == bh.RarityType.Common ? 9 : rarityType == bh.RarityType.Uncommon ? 19 : rarityType == bh.RarityType.Rare ? 34 : 49, value = base;
-                    if (0 < evo) {
-                        value = Math.floor((value + levels * delta) * 0.80);
+                function levelsPerRarity(rarity) {
+                    return [10, 20, 35, 50, 50][rarity];
+                }
+                battle.levelsPerRarity = levelsPerRarity;
+                function evoMultiplier(fromEvo) {
+                    return [0.80, 0.85, 0.88, 0.90, 1.0][fromEvo];
+                }
+                battle.evoMultiplier = evoMultiplier;
+                function calcValue(base, max, rarityType, evo, level, _delta) {
+                    var delta = _delta || calcDelta(base, max, rarityType), levels = levelsPerRarity(rarityType) - 1, value = base;
+                    for (var i = 0; i < evo; i++) {
+                        value += levels * delta;
+                        value *= evoMultiplier(i);
                     }
-                    if (1 < evo) {
-                        value = Math.floor((value + levels * delta) * 0.85);
-                    }
-                    if (2 < evo) {
-                        value = Math.floor((value + levels * delta) * 0.88);
-                    }
-                    if (3 < evo) {
-                        value = Math.floor((value + levels * delta) * 0.90);
-                    }
-                    if (4 < evo) {
-                        value = Math.floor((value + levels * delta) * 1.00);
-                    }
-                    value += level * delta;
-                    return Math.floor(value);
+                    return Math.floor(value) + Math.floor(level * delta);
                 }
                 battle.calcValue = calcValue;
-                function calculateValue(playerCard) {
-                    var card = find(playerCard.configId);
-                    return !card || !card.base || !card.max ? 0 : calcValue(card.base, card.max, card.rarityType, playerCard.evolutionLevel, playerCard.level);
-                }
-                battle.calculateValue = calculateValue;
                 var _init;
                 function init() {
                     if (!_init) {
@@ -2053,6 +2071,103 @@ var bh;
         })(cards = data.cards || (data.cards = {}));
     })(data = bh.data || (bh.data = {}));
 })(bh || (bh = {}));
+function parseValue(card, key, index) {
+    if (index === void 0) { index = 0; }
+    var value = card[key];
+    if (value.includes("/")) {
+        return +value.split(/\s*\/\s*/)[index];
+    }
+    return +value;
+}
+function effectTypeToType(card, index) {
+    if (index === void 0) { index = 0; }
+    var value = card["Effect Type"], indexValue = value.split(/\s*\/\s*/)[index] || "", val = indexValue.split(/\s*\-\s*/)[0] || "";
+    switch (val) {
+        case "": return null;
+        case "Damage": return "Attack";
+        case "Heal": return "Heal";
+        case "Shield": return "Shield";
+        default:
+            console.log("Type of \"" + value + "\" for index " + index);
+            return value;
+    }
+}
+function effectTypeToTarget(card, index) {
+    if (index === void 0) { index = 0; }
+    if (!effectTypeToType(card, index))
+        return null;
+    var value = card["Effect Type"], indexValue = value.split(/\s*\/\s*/)[index] || "", val = indexValue.split(/\s*\-\s*/).slice(1).join("-");
+    switch (val) {
+        case "": return "Single";
+        case "All": return "Multi";
+        case "Flurry": return "Single Flurry";
+        case "Flurry-All": return "Multi Flurry";
+        case "Flurry-Self": return "Self Flurry";
+        case "Self": return "Self";
+        case "Splash": return "Splash";
+        default:
+            console.log("Target of \"" + value + "\" for index " + index);
+            return value;
+    }
+}
+function classToKlassType(value) {
+    return bh.KlassType[value == "Ranged" ? "Skill" : value == "Melee" ? "Might" : "Magic"];
+}
+function minValues(card, index) {
+    if (index === void 0) { index = 0; }
+    return [1, 2, 3, 4, 5].map(function (i) { return i + "* Min"; }).map(function (key) {
+        var value = card[key] || "";
+        return +value.split(/\s*\/\s*/)[index] || null;
+    }).filter(function (value) { return !!value; });
+}
+function maxValue(card, index) {
+    if (index === void 0) { index = 0; }
+    return [1, 2, 3, 4, 5].map(function (i) { return i + "* Max"; }).map(function (key) {
+        var value = card[key] || "";
+        return +value.split(/\s*\/\s*/)[index] || null;
+    }).filter(function (value) { return !!value; }).pop();
+}
+function mats(card) {
+    var mats = [1, 2, 3, 4].map(function (i) { return (card[i + "* Evo Jar"] || "").trim(); }).filter(function (mat) { return !!mat; });
+    mats.forEach(function (mat) { if (!bh.data.ItemRepo.find(mat))
+        console.log(mat); });
+    return mats.join(",");
+}
+function updateCardData() {
+    var cards = bh.Repo.mapTsv($("#data-output").val());
+    cards.forEach(function (card) {
+        var guid = card["Id"];
+        var existing = bh.data.cards.battle.find(guid);
+        var created = {
+            guid: guid,
+            name: card["Name"],
+            klassType: classToKlassType(card["Class"]),
+            elementType: bh.ElementType[card["Element"]],
+            rarityType: bh.RarityType[card["Rarity"].replace(/ /, "")],
+            turns: +card["Turns"],
+            type: effectTypeToType(card),
+            type2nd: effectTypeToType(card, 1),
+            target: effectTypeToTarget(card),
+            target2nd: effectTypeToTarget(card, 1),
+            brag: bh.utils.parseBoolean(card["Is Brag?"]),
+            minValues: minValues(card),
+            minValues2nd: minValues(card, 1),
+            maxValue: maxValue(card),
+            maxValue2nd: maxValue(card, 1),
+            tier: null,
+            mats: mats(card)
+        };
+        if (existing) {
+            Object.keys(created).forEach(function (key) {
+                if (["tier", "maxValue", "maxValue2nd", "minValues", "minValues2nd"].includes(key))
+                    return;
+                if (created[key] && created[key] != existing[key]) {
+                    console.log(existing.name + " (" + key + "): " + created[key] + " != " + existing[key] + " ");
+                }
+            });
+        }
+    });
+}
 var bh;
 (function (bh) {
     function getMaxLevel(fame) { return fame * 2; }
@@ -2316,14 +2431,14 @@ var bh;
                     if (Array.isArray(guidOrGuild)) {
                         var guid = guidOrGuild[0].guildId, guildName = findNameByGuid(guid), existing = guildName && findByGuid(guildName.guid);
                         if (existing) {
-                            existing.playerGuild.members = guidOrGuild;
+                            existing.members = guidOrGuild;
                         }
                         else {
-                            _guilds.push({ playerGuild: { members: guidOrGuild, id: guid, name: guildName.name } });
+                            _guilds.push({ playerGuild: { members: guidOrGuild.map(function (player) { return { playerId: player.playerId }; }), id: guid, name: guildName.name }, members: guidOrGuild });
                         }
                     }
                     else {
-                        var playerGuild = guidOrGuild.playerGuild;
+                        var guild = guidOrGuild, playerGuild = guild.playerGuild;
                         if (playerGuild) {
                             put(playerGuild.id, playerGuild.name);
                             var index = _guilds.findIndex(function (g) { return g.playerGuild.id == playerGuild.id; });
@@ -2333,7 +2448,7 @@ var bh;
                             else {
                                 _guilds.push(guidOrGuild);
                             }
-                            playerGuild.members.forEach(function (member) { return data.PlayerRepo.put(new bh.Player(member)); });
+                            guild.members.forEach(function (player) { return data.PlayerRepo.put(new bh.Player(player)); });
                         }
                     }
                 }
@@ -2424,8 +2539,8 @@ var bh;
                     return level ? level + "|" + hp + "|" : "/|/|/";
                 }
                 function mapPlayerHero(hero) {
-                    var playerHero = player.heroes.find(function (h) { return hero.guid == h.guid; }), level = playerHero ? playerHero.level : "/", hp = playerHero ? bh.utils.truncateNumber(playerHero.hitPoints) : "/", power = playerHero ? playerHero.powerPercent + "%" : "/";
-                    return level + "|" + hp + "|" + power;
+                    var playerHero = player.heroes.find(function (h) { return hero.guid == h.guid; }), level = playerHero ? playerHero.level : "/", hp = playerHero ? bh.utils.truncateNumber(playerHero.hitPoints) : "/", op = playerHero && playerHero.isOp ? "-" : "", power = playerHero ? playerHero.powerPercent + "%" : "/";
+                    return level + "|" + hp + "|" + op + power;
                 }
             }
             function calculateBattleData(war, member) {
@@ -3263,8 +3378,8 @@ var bh;
         }
         utils.truncateNumber = truncateNumber;
         function parseBoolean(value) {
-            var string = String(value).substring(0, 1).toLowerCase();
-            return string === "y" || string === "t" || string === "1";
+            var string = String(value), char = string.substring(0, 1).toLowerCase();
+            return char === "y" || char === "t" || string === "1";
         }
         utils.parseBoolean = parseBoolean;
         function evoToStars(rarityType, evoLevel) {
@@ -3311,6 +3426,14 @@ var bh;
             });
         }
         utils.createImagesJs = createImagesJs;
+        var loggedCards = {};
+        function logMissingCard(playerBattleCard) {
+            if (!loggedCards[playerBattleCard.playerCard.id]) {
+                console.log("Missing BattleCard:", playerBattleCard.name + ": " + playerBattleCard.playerCard.id + " (" + playerBattleCard.evoLevel + ")");
+                loggedCards[playerBattleCard.playerCard.id] = true;
+            }
+        }
+        utils.logMissingCard = logMissingCard;
         function asyncForEach(array, callbackfn, thisArg) {
             return new Promise(function (resolvefn, rejectfn) {
                 var functions = array.map(function (value, index, array) {

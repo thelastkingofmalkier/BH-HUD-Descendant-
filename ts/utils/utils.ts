@@ -1,9 +1,11 @@
 namespace bh {
 
 	export namespace utils {
+		// Strings
 		export function htmlFriendly(value: string) {
 			return String(value).replace(/\</g, "&lt;").replace(/\>/g, "&gt;");
 		}
+
 		// Numbers
 		export function formatNumber(value: number) {
 			var num = String(value).split(""),
@@ -31,8 +33,8 @@ namespace bh {
 
 		// Other
 		export function parseBoolean(value: any): boolean {
-			var string = String(value).substring(0, 1).toLowerCase();
-			return string === "y" || string === "t" || string === "1";
+			var string = String(value), char = string.substring(0, 1).toLowerCase();
+			return char === "y" || char === "t" || string === "1";
 		}
 
 		export function evoToStars(rarityType: RarityType, evoLevel: string): string {
@@ -87,6 +89,15 @@ namespace bh {
 				output += `\n})(images = bh.images || (bh.images = {}));})(bh || (bh = {}));`;
 				$("#data-output").val(output);
 			});
+		}
+
+		var loggedCards: { [guid: string]: boolean; } = { }
+		export function logMissingCard(playerBattleCard: PlayerBattleCard) {
+			if (!loggedCards[playerBattleCard.playerCard.id]) {
+				console.log("Missing BattleCard:", `${playerBattleCard.name}: ${playerBattleCard.playerCard.id} (${playerBattleCard.evoLevel})`);
+				loggedCards[playerBattleCard.playerCard.id] = true;
+			}
+
 		}
 
 		export function asyncForEach<T>(array: T[], callbackfn: (value: T, index: number, array: T[]) => void): Promise<T[]>;
