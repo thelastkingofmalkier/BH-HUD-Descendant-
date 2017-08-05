@@ -7,12 +7,12 @@ namespace bh {
 		}
 		function renderCss() {
 var css = `<style id="brain-hud-styles" type="text/css">
-div.brain-hud-container { font-size:8pt; position:fixed; top:0; right:0; width:250px; background:#FFF; color:#000; border:2px solid #000; z-index:9999; padding:2px; max-height:${jQuery(window).height()-10}px; overflow:auto; }
+div.brain-hud-container { font-size:8pt; position:fixed; top:0; right:0; width:275px; background:#FFF; color:#000; border:2px solid #000; z-index:9999; padding:2px; max-height:${jQuery(window).height()-10}px; overflow:auto; }
 div.brain-hud-container div { clear:both; }
 div.brain-hud-container table { width:100%; margin:0; padding:0; border:0; }
 div.brain-hud-container td { padding:0; margin:0; border:0; }
-div.brain-hud-container select { width:180px; }
-div.brain-hud-container textarea { width:240px; font-size:8pt; display:none; }
+div.brain-hud-container select { width:205px; }
+div.brain-hud-container textarea { width:265px; font-size:8pt; display:none; }
 
 div.brain-hud-container .Air { background-color:#f3f3f3; }
 div.brain-hud-container .Earth { background-color:#e0eed5; }
@@ -39,13 +39,13 @@ div.brain-hud-scouter-player-report { display:none; padding:0 2px; text-align:le
 div.brain-hud-scouter-player > div.player-name { font-size:10pt; font-weight:bold; text-align:center; }
 
 div.brain-hud-scouter-panel-header { padding:2px 0 0 0; }
-div.brain-hud-scouter-panel-header > button { cursor:default; border:0; width:240px; text-align:left; padding:0; margin:0; }
+div.brain-hud-scouter-panel-header > button { cursor:default; border:0; width:265px; text-align:left; padding:0; margin:0; }
 div.brain-hud-scouter-panel-header > button[data-action] { cursor:pointer; }
 div.brain-hud-scouter-panel-header > button > span.hero-icon { display:inline-block; width:20px; text-align:center; }
 div.brain-hud-scouter-panel-header > button > span.hero-level { display:inline-block; width:30px; text-align:right; }
 div.brain-hud-scouter-panel-header > button > span.hero-name { display:inline-block; width:60px; }
 div.brain-hud-scouter-panel-header > button > span.hero-hp { display:inline-block; width:50px; text-align:center; }
-div.brain-hud-scouter-panel-header > button > span.hero-rating { display:inline-block; width:70px; }
+div.brain-hud-scouter-panel-header > button > span.hero-rating { display:inline-block; width:95px; }
 
 div.brain-hud-inventory-buttons { text-align:center; }
 
@@ -116,7 +116,7 @@ div.brain-hud-container [data-action="sort-heroes"] { cursor:pointer; }
 					${inventoryButton("klass", "Brag", "cardtypes")}
 					${inventoryButton("type", ItemType.Rune, "runes", "Meteor")}
 					${inventoryButton("type", ItemType.Crystal, "crystals", "Neutral")}
-				</div>
+				</div><br/>
 				<div class="bs-btn-group bs-btn-group-xs brain-hud-inventory-buttons">
 					${inventoryButton("type", "BoosterCard", "misc", "Boosters")}
 					${inventoryButton("type", "WildCard", "cardtypes", "WildCard")}

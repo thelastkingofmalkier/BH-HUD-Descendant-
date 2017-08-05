@@ -91,61 +91,73 @@ namespace bh {
 			var lines = raw.split(/\n/),
 				keys = lines.shift().split(/\t/).map(s => s.trim());
 			return lines
+				.filter(line => !!line.trim().length)
 				.map(line => {
-					if (!line.trim().length) { return null; }
-					var parts = line.split(/\t/).map(s => s.trim()),
-						value: { [key: string]: string | boolean | number | number[]; } = { };
+					var values = line.split(/\t/).map(s => s.trim()),
+						object: any = { };
 					keys.forEach((key, index) => {
+						var value = values[index];
 						switch(key) {
 							case "element":
 							case "elementType":
-								value["elementType"] = ElementType[<GameElement>parts[index]];
+								object["elementType"] = ElementType[<GameElement>value];
 								break;
 
 							case "rarity":
 							case "rarityType":
-								value["rarityType"] = RarityType[<GameRarity>parts[index].replace(/ /g, "")];
+								object["rarityType"] = RarityType[<GameRarity>value.replace(/ /g, "")];
 								break;
 
 							case "klass":
 							case "klassType":
-								value["klassType"] = KlassType[<GameKlass>parts[index]];
+								object["klassType"] = KlassType[<GameKlass>value];
 								break;
 
 							case "itemType":
-								value["itemType"] = ItemType[<GameItemType>parts[index].replace(/ /g, "")];
+								object["itemType"] = ItemType[<GameItemType>value.replace(/ /g, "")];
 								break;
 
 							case "abilityType":
-								value["abilityType"] = AbilityType[<GameAbilityType>parts[index]];
+								object["abilityType"] = AbilityType[<GameAbilityType>value];
 								break;
 
 							case "brag":
-								value["brag"] = utils.parseBoolean(parts[index]) || !!parts[index].match(/\d+(,\d+)*/);
+								object["brag"] = utils.parseBoolean(value);
 								break;
 
 							case "minValues":
-							case "minValues2nd":
-								value[key] = parts[index].split(",").map(s => +s);
+								object[key] = value.split("|").map(s => s.split(",").map(s => +s));
 								break;
 
-							case "maxValue":
-							case "maxValue2nd":
+							case "maxValues":
+								object[key] = value.split("|").map(s => +s);
+								break;
+
+							case "targets":
+							case "types":
+								object[key] = value.split("|");
+								break;
+
+							case "effects":
+							case "mats":
+							case "perks":
+								object[key] = value.split(",");
+								break;
+
 							case "turns":
-								value[key] = +parts[index];
+								object[key] = +value;
 								break;
 
 							case "name":
-								value["lower"] = parts[index].toLowerCase();
+								object["lower"] = value.toLowerCase();
 							default:
-								value[key] = parts[index];
+								object[key] = value;
 								break;
 
 						}
 					});
-					return <T><any>value;
-				})
-				.filter(value => value != null);
+					return <T>object;
+				});
 		}
 
 		private static AllRepos: Repo<any>[] = [];

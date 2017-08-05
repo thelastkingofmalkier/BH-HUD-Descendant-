@@ -30,7 +30,7 @@ namespace bh {
 		public constructor(card: IDataBattleCard | PlayerBattleCard, partial: boolean);
 		public constructor(public card: IDataBattleCard | PlayerBattleCard, partial: boolean = false) {
 			super();
-			var matItems = (card.mats||"").split(",")
+			var matItems = card.mats
 				.map(mat => data.ItemRepo.find(mat.trim())).filter(item => !!item)
 				.sort(utils.sort.byRarity);
 			[0,1,2,3,4]

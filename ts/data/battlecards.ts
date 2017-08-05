@@ -2,7 +2,7 @@ namespace bh {
 	export namespace data {
 		export namespace cards {
 			export namespace battle {
-				var gid = 795369586;
+				var gid = 1325382981;
 
 				var _cards: IDataBattleCard[] = [];
 
@@ -38,34 +38,22 @@ namespace bh {
 					if (parts.length == 1 || places < 1) return +parts[0];
 					return +(parts[0] + "." + parts[1].slice(0, places));
 				}
-				export function calcDelta(base: number, max: number, rarityType: RarityType) {
-					if (rarityType == RarityType.Common) { return (5 * max - 4 * base) / 81; }
-					if (rarityType == RarityType.Uncommon) { return (100 * max - 68 * base) / 4807; }
-					if (rarityType == RarityType.Rare) { return 625 * max / 68561 - 22 * base / 4033; }
-					if (rarityType == RarityType.SuperRare) { return (12500 * max - 6732 * base) / 2391053; }
-					if (rarityType == RarityType.Legendary) { return (12500 * max - 6732 * base) / 3003553; }
-					return 0;
+				export function calcDelta(min: number, max: number, rarityType: RarityType) {
+					return (max - min) / (levelsPerRarity(rarityType) - 1);
 				}
-				export function levelsPerRarity(rarity: RarityType) {
-					return [10,20,35,50,50][rarity];
+				export function levelsPerRarity(rarityType: RarityType) {
+					return [10,20,35,50,50][rarityType];
 				}
 				export function evoMultiplier(fromEvo: number) {
 					return [0.80, 0.85, 0.88, 0.90, 1.0][fromEvo];
 				}
-				export function calcValue(base: number, max: number, rarityType: RarityType, evo: number, level: number, _delta?: number) {
-					var delta = _delta || calcDelta(base, max, rarityType),
-						levels = levelsPerRarity(rarityType) - 1,
-						value = base;
-					for (var i = 0; i < evo; i++) {
-						value += levels * delta;
-						value *= evoMultiplier(i);
-					}
-					return Math.floor(value) + Math.floor(level * delta);
+				export function calculateValue(playerCard: IPlayer.PlayerCard): number {
+					var card = find(playerCard.configId);
+					if (!card) return 0;
+					var min = card.minValues[0][playerCard.evolutionLevel],
+						delta = calcDelta(card.minValues[0].slice().pop(), card.maxValues[0], card.rarityType);
+					return Math.floor(min + delta * playerCard.level);
 				}
-				// export function calculateValue(playerCard: IPlayer.PlayerCard): number {
-				// 	var card = find(playerCard.configId);
-				// 	return !card || !card.base || !card.max ? 0 : calcValue(card.base, card.max, card.rarityType, playerCard.evolutionLevel, playerCard.level);
-				// }
 
 				var _init: Promise<IDataBattleCard[]>;
 				export function init(): Promise<IDataBattleCard[]> {
@@ -90,96 +78,65 @@ namespace bh {
 	}
 }
 interface INewCard { [key: string]: string; }
-function parseValue(card: INewCard, key: string, index = 0) {
-	var value = card[key];
-	if (value.includes("/")) {
-		return +value.split(/\s*\/\s*/)[index];
-	}
-	return +value;
-}
-function effectTypeToType(card: INewCard, index = 0): GameBattleCardType {
-	var value = card["Effect Type"],
-		indexValue = value.split(/\s*\/\s*/)[index] || "",
-		val = indexValue.split(/\s*\-\s*/)[0] || "";
-	switch(val) {
-		case "": return null;
-		case "Damage": return "Attack";
-		case "Heal": return "Heal";
-		case "Shield": return "Shield";
-		default:
-			console.log(`Type of "${value}" for index ${index}`);
-			return <any>value;
-	}
-}
-function effectTypeToTarget(card: INewCard, index = 0): GameBattleCardTarget {
-	if (!effectTypeToType(card, index)) return null;
-	var value = card["Effect Type"],
-		indexValue = value.split(/\s*\/\s*/)[index] || "",
-		val = indexValue.split(/\s*\-\s*/).slice(1).join("-");
-	switch(val) {
-		case "": return "Single";
-		case "All": return "Multi";
-		case "Flurry": return "Single Flurry";
-		case "Flurry-All": return "Multi Flurry";
-		case "Flurry-Self": return "Self Flurry";
-		case "Self": return "Self";
-		case "Splash": return "Splash";
-		default:
-			console.log(`Target of "${value}" for index ${index}`);
-			return <any>value;
-	}
-}
-function classToKlassType(value: string) {
-	return bh.KlassType[value == "Ranged" ? "Skill" : value == "Melee" ? "Might" : "Magic"];
-}
-function minValues(card: INewCard, index = 0) {
-	return [1,2,3,4,5].map(i => `${i}* Min`).map(key => {
-		var value = card[key] || "";
-		return +value.split(/\s*\/\s*/)[index] || null;
-	}).filter(value => !!value);
-}
-function maxValue(card: INewCard, index = 0) {
-	return [1,2,3,4,5].map(i => `${i}* Max`).map(key => {
-		var value = card[key] || "";
-		return +value.split(/\s*\/\s*/)[index] || null;
-	}).filter(value => !!value).pop();
-}
-function mats(card: INewCard) {
-	var mats = [1,2,3,4].map(i => (card[`${i}* Evo Jar`] || "").trim()).filter(mat => !!mat);
-	mats.forEach(mat => { if (!bh.data.ItemRepo.find(mat)) console.log(mat); });
-	return mats.join(",");
-}
 function updateCardData() {
-	var cards = bh.Repo.mapTsv<INewCard>($("#data-output").val());
-	cards.forEach(card => {
-		var guid = card["Id"];
-		var existing = bh.data.cards.battle.find(guid);
-		var created: IDataBattleCard = {
-			guid: guid,
-			name: card["Name"],
-			klassType: classToKlassType(card["Class"]),
-			elementType: bh.ElementType[<GameElement>card["Element"]],
-			rarityType: bh.RarityType[<GameRarity>card["Rarity"].replace(/ /, "")],
-			turns: +card["Turns"],
-			type: effectTypeToType(card),
-			type2nd: effectTypeToType(card, 1),
-			target: effectTypeToTarget(card),
-			target2nd: effectTypeToTarget(card, 1),
-			brag: bh.utils.parseBoolean(card["Is Brag?"]),
-			minValues: minValues(card),
-			minValues2nd: minValues(card, 1),
-			maxValue: maxValue(card),
-			maxValue2nd: maxValue(card, 1),
-			tier: null,
-			mats: mats(card)
-		};
-		if (existing) {
-			Object.keys(created).forEach(key => {
-				if (["tier","maxValue","maxValue2nd","minValues","minValues2nd"].includes(key)) return;
-				if ((<any>created)[key] && (<any>created)[key] != (<any>existing)[key]) {
-					console.log(`${existing.name} (${key}): ${(<any>created)[key]} != ${(<any>existing)[key]} `);
-				}
-			})
-		}
+	$.get("https://docs.google.com/spreadsheets/d/1xckeq3t9T2g4sR5zgKK52ZkXNEXQGgiUrJ8EQ5FJAPI/pub?output=tsv").then(raw => {
+		var mapped = bh.Repo.mapTsv<INewCard>(raw),
+			cards = mapped.map(card => {
+			var guid = card["Id"],
+				existing = bh.data.cards.battle.find(guid),
+				multiValues = card["Effect Type"].includes("/"),
+				minValuesArray = multiValues ? [0,1] : [0];
+			var created: IDataBattleCard = {
+				guid: guid,
+				name: existing && existing.name || card["Name"],
+				klassType: bh.KlassType[<GameKlass>card["Class"].replace("Ranged", "Skill").replace("Melee", "Might")],
+				elementType: bh.ElementType[<GameElement>card["Element"]],
+				rarityType: bh.RarityType[<GameRarity>card["Rarity"].replace(/ /, "")],
+				turns: +card["Turns"],
+				types: card["Effect Type"].split(/\s*\/\s*/).map(s => effectTypeToType(s.split(/\s*\-\s*/)[0])),
+				targets: card["Effect Type"].split(/\s*\/\s*/).map(s => effectTypeToTarget(s.split(/\s*\-\s*/).slice(1).join("-"))),
+				brag: bh.utils.parseBoolean(card["Is Brag?"]),
+				minValues: minValuesArray.map(index => [0,1,2,3,4,5].map(i => card[`${i}* Min`]).filter(s => !!s).map(s => +s.split(/\s*\/\s*/)[index])),
+				maxValues: [0,1,2,3,4,5].map(i => card[`${i}* Max`]).filter(s => !!s).pop().split(/\s*\/\s*/).map(s => +s),
+				tier: existing && existing.tier || <any>"",
+				mats: [1,2,3,4].map(i => card[`${i}* Evo Jar`]).filter(s => !!s),
+				perkBase: +card["Perk %"],
+				perks: [1,2,3,4].map(i => card[`Perk #${i}`]).filter(s => !!s),
+				effects: [1,2,3].map(i => card[`Effect #${i}`]).filter(s => !!s)
+			};
+			if (!existing) console.log(card["Name"]);
+			else if (existing.name != card["Name"]) console.log(existing.name + " !== " + card["Name"]);
+			return created;
+		});
+		var tsv = "guid\tname\tklassType\telementType\trarityType\tturns\ttypes\ttargets\tbrag\tminValues\tmaxValues\ttier\tmats\tperkBase\tperks\teffects";
+		cards.forEach(c => {
+			tsv += `\n${c.guid}\t${c.name}\t${bh.KlassType[c.klassType]}\t${bh.ElementType[c.elementType]}\t${bh.RarityType[c.rarityType]}\t${c.turns}\t${c.types.join("|")}\t${c.targets.join("|")}\t${c.brag}\t${c.minValues.map(a=>a.join(",")).join("|")}\t${c.maxValues.join("|")}\t${c.tier}\t${c.mats.join(",")}\t${c.perkBase}\t${c.perks.join(",")}\t${c.effects.join(",")}`;
+		});
+		$("#data-output").val(tsv)
 	});
+	function effectTypeToType(value: string): GameBattleCardType {
+		switch(value) {
+			case "": return null;
+			case "Damage": return "Attack";
+			case "Heal": return "Heal";
+			case "Shield": return "Shield";
+			default:
+				console.log(`Type of "${value}"`);
+				return <any>value;
+		}
+	}
+	function effectTypeToTarget(value: string): GameBattleCardTarget {
+		switch(value) {
+			case "": return "Single";
+			case "All": return "Multi";
+			case "Flurry": return "Single Flurry";
+			case "Flurry-All": return "Multi Flurry";
+			case "Flurry-Self": return "Self Flurry";
+			case "Self": return "Self";
+			case "Splash": return "Splash";
+			default:
+				console.log(`Target of "${value}"`);
+				return <any>value;
+		}
+	}
 }

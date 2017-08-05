@@ -40,19 +40,23 @@ namespace bh {
 
 		// BattleCard pass-through
 		public get brag() { return this._bc && this._bc.brag || false; }
+		public get effects() { return this._bc && this._bc.effects || []; }
 		public get elementType() { return this._bc ? this._bc.elementType : null; }
 		public get klassType() { return this._bc ? this._bc.klassType : null; }
-		public get name() { return this._bc && this._bc.name || this.playerCard && this.playerCard.configId; }
 		public get lower() { return this.name.toLowerCase(); }
-		public get rarityType() { return this._bc ? this._bc.rarityType : null; }
-		public get type() { return this._bc && this._bc.type || null; }
-		public get target() { return this._bc && this._bc.target || null; }
-		public get type2nd() { return this._bc && this._bc.type2nd || null; }
-		public get target2nd() { return this._bc && this._bc.target2nd || null; }
-		// public get baseValue() { return this._bc && this._bc.base || 0; }
-		// public get maxValue() { return this._bc && this._bc.max || 0; }
-		public get tier() { return this._bc && this._bc.tier || null; }
 		public get mats() { return this._bc && this._bc.mats || null; }
+		public get maxValues() { return this._bc && this._bc.maxValues || []; }
+		public get minValues() { return this._bc && this._bc.minValues || [[]]; }
+		public get perkBase() { return this._bc && this._bc.perkBase || 0; }
+		public get perks() { return this._bc && this._bc.perks || []; }
+		public get name() { return this._bc && this._bc.name || this.playerCard && this.playerCard.configId; }
+		public get rarityType() { return this._bc ? this._bc.rarityType : null; }
+		// public get target() { return this._bc && this._bc.targets[0] || null; }
+		public get targets() { return this._bc && this._bc.targets || null; }
+		public get tier() { return this._bc && this._bc.tier || null; }
+		public get turns() { return this._bc && this._bc.turns || 0; }
+		// public get type() { return this._bc && this._bc.types[0] || null; }
+		public get types() { return this._bc && this._bc.types || null; }
 
 		// PlayerCard pass-through
 		public get evo() { return this.playerCard && this.playerCard.evolutionLevel || 0; }
@@ -66,13 +70,13 @@ namespace bh {
 		public get formattedValue() { return this.value ? utils.formatNumber(this.value) : ""; }
 		public get fullHtml() {
 			var count = this.count > 1 ? `x${this.count}` : ``,
-				typeAndValue = this.value ? ` (${this.typeImage} ${this.formattedValue}` : ``,
+				typeAndValue = this.value ? ` (${this.typeImage} ${this.formattedValue})` : ``,
 				stars = utils.evoToStars(this.rarityType, this.evoLevel),
 				name = this.name
 					.replace(/Mischievous/, "Misch.")
 					.replace(/Protection/, "Prot.")
 					.replace(/-[\w-]+-/, "-...-");
-			return `${this.battleOrBragImage} ${this.evoLevel} <small>${stars}</small> ${name} ${count}`;
+			return `${this.battleOrBragImage} ${this.evoLevel} <small>${stars}</small> ${name} ${count} ${typeAndValue}`;
 		}
 		public get isActive() { return (this.evo > 0 || this.level > 1) && !this.isMaxed; }
 		public get isMaxed() { return this.evoLevel == ["1.10", "2.20", "3.35", "4.50", "5.50"][this.rarityType]; }
@@ -89,9 +93,8 @@ namespace bh {
 		// public get goldHtml() { return this._rowHtml(this.maxMaxGoldNeeded);  }
 		// public get wcHtml() { return this._rowHtml(this.maxWildCardsNeeded);  }
 		public get scoutHtml() { return `${this.rarityEvoLevel} ${this.name} ${this.count > 1 ? `x${this.count}` : ``}`; }
-		public get typeImage() { return this.type ? getImg("cardtypes", this.type) : ``; }
-		// public get value() { return this.playerCard && data.cards.battle.calculateValue(this.playerCard) || 0; };
-		public get value() { return 0; }
+		public get typeImage() { return this.types.length ? getImg12("cardtypes", this.types[0]) : ``; }
+		public get value() { return this.playerCard && data.cards.battle.calculateValue(this.playerCard) || 0; };
 
 		public matches(other: PlayerBattleCard): boolean { return this._bc && other._bc && this._bc.guid == other._bc.guid && this.evoLevel == other.evoLevel; }
 		public matchesElement(element: GameElement) { return !element || this.elementType === ElementType[element]; }

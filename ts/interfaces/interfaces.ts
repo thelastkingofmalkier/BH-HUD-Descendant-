@@ -28,18 +28,17 @@ interface IHasRarityType { rarityType: bh.RarityType; }
 interface IHasGuidAndName extends IHasGuid, IHasName { }
 
 interface IDataBattleCard extends IHasGuid, IHasName, IHasElementType, IHasKlassType, IHasRarityType {
-	turns: number;
-	type: GameBattleCardType;
-	target: GameBattleCardTarget;
-	type2nd?: GameBattleCardType;
-	target2nd?: GameBattleCardTarget;
 	brag: boolean;
-	minValues: number[];
-	maxValue: number;
-	minValues2nd?: number[];
-	maxValue2nd?: number;
+	effects: string[];
+	mats: string[];
+	maxValues: number[];
+	minValues: number[][];
+	perkBase: number;
+	perks: string[];
+	targets: GameBattleCardTarget[];
 	tier: GameBattleCardTier;
-	mats: string;
+	turns: number;
+	types: GameBattleCardType[];
 }
 interface IDataBoosterCard extends IHasGuid, IHasName, IHasElementType, IHasRarityType {
 	challenge?: GameBoosterCardChallenge;

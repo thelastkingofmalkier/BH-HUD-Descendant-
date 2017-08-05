@@ -294,53 +294,60 @@ var bh;
         Repo.mapTsv = function (raw) {
             var lines = raw.split(/\n/), keys = lines.shift().split(/\t/).map(function (s) { return s.trim(); });
             return lines
+                .filter(function (line) { return !!line.trim().length; })
                 .map(function (line) {
-                if (!line.trim().length) {
-                    return null;
-                }
-                var parts = line.split(/\t/).map(function (s) { return s.trim(); }), value = {};
+                var values = line.split(/\t/).map(function (s) { return s.trim(); }), object = {};
                 keys.forEach(function (key, index) {
+                    var value = values[index];
                     switch (key) {
                         case "element":
                         case "elementType":
-                            value["elementType"] = bh.ElementType[parts[index]];
+                            object["elementType"] = bh.ElementType[value];
                             break;
                         case "rarity":
                         case "rarityType":
-                            value["rarityType"] = bh.RarityType[parts[index].replace(/ /g, "")];
+                            object["rarityType"] = bh.RarityType[value.replace(/ /g, "")];
                             break;
                         case "klass":
                         case "klassType":
-                            value["klassType"] = bh.KlassType[parts[index]];
+                            object["klassType"] = bh.KlassType[value];
                             break;
                         case "itemType":
-                            value["itemType"] = bh.ItemType[parts[index].replace(/ /g, "")];
+                            object["itemType"] = bh.ItemType[value.replace(/ /g, "")];
                             break;
                         case "abilityType":
-                            value["abilityType"] = bh.AbilityType[parts[index]];
+                            object["abilityType"] = bh.AbilityType[value];
                             break;
                         case "brag":
-                            value["brag"] = bh.utils.parseBoolean(parts[index]) || !!parts[index].match(/\d+(,\d+)*/);
+                            object["brag"] = bh.utils.parseBoolean(value);
                             break;
                         case "minValues":
-                        case "minValues2nd":
-                            value[key] = parts[index].split(",").map(function (s) { return +s; });
+                            object[key] = value.split("|").map(function (s) { return s.split(",").map(function (s) { return +s; }); });
                             break;
-                        case "maxValue":
-                        case "maxValue2nd":
+                        case "maxValues":
+                            object[key] = value.split("|").map(function (s) { return +s; });
+                            break;
+                        case "targets":
+                        case "types":
+                            object[key] = value.split("|");
+                            break;
+                        case "effects":
+                        case "mats":
+                        case "perks":
+                            object[key] = value.split(",");
+                            break;
                         case "turns":
-                            value[key] = +parts[index];
+                            object[key] = +value;
                             break;
                         case "name":
-                            value["lower"] = parts[index].toLowerCase();
+                            object["lower"] = value.toLowerCase();
                         default:
-                            value[key] = parts[index];
+                            object[key] = value;
                             break;
                     }
                 });
-                return value;
-            })
-                .filter(function (value) { return value != null; });
+                return object;
+            });
         };
         Repo.init = function () {
             return Repo.AllRepos.map(function (repo) { return repo.init(); });
@@ -853,6 +860,11 @@ var bh;
             enumerable: true,
             configurable: true
         });
+        Object.defineProperty(PlayerBattleCard.prototype, "effects", {
+            get: function () { return this._bc && this._bc.effects || []; },
+            enumerable: true,
+            configurable: true
+        });
         Object.defineProperty(PlayerBattleCard.prototype, "elementType", {
             get: function () { return this._bc ? this._bc.elementType : null; },
             enumerable: true,
@@ -863,13 +875,38 @@ var bh;
             enumerable: true,
             configurable: true
         });
-        Object.defineProperty(PlayerBattleCard.prototype, "name", {
-            get: function () { return this._bc && this._bc.name || this.playerCard && this.playerCard.configId; },
+        Object.defineProperty(PlayerBattleCard.prototype, "lower", {
+            get: function () { return this.name.toLowerCase(); },
             enumerable: true,
             configurable: true
         });
-        Object.defineProperty(PlayerBattleCard.prototype, "lower", {
-            get: function () { return this.name.toLowerCase(); },
+        Object.defineProperty(PlayerBattleCard.prototype, "mats", {
+            get: function () { return this._bc && this._bc.mats || null; },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(PlayerBattleCard.prototype, "maxValues", {
+            get: function () { return this._bc && this._bc.maxValues || []; },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(PlayerBattleCard.prototype, "minValues", {
+            get: function () { return this._bc && this._bc.minValues || [[]]; },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(PlayerBattleCard.prototype, "perkBase", {
+            get: function () { return this._bc && this._bc.perkBase || 0; },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(PlayerBattleCard.prototype, "perks", {
+            get: function () { return this._bc && this._bc.perks || []; },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(PlayerBattleCard.prototype, "name", {
+            get: function () { return this._bc && this._bc.name || this.playerCard && this.playerCard.configId; },
             enumerable: true,
             configurable: true
         });
@@ -878,23 +915,8 @@ var bh;
             enumerable: true,
             configurable: true
         });
-        Object.defineProperty(PlayerBattleCard.prototype, "type", {
-            get: function () { return this._bc && this._bc.type || null; },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(PlayerBattleCard.prototype, "target", {
-            get: function () { return this._bc && this._bc.target || null; },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(PlayerBattleCard.prototype, "type2nd", {
-            get: function () { return this._bc && this._bc.type2nd || null; },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(PlayerBattleCard.prototype, "target2nd", {
-            get: function () { return this._bc && this._bc.target2nd || null; },
+        Object.defineProperty(PlayerBattleCard.prototype, "targets", {
+            get: function () { return this._bc && this._bc.targets || null; },
             enumerable: true,
             configurable: true
         });
@@ -903,8 +925,13 @@ var bh;
             enumerable: true,
             configurable: true
         });
-        Object.defineProperty(PlayerBattleCard.prototype, "mats", {
-            get: function () { return this._bc && this._bc.mats || null; },
+        Object.defineProperty(PlayerBattleCard.prototype, "turns", {
+            get: function () { return this._bc && this._bc.turns || 0; },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(PlayerBattleCard.prototype, "types", {
+            get: function () { return this._bc && this._bc.types || null; },
             enumerable: true,
             configurable: true
         });
@@ -940,11 +967,11 @@ var bh;
         });
         Object.defineProperty(PlayerBattleCard.prototype, "fullHtml", {
             get: function () {
-                var count = this.count > 1 ? "x" + this.count : "", typeAndValue = this.value ? " (" + this.typeImage + " " + this.formattedValue : "", stars = bh.utils.evoToStars(this.rarityType, this.evoLevel), name = this.name
+                var count = this.count > 1 ? "x" + this.count : "", typeAndValue = this.value ? " (" + this.typeImage + " " + this.formattedValue + ")" : "", stars = bh.utils.evoToStars(this.rarityType, this.evoLevel), name = this.name
                     .replace(/Mischievous/, "Misch.")
                     .replace(/Protection/, "Prot.")
                     .replace(/-[\w-]+-/, "-...-");
-                return this.battleOrBragImage + " " + this.evoLevel + " <small>" + stars + "</small> " + name + " " + count;
+                return this.battleOrBragImage + " " + this.evoLevel + " <small>" + stars + "</small> " + name + " " + count + " " + typeAndValue;
             },
             enumerable: true,
             configurable: true
@@ -1015,15 +1042,16 @@ var bh;
             configurable: true
         });
         Object.defineProperty(PlayerBattleCard.prototype, "typeImage", {
-            get: function () { return this.type ? bh.getImg("cardtypes", this.type) : ""; },
+            get: function () { return this.types.length ? bh.getImg12("cardtypes", this.types[0]) : ""; },
             enumerable: true,
             configurable: true
         });
         Object.defineProperty(PlayerBattleCard.prototype, "value", {
-            get: function () { return 0; },
+            get: function () { return this.playerCard && bh.data.cards.battle.calculateValue(this.playerCard) || 0; },
             enumerable: true,
             configurable: true
         });
+        ;
         PlayerBattleCard.prototype.matches = function (other) { return this._bc && other._bc && this._bc.guid == other._bc.guid && this.evoLevel == other.evoLevel; };
         PlayerBattleCard.prototype.matchesElement = function (element) { return !element || this.elementType === bh.ElementType[element]; };
         PlayerBattleCard.prototype.matchesHero = function (hero) { return !hero || (this.matchesElement(bh.ElementType[hero.elementType]) && this.klassType === hero.klassType); };
@@ -1849,7 +1877,7 @@ var bh;
             var _this = _super.call(this) || this;
             _this.card = card;
             _this.evos = [];
-            var matItems = (card.mats || "").split(",")
+            var matItems = card.mats
                 .map(function (mat) { return bh.data.ItemRepo.find(mat.trim()); }).filter(function (item) { return !!item; })
                 .sort(bh.utils.sort.byRarity);
             [0, 1, 2, 3, 4]
@@ -1974,7 +2002,7 @@ var bh;
         (function (cards_1) {
             var battle;
             (function (battle) {
-                var gid = 795369586;
+                var gid = 1325382981;
                 var _cards = [];
                 function getAll() {
                     return _cards.slice();
@@ -2012,42 +2040,26 @@ var bh;
                     return +(parts[0] + "." + parts[1].slice(0, places));
                 }
                 battle.truncDecimal = truncDecimal;
-                function calcDelta(base, max, rarityType) {
-                    if (rarityType == bh.RarityType.Common) {
-                        return (5 * max - 4 * base) / 81;
-                    }
-                    if (rarityType == bh.RarityType.Uncommon) {
-                        return (100 * max - 68 * base) / 4807;
-                    }
-                    if (rarityType == bh.RarityType.Rare) {
-                        return 625 * max / 68561 - 22 * base / 4033;
-                    }
-                    if (rarityType == bh.RarityType.SuperRare) {
-                        return (12500 * max - 6732 * base) / 2391053;
-                    }
-                    if (rarityType == bh.RarityType.Legendary) {
-                        return (12500 * max - 6732 * base) / 3003553;
-                    }
-                    return 0;
+                function calcDelta(min, max, rarityType) {
+                    return (max - min) / (levelsPerRarity(rarityType) - 1);
                 }
                 battle.calcDelta = calcDelta;
-                function levelsPerRarity(rarity) {
-                    return [10, 20, 35, 50, 50][rarity];
+                function levelsPerRarity(rarityType) {
+                    return [10, 20, 35, 50, 50][rarityType];
                 }
                 battle.levelsPerRarity = levelsPerRarity;
                 function evoMultiplier(fromEvo) {
                     return [0.80, 0.85, 0.88, 0.90, 1.0][fromEvo];
                 }
                 battle.evoMultiplier = evoMultiplier;
-                function calcValue(base, max, rarityType, evo, level, _delta) {
-                    var delta = _delta || calcDelta(base, max, rarityType), levels = levelsPerRarity(rarityType) - 1, value = base;
-                    for (var i = 0; i < evo; i++) {
-                        value += levels * delta;
-                        value *= evoMultiplier(i);
-                    }
-                    return Math.floor(value) + Math.floor(level * delta);
+                function calculateValue(playerCard) {
+                    var card = find(playerCard.configId);
+                    if (!card)
+                        return 0;
+                    var min = card.minValues[0][playerCard.evolutionLevel], delta = calcDelta(card.minValues[0].slice().pop(), card.maxValues[0], card.rarityType);
+                    return Math.floor(min + delta * playerCard.level);
                 }
-                battle.calcValue = calcValue;
+                battle.calculateValue = calculateValue;
                 var _init;
                 function init() {
                     if (!_init) {
@@ -2071,102 +2083,65 @@ var bh;
         })(cards = data.cards || (data.cards = {}));
     })(data = bh.data || (bh.data = {}));
 })(bh || (bh = {}));
-function parseValue(card, key, index) {
-    if (index === void 0) { index = 0; }
-    var value = card[key];
-    if (value.includes("/")) {
-        return +value.split(/\s*\/\s*/)[index];
-    }
-    return +value;
-}
-function effectTypeToType(card, index) {
-    if (index === void 0) { index = 0; }
-    var value = card["Effect Type"], indexValue = value.split(/\s*\/\s*/)[index] || "", val = indexValue.split(/\s*\-\s*/)[0] || "";
-    switch (val) {
-        case "": return null;
-        case "Damage": return "Attack";
-        case "Heal": return "Heal";
-        case "Shield": return "Shield";
-        default:
-            console.log("Type of \"" + value + "\" for index " + index);
-            return value;
-    }
-}
-function effectTypeToTarget(card, index) {
-    if (index === void 0) { index = 0; }
-    if (!effectTypeToType(card, index))
-        return null;
-    var value = card["Effect Type"], indexValue = value.split(/\s*\/\s*/)[index] || "", val = indexValue.split(/\s*\-\s*/).slice(1).join("-");
-    switch (val) {
-        case "": return "Single";
-        case "All": return "Multi";
-        case "Flurry": return "Single Flurry";
-        case "Flurry-All": return "Multi Flurry";
-        case "Flurry-Self": return "Self Flurry";
-        case "Self": return "Self";
-        case "Splash": return "Splash";
-        default:
-            console.log("Target of \"" + value + "\" for index " + index);
-            return value;
-    }
-}
-function classToKlassType(value) {
-    return bh.KlassType[value == "Ranged" ? "Skill" : value == "Melee" ? "Might" : "Magic"];
-}
-function minValues(card, index) {
-    if (index === void 0) { index = 0; }
-    return [1, 2, 3, 4, 5].map(function (i) { return i + "* Min"; }).map(function (key) {
-        var value = card[key] || "";
-        return +value.split(/\s*\/\s*/)[index] || null;
-    }).filter(function (value) { return !!value; });
-}
-function maxValue(card, index) {
-    if (index === void 0) { index = 0; }
-    return [1, 2, 3, 4, 5].map(function (i) { return i + "* Max"; }).map(function (key) {
-        var value = card[key] || "";
-        return +value.split(/\s*\/\s*/)[index] || null;
-    }).filter(function (value) { return !!value; }).pop();
-}
-function mats(card) {
-    var mats = [1, 2, 3, 4].map(function (i) { return (card[i + "* Evo Jar"] || "").trim(); }).filter(function (mat) { return !!mat; });
-    mats.forEach(function (mat) { if (!bh.data.ItemRepo.find(mat))
-        console.log(mat); });
-    return mats.join(",");
-}
 function updateCardData() {
-    var cards = bh.Repo.mapTsv($("#data-output").val());
-    cards.forEach(function (card) {
-        var guid = card["Id"];
-        var existing = bh.data.cards.battle.find(guid);
-        var created = {
-            guid: guid,
-            name: card["Name"],
-            klassType: classToKlassType(card["Class"]),
-            elementType: bh.ElementType[card["Element"]],
-            rarityType: bh.RarityType[card["Rarity"].replace(/ /, "")],
-            turns: +card["Turns"],
-            type: effectTypeToType(card),
-            type2nd: effectTypeToType(card, 1),
-            target: effectTypeToTarget(card),
-            target2nd: effectTypeToTarget(card, 1),
-            brag: bh.utils.parseBoolean(card["Is Brag?"]),
-            minValues: minValues(card),
-            minValues2nd: minValues(card, 1),
-            maxValue: maxValue(card),
-            maxValue2nd: maxValue(card, 1),
-            tier: null,
-            mats: mats(card)
-        };
-        if (existing) {
-            Object.keys(created).forEach(function (key) {
-                if (["tier", "maxValue", "maxValue2nd", "minValues", "minValues2nd"].includes(key))
-                    return;
-                if (created[key] && created[key] != existing[key]) {
-                    console.log(existing.name + " (" + key + "): " + created[key] + " != " + existing[key] + " ");
-                }
-            });
-        }
+    $.get("https://docs.google.com/spreadsheets/d/1xckeq3t9T2g4sR5zgKK52ZkXNEXQGgiUrJ8EQ5FJAPI/pub?output=tsv").then(function (raw) {
+        var mapped = bh.Repo.mapTsv(raw), cards = mapped.map(function (card) {
+            var guid = card["Id"], existing = bh.data.cards.battle.find(guid), multiValues = card["Effect Type"].includes("/"), minValuesArray = multiValues ? [0, 1] : [0];
+            var created = {
+                guid: guid,
+                name: existing && existing.name || card["Name"],
+                klassType: bh.KlassType[card["Class"].replace("Ranged", "Skill").replace("Melee", "Might")],
+                elementType: bh.ElementType[card["Element"]],
+                rarityType: bh.RarityType[card["Rarity"].replace(/ /, "")],
+                turns: +card["Turns"],
+                types: card["Effect Type"].split(/\s*\/\s*/).map(function (s) { return effectTypeToType(s.split(/\s*\-\s*/)[0]); }),
+                targets: card["Effect Type"].split(/\s*\/\s*/).map(function (s) { return effectTypeToTarget(s.split(/\s*\-\s*/).slice(1).join("-")); }),
+                brag: bh.utils.parseBoolean(card["Is Brag?"]),
+                minValues: minValuesArray.map(function (index) { return [0, 1, 2, 3, 4, 5].map(function (i) { return card[i + "* Min"]; }).filter(function (s) { return !!s; }).map(function (s) { return +s.split(/\s*\/\s*/)[index]; }); }),
+                maxValues: [0, 1, 2, 3, 4, 5].map(function (i) { return card[i + "* Max"]; }).filter(function (s) { return !!s; }).pop().split(/\s*\/\s*/).map(function (s) { return +s; }),
+                tier: existing && existing.tier || "",
+                mats: [1, 2, 3, 4].map(function (i) { return card[i + "* Evo Jar"]; }).filter(function (s) { return !!s; }),
+                perkBase: +card["Perk %"],
+                perks: [1, 2, 3, 4].map(function (i) { return card["Perk #" + i]; }).filter(function (s) { return !!s; }),
+                effects: [1, 2, 3].map(function (i) { return card["Effect #" + i]; }).filter(function (s) { return !!s; })
+            };
+            if (!existing)
+                console.log(card["Name"]);
+            else if (existing.name != card["Name"])
+                console.log(existing.name + " !== " + card["Name"]);
+            return created;
+        });
+        var tsv = "guid\tname\tklassType\telementType\trarityType\tturns\ttypes\ttargets\tbrag\tminValues\tmaxValues\ttier\tmats\tperkBase\tperks\teffects";
+        cards.forEach(function (c) {
+            tsv += "\n" + c.guid + "\t" + c.name + "\t" + bh.KlassType[c.klassType] + "\t" + bh.ElementType[c.elementType] + "\t" + bh.RarityType[c.rarityType] + "\t" + c.turns + "\t" + c.types.join("|") + "\t" + c.targets.join("|") + "\t" + c.brag + "\t" + c.minValues.map(function (a) { return a.join(","); }).join("|") + "\t" + c.maxValues.join("|") + "\t" + c.tier + "\t" + c.mats.join(",") + "\t" + c.perkBase + "\t" + c.perks.join(",") + "\t" + c.effects.join(",");
+        });
+        $("#data-output").val(tsv);
     });
+    function effectTypeToType(value) {
+        switch (value) {
+            case "": return null;
+            case "Damage": return "Attack";
+            case "Heal": return "Heal";
+            case "Shield": return "Shield";
+            default:
+                console.log("Type of \"" + value + "\"");
+                return value;
+        }
+    }
+    function effectTypeToTarget(value) {
+        switch (value) {
+            case "": return "Single";
+            case "All": return "Multi";
+            case "Flurry": return "Single Flurry";
+            case "Flurry-All": return "Multi Flurry";
+            case "Flurry-Self": return "Self Flurry";
+            case "Self": return "Self";
+            case "Splash": return "Splash";
+            default:
+                console.log("Target of \"" + value + "\"");
+                return value;
+        }
+    }
 }
 var bh;
 (function (bh) {
@@ -3216,7 +3191,7 @@ var bh;
         }
         hud.render = render;
         function renderCss() {
-            var css = "<style id=\"brain-hud-styles\" type=\"text/css\">\ndiv.brain-hud-container { font-size:8pt; position:fixed; top:0; right:0; width:250px; background:#FFF; color:#000; border:2px solid #000; z-index:9999; padding:2px; max-height:" + (jQuery(window).height() - 10) + "px; overflow:auto; }\ndiv.brain-hud-container div { clear:both; }\ndiv.brain-hud-container table { width:100%; margin:0; padding:0; border:0; }\ndiv.brain-hud-container td { padding:0; margin:0; border:0; }\ndiv.brain-hud-container select { width:180px; }\ndiv.brain-hud-container textarea { width:240px; font-size:8pt; display:none; }\n\ndiv.brain-hud-container .Air { background-color:#f3f3f3; }\ndiv.brain-hud-container .Earth { background-color:#e0eed5; }\ndiv.brain-hud-container .Fire { background-color:#fce5cd; }\ndiv.brain-hud-container .Spirit { background-color:#f3e2f6; }\ndiv.brain-hud-container .Water { background-color:#deeaf4; }\ndiv.brain-hud-container .grayscale { filter: grayscale(100%); }\n\ndiv.brain-hud-header { text-align:center; font-weight:bold; }\n\ndiv.brain-hud-main-container,\ndiv.brain-hud-scouter-guild-container,\ndiv.brain-hud-scouter-player-container,\ndiv.brain-hud-scouter-player,\ndiv.brain-hud-scouter-panel-content,\ndiv.brain-hud-inventory,\ndiv.brain-hud-inventory-container,\ndiv.brain-hud-child-scroller { display:none; }\n\ndiv.brain-hud-scouter-panel-content,\ndiv.brain-hud-child-scroller { padding-left:10px; }\n\ndiv.brain-hud-scouter-player-report { display:none; padding:0 2px; text-align:left; }\ndiv.brain-hud-scouter-player > div.player-name { font-size:10pt; font-weight:bold; text-align:center; }\n\ndiv.brain-hud-scouter-panel-header { padding:2px 0 0 0; }\ndiv.brain-hud-scouter-panel-header > button { cursor:default; border:0; width:240px; text-align:left; padding:0; margin:0; }\ndiv.brain-hud-scouter-panel-header > button[data-action] { cursor:pointer; }\ndiv.brain-hud-scouter-panel-header > button > span.hero-icon { display:inline-block; width:20px; text-align:center; }\ndiv.brain-hud-scouter-panel-header > button > span.hero-level { display:inline-block; width:30px; text-align:right; }\ndiv.brain-hud-scouter-panel-header > button > span.hero-name { display:inline-block; width:60px; }\ndiv.brain-hud-scouter-panel-header > button > span.hero-hp { display:inline-block; width:50px; text-align:center; }\ndiv.brain-hud-scouter-panel-header > button > span.hero-rating { display:inline-block; width:70px; }\n\ndiv.brain-hud-inventory-buttons { text-align:center; }\n\ndiv.brain-hud-container .active { display:block; }\n\ndiv.brain-hud-container .star { color: darkgoldenrod; text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black; }\ndiv.brain-hud-container .evo-star { color: gold; text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black; }\n\ndiv.brain-hud-container img { height:16px; width:16px; }\ndiv.brain-hud-container img.icon-12 { height:12px; width:12px; }\ndiv.brain-hud-container img.icon-20 { height:20px; width:20px; }\n\ndiv.brain-hud-child-scroller { max-height:180px; overflow:auto; }\ndiv.brain-hud-scouter-panel-content.active,\ndiv.brain-hud-child-scroller.active { border:1px solid #aaa; border-radius:10px; }\n\ndiv.progress { margin-bottom:0; height:10px; }\ndiv.progress > div.progress-bar { line-height:10px; font-size:8px; font-weight:bold; clear:none; }\n\ndiv.brain-hud-container .badge,\ndiv.brain-hud-container .bs-btn-group-xs > .bs-btn,\ndiv.brain-hud-container .bs-btn-xs { font-size:11px; }\n\ndiv.brain-hud-container .badge.bg-success { background-color:#3c763d; }\ndiv.brain-hud-container .badge.bg-danger { background-color:#a94442; }\ndiv.brain-hud-container [data-action=\"sort-heroes\"] { cursor:pointer; }\n</style>";
+            var css = "<style id=\"brain-hud-styles\" type=\"text/css\">\ndiv.brain-hud-container { font-size:8pt; position:fixed; top:0; right:0; width:275px; background:#FFF; color:#000; border:2px solid #000; z-index:9999; padding:2px; max-height:" + (jQuery(window).height() - 10) + "px; overflow:auto; }\ndiv.brain-hud-container div { clear:both; }\ndiv.brain-hud-container table { width:100%; margin:0; padding:0; border:0; }\ndiv.brain-hud-container td { padding:0; margin:0; border:0; }\ndiv.brain-hud-container select { width:205px; }\ndiv.brain-hud-container textarea { width:265px; font-size:8pt; display:none; }\n\ndiv.brain-hud-container .Air { background-color:#f3f3f3; }\ndiv.brain-hud-container .Earth { background-color:#e0eed5; }\ndiv.brain-hud-container .Fire { background-color:#fce5cd; }\ndiv.brain-hud-container .Spirit { background-color:#f3e2f6; }\ndiv.brain-hud-container .Water { background-color:#deeaf4; }\ndiv.brain-hud-container .grayscale { filter: grayscale(100%); }\n\ndiv.brain-hud-header { text-align:center; font-weight:bold; }\n\ndiv.brain-hud-main-container,\ndiv.brain-hud-scouter-guild-container,\ndiv.brain-hud-scouter-player-container,\ndiv.brain-hud-scouter-player,\ndiv.brain-hud-scouter-panel-content,\ndiv.brain-hud-inventory,\ndiv.brain-hud-inventory-container,\ndiv.brain-hud-child-scroller { display:none; }\n\ndiv.brain-hud-scouter-panel-content,\ndiv.brain-hud-child-scroller { padding-left:10px; }\n\ndiv.brain-hud-scouter-player-report { display:none; padding:0 2px; text-align:left; }\ndiv.brain-hud-scouter-player > div.player-name { font-size:10pt; font-weight:bold; text-align:center; }\n\ndiv.brain-hud-scouter-panel-header { padding:2px 0 0 0; }\ndiv.brain-hud-scouter-panel-header > button { cursor:default; border:0; width:265px; text-align:left; padding:0; margin:0; }\ndiv.brain-hud-scouter-panel-header > button[data-action] { cursor:pointer; }\ndiv.brain-hud-scouter-panel-header > button > span.hero-icon { display:inline-block; width:20px; text-align:center; }\ndiv.brain-hud-scouter-panel-header > button > span.hero-level { display:inline-block; width:30px; text-align:right; }\ndiv.brain-hud-scouter-panel-header > button > span.hero-name { display:inline-block; width:60px; }\ndiv.brain-hud-scouter-panel-header > button > span.hero-hp { display:inline-block; width:50px; text-align:center; }\ndiv.brain-hud-scouter-panel-header > button > span.hero-rating { display:inline-block; width:95px; }\n\ndiv.brain-hud-inventory-buttons { text-align:center; }\n\ndiv.brain-hud-container .active { display:block; }\n\ndiv.brain-hud-container .star { color: darkgoldenrod; text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black; }\ndiv.brain-hud-container .evo-star { color: gold; text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black; }\n\ndiv.brain-hud-container img { height:16px; width:16px; }\ndiv.brain-hud-container img.icon-12 { height:12px; width:12px; }\ndiv.brain-hud-container img.icon-20 { height:20px; width:20px; }\n\ndiv.brain-hud-child-scroller { max-height:180px; overflow:auto; }\ndiv.brain-hud-scouter-panel-content.active,\ndiv.brain-hud-child-scroller.active { border:1px solid #aaa; border-radius:10px; }\n\ndiv.progress { margin-bottom:0; height:10px; }\ndiv.progress > div.progress-bar { line-height:10px; font-size:8px; font-weight:bold; clear:none; }\n\ndiv.brain-hud-container .badge,\ndiv.brain-hud-container .bs-btn-group-xs > .bs-btn,\ndiv.brain-hud-container .bs-btn-xs { font-size:11px; }\n\ndiv.brain-hud-container .badge.bg-success { background-color:#3c763d; }\ndiv.brain-hud-container .badge.bg-danger { background-color:#a94442; }\ndiv.brain-hud-container [data-action=\"sort-heroes\"] { cursor:pointer; }\n</style>";
             bh.$("head").append(css);
         }
         function renderBootstrapCss() {
@@ -3229,7 +3204,7 @@ var bh;
             return "<button class=\"bs-btn bs-btn-default brain-hud-button\" type=\"button\" data-action=\"toggle-" + type + "\" data-" + type + "=\"" + typeValue + "\">" + bh.getImg(imgType, imgName || typeValue) + "</button>";
         }
         function renderHtml() {
-            var html = "<div class=\"brain-hud-header\">\n\t<button class=\"bs-btn bs-btn-link bs-btn-xs brain-hud-toggle pull-right\" data-action=\"toggle-hud\">[-]</button>\n\t<span class=\"header\">The Brain BattleHand HUD</span>\n</div>\n<div class=\"brain-hud-main-container active\">\n\t<div class=\"brain-hud-scouter-player-container\">\n\t\t<button class=\"bs-btn bs-btn-link bs-btn-xs brain-hud-toggle pull-right\" data-action=\"toggle-player-scouter\">[-]</button>\n\t\t<button class=\"bs-btn bs-btn-link bs-btn-xs brain-hud-toggle pull-right\" data-action=\"refresh-player\">" + bh.getImg12("icons", "glyphicons-82-refresh") + "</button>\n\t\t<select id=\"brain-hud-scouter-player-target\" data-action=\"toggle-scouter-player\"></select>\n\t\t<div id=\"brain-hud-scouter-player-report\" class=\"brain-hud-scouter-player-report active\"></div>\n\t</div>\n\t<div id=\"brain-hud-inventory\" class=\"brain-hud-inventory\">\n\t\t<strong>Inventory</strong>\n\t\t<button class=\"bs-btn bs-btn-link bs-btn-xs brain-hud-toggle pull-right\" data-action=\"toggle-inventory\">[-]</button>\n\t\t<div class=\"brain-hud-inventory-container active\">\n\t\t\t<div class=\"text-center\">\n\t\t\t\t<div class=\"bs-btn-group bs-btn-group-xs brain-hud-inventory-buttons\" role=\"group\">\n\t\t\t\t\t" + inventoryButton("element", bh.ElementType.Air, "elements", "Air") + "\n\t\t\t\t\t" + inventoryButton("element", bh.ElementType.Earth, "elements", "Earth") + "\n\t\t\t\t\t" + inventoryButton("element", bh.ElementType.Fire, "elements", "Fire") + "\n\t\t\t\t\t" + inventoryButton("element", bh.ElementType.Spirit, "elements", "Spirit") + "\n\t\t\t\t\t" + inventoryButton("element", bh.ElementType.Water, "elements", "Water") + "\n\t\t\t\t\t" + inventoryButton("element", bh.ElementType.Neutral, "elements", "Loop") + "\n\t\t\t\t</div>\n\t\t\t\t<div class=\"bs-btn-group bs-btn-group-xs brain-hud-inventory-buttons\">\n\t\t\t\t\t" + inventoryButton("klass", bh.KlassType.Magic, "classes", "Magic") + "\n\t\t\t\t\t" + inventoryButton("klass", bh.KlassType.Might, "classes", "Might") + "\n\t\t\t\t\t" + inventoryButton("klass", bh.KlassType.Skill, "classes", "Skill") + "\n\t\t\t\t\t" + inventoryButton("klass", "Brag", "cardtypes") + "\n\t\t\t\t\t" + inventoryButton("type", bh.ItemType.Rune, "runes", "Meteor") + "\n\t\t\t\t\t" + inventoryButton("type", bh.ItemType.Crystal, "crystals", "Neutral") + "\n\t\t\t\t</div>\n\t\t\t\t<div class=\"bs-btn-group bs-btn-group-xs brain-hud-inventory-buttons\">\n\t\t\t\t\t" + inventoryButton("type", "BoosterCard", "misc", "Boosters") + "\n\t\t\t\t\t" + inventoryButton("type", "WildCard", "cardtypes", "WildCard") + "\n\t\t\t\t\t" + inventoryButton("type", bh.ItemType.EvoJar, "misc", "EvoJars") + "\n\t\t\t\t</div>\n\t\t\t</div>\n\t\t\t<div id=\"brain-hud-inventory-items-container\" class=\"brain-hud-inventory-items-container\"></div>\n\t\t</div>\n\t</div>\n</div>";
+            var html = "<div class=\"brain-hud-header\">\n\t<button class=\"bs-btn bs-btn-link bs-btn-xs brain-hud-toggle pull-right\" data-action=\"toggle-hud\">[-]</button>\n\t<span class=\"header\">The Brain BattleHand HUD</span>\n</div>\n<div class=\"brain-hud-main-container active\">\n\t<div class=\"brain-hud-scouter-player-container\">\n\t\t<button class=\"bs-btn bs-btn-link bs-btn-xs brain-hud-toggle pull-right\" data-action=\"toggle-player-scouter\">[-]</button>\n\t\t<button class=\"bs-btn bs-btn-link bs-btn-xs brain-hud-toggle pull-right\" data-action=\"refresh-player\">" + bh.getImg12("icons", "glyphicons-82-refresh") + "</button>\n\t\t<select id=\"brain-hud-scouter-player-target\" data-action=\"toggle-scouter-player\"></select>\n\t\t<div id=\"brain-hud-scouter-player-report\" class=\"brain-hud-scouter-player-report active\"></div>\n\t</div>\n\t<div id=\"brain-hud-inventory\" class=\"brain-hud-inventory\">\n\t\t<strong>Inventory</strong>\n\t\t<button class=\"bs-btn bs-btn-link bs-btn-xs brain-hud-toggle pull-right\" data-action=\"toggle-inventory\">[-]</button>\n\t\t<div class=\"brain-hud-inventory-container active\">\n\t\t\t<div class=\"text-center\">\n\t\t\t\t<div class=\"bs-btn-group bs-btn-group-xs brain-hud-inventory-buttons\" role=\"group\">\n\t\t\t\t\t" + inventoryButton("element", bh.ElementType.Air, "elements", "Air") + "\n\t\t\t\t\t" + inventoryButton("element", bh.ElementType.Earth, "elements", "Earth") + "\n\t\t\t\t\t" + inventoryButton("element", bh.ElementType.Fire, "elements", "Fire") + "\n\t\t\t\t\t" + inventoryButton("element", bh.ElementType.Spirit, "elements", "Spirit") + "\n\t\t\t\t\t" + inventoryButton("element", bh.ElementType.Water, "elements", "Water") + "\n\t\t\t\t\t" + inventoryButton("element", bh.ElementType.Neutral, "elements", "Loop") + "\n\t\t\t\t</div>\n\t\t\t\t<div class=\"bs-btn-group bs-btn-group-xs brain-hud-inventory-buttons\">\n\t\t\t\t\t" + inventoryButton("klass", bh.KlassType.Magic, "classes", "Magic") + "\n\t\t\t\t\t" + inventoryButton("klass", bh.KlassType.Might, "classes", "Might") + "\n\t\t\t\t\t" + inventoryButton("klass", bh.KlassType.Skill, "classes", "Skill") + "\n\t\t\t\t\t" + inventoryButton("klass", "Brag", "cardtypes") + "\n\t\t\t\t\t" + inventoryButton("type", bh.ItemType.Rune, "runes", "Meteor") + "\n\t\t\t\t\t" + inventoryButton("type", bh.ItemType.Crystal, "crystals", "Neutral") + "\n\t\t\t\t</div><br/>\n\t\t\t\t<div class=\"bs-btn-group bs-btn-group-xs brain-hud-inventory-buttons\">\n\t\t\t\t\t" + inventoryButton("type", "BoosterCard", "misc", "Boosters") + "\n\t\t\t\t\t" + inventoryButton("type", "WildCard", "cardtypes", "WildCard") + "\n\t\t\t\t\t" + inventoryButton("type", bh.ItemType.EvoJar, "misc", "EvoJars") + "\n\t\t\t\t</div>\n\t\t\t</div>\n\t\t\t<div id=\"brain-hud-inventory-items-container\" class=\"brain-hud-inventory-items-container\"></div>\n\t\t</div>\n\t</div>\n</div>";
             bh.$("body").append("<div id=\"brain-hud-container\" class=\"brain-hud-container\">" + html + "</div>");
         }
     })(hud = bh.hud || (bh.hud = {}));

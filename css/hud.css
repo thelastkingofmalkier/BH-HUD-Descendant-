@@ -1,10 +1,10 @@
 
-div.brain-hud-container { font-size:8pt; position:fixed; top:0; right:0; width:250px; background:#FFF; color:#000; border:2px solid #000; z-index:9999; padding:2px; }
+div.brain-hud-container { font-size:8pt; position:fixed; top:0; right:0; width:275px; background:#FFF; color:#000; border:2px solid #000; z-index:9999; padding:2px; }
 div.brain-hud-container div { clear:both; }
 div.brain-hud-container table { width:100%; margin:0; padding:0; border:0; }
 div.brain-hud-container td { padding:0; margin:0; border:0; }
 div.brain-hud-container select { width:175px; }
-div.brain-hud-container textarea { width:240px; font-size:8pt; display:none; }
+div.brain-hud-container textarea { width:265px; font-size:8pt; display:none; }
 div.brain-hud-container div[data-parent-guid] { display:none; }
 
 div.brain-hud-header { text-align:center; font-weight:bold; }
