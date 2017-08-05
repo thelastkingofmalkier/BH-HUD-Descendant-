@@ -69,8 +69,9 @@ namespace bh {
 
 		function sortHeroes(playerGuid?: string) {
 			var container = $(`div.brain-hud-scouter-player${playerGuid ? `[data-guid="${playerGuid}"]` : `.active`}`),
-				oldSort = container.data("sort"),
-				newSort = !oldSort || oldSort == "element-klass" ? "power-asc" : "element-klass";
+				sortTags = ["element-klass", "power-asc", "hp-asc", "name"],
+				oldSortIndex = sortTags.indexOf(container.data("sort") || "element-klass"),
+				newSort = sortTags[oldSortIndex + 1] || "element-klass";
 			container.data("sort", newSort);
 			if (!playerGuid) {
 				playerGuid = container.data("guid");
@@ -80,6 +81,13 @@ namespace bh {
 					if (newSort == "power-asc") {
 						var aP = a.powerPercent, bP = b.powerPercent;
 						if (aP != bP) return aP < bP ? -1 : 1;
+					}
+					if (newSort == "hp-asc") {
+						var aHP = a.hitPoints, bHP = b.hitPoints;
+						if (aHP != bHP) return aHP < bHP ? -1 : 1;
+					}
+					if (newSort == "name") {
+						return utils.sort.byName(a, b);
 					}
 					return utils.sort.byElementThenKlass(a, b);
 				});

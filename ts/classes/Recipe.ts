@@ -100,16 +100,5 @@ namespace bh {
 				multiplier = this.card instanceof PlayerBattleCard ? (<PlayerBattleCard>this.card).count : 1;
 			return max * multiplier;
 		}
-
-		// public createPartial(card: PlayerBattleCard) {
-		// 	var recipe = new Recipe(card);
-		// 	recipe.card = card;
-		// 	this.evos.slice(card.evo).forEach(evo =>
-		// 		evo.items.forEach(item =>
-		// 			recipe.addItem(evo.evoFrom, item.min, item.max, item.item.name)
-		// 		)
-		// 	);
-		// 	return recipe;
-		// }
 	}
 }

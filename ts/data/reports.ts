@@ -82,28 +82,34 @@ namespace bh {
 					var playerHero = player.heroes.find(h => hero.guid == h.guid),
 						level = playerHero ? playerHero.level : "/",
 						hp = playerHero ? utils.truncateNumber(playerHero.hitPoints) : "/",
-						// power = playerHero ? utils.truncateNumber(playerHero.powerRating) : "/";
 						op = playerHero && playerHero.isOp ? "-" : "",
 						power = playerHero ? playerHero.powerPercent + "%" : "/";
 					return level + "|" + hp + "|" + op + power;
 				}
 			}
 			function calculateBattleData(war: IGuildWar, member: IGuild.Player) {
-				var offensiveBattles = member ? war.currentWar.battles.filter(b => b.initiator.playerId == member.playerId) : [],
-					offensiveWins = offensiveBattles.filter(b => b.initiator.winner),
-					oBrags = offensiveWins.reduce((count, battle) => count + (battle.completedBragId ? 1 : 0), 0),
-					offensiveScore = offensiveWins.reduce((total, battle) => total + battle.initiator.totalScore, 0),
-					oCount = offensiveBattles.length,
-					oWinCount = offensiveWins.length,
-					oLossCount = oCount - oWinCount,
-					defensiveBattles = member ? war.currentWar.battles.filter(b => b.opponent.playerId == member.playerId) : [],
-					defensiveWins = defensiveBattles.filter(b => b.opponent.winner),
-					dBrags = defensiveBattles.reduce((count, battle) => count + (battle.completedBragId ? 1 : 0), 0),
-					defensiveScore = defensiveBattles.reduce((total, battle) => total + battle.opponent.totalScore, 0),
-					dCount = defensiveBattles.length,
-					dWinCount = defensiveWins.length,
-					dLossCount = dCount - dWinCount,
-					totalScore = offensiveScore + defensiveScore;
+				var battles = war.currentWar.battles,
+					oCount = 0, oWinCount = 0, oLossCount = 0, oBrags = 0, offensiveScore = 0,
+					dCount = 0, dWinCount = 0, dLossCount = 0, dBrags = 0, defensiveScore = 0,
+					totalScore = 0;
+
+				if (member) {
+					battles.forEach(battle => {
+						if (battle.initiator.playerId == member.playerId) {
+							oCount++;
+							if (battle.initiator.winner) oWinCount++; else oLossCount++;
+							if (battle.completedBragId) oBrags++;
+							offensiveScore += battle.initiator.totalScore;
+						}
+						if (battle.opponent.playerId == member.playerId) {
+							dCount++;
+							if (battle.opponent.winner) dWinCount++; else dLossCount++;
+							if (battle.completedBragId) dBrags++;
+							defensiveScore += battle.opponent.totalScore;
+						}
+					})
+				}
+
 				return <IBattleData>{
 					oCount: oCount,
 					oWinCount: oWinCount,

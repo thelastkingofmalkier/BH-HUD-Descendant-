@@ -1,5 +1,5 @@
 var __extends = (this && this.__extends) || (function () {
-    var extendStatics = Object.setPrototypeOf ||
+   var extendStatics = Object.setPrototypeOf ||
         ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
         function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
     return function (d, b) {
@@ -971,7 +971,7 @@ var bh;
                     .replace(/Mischievous/, "Misch.")
                     .replace(/Protection/, "Prot.")
                     .replace(/-[\w-]+-/, "-...-");
-                return this.battleOrBragImage + " " + this.evoLevel + " <small>" + stars + "</small> " + name + " " + count + " " + typeAndValue;
+                return this.battleOrBragImage + " " + this.evoLevel + " <small>" + stars + "</small> " + name + " " + typeAndValue + " " + count;
             },
             enumerable: true,
             configurable: true
@@ -2519,7 +2519,31 @@ var bh;
                 }
             }
             function calculateBattleData(war, member) {
-                var offensiveBattles = member ? war.currentWar.battles.filter(function (b) { return b.initiator.playerId == member.playerId; }) : [], offensiveWins = offensiveBattles.filter(function (b) { return b.initiator.winner; }), oBrags = offensiveWins.reduce(function (count, battle) { return count + (battle.completedBragId ? 1 : 0); }, 0), offensiveScore = offensiveWins.reduce(function (total, battle) { return total + battle.initiator.totalScore; }, 0), oCount = offensiveBattles.length, oWinCount = offensiveWins.length, oLossCount = oCount - oWinCount, defensiveBattles = member ? war.currentWar.battles.filter(function (b) { return b.opponent.playerId == member.playerId; }) : [], defensiveWins = defensiveBattles.filter(function (b) { return b.opponent.winner; }), dBrags = defensiveBattles.reduce(function (count, battle) { return count + (battle.completedBragId ? 1 : 0); }, 0), defensiveScore = defensiveBattles.reduce(function (total, battle) { return total + battle.opponent.totalScore; }, 0), dCount = defensiveBattles.length, dWinCount = defensiveWins.length, dLossCount = dCount - dWinCount, totalScore = offensiveScore + defensiveScore;
+                var battles = war.currentWar.battles, oCount = 0, oWinCount = 0, oLossCount = 0, oBrags = 0, offensiveScore = 0, dCount = 0, dWinCount = 0, dLossCount = 0, dBrags = 0, defensiveScore = 0, totalScore = 0;
+                if (member) {
+                    battles.forEach(function (battle) {
+                        if (battle.initiator.playerId == member.playerId) {
+                            oCount++;
+                            if (battle.initiator.winner)
+                                oWinCount++;
+                            else
+                                oLossCount++;
+                            if (battle.completedBragId)
+                                oBrags++;
+                            offensiveScore += battle.initiator.totalScore;
+                        }
+                        if (battle.opponent.playerId == member.playerId) {
+                            dCount++;
+                            if (battle.opponent.winner)
+                                dWinCount++;
+                            else
+                                dLossCount++;
+                            if (battle.completedBragId)
+                                dBrags++;
+                            defensiveScore += battle.opponent.totalScore;
+                        }
+                    });
+                }
                 return {
                     oCount: oCount,
                     oWinCount: oWinCount,
@@ -2612,7 +2636,7 @@ var bh;
         }
         events.toggle = toggle;
         function sortHeroes(playerGuid) {
-            var container = $("div.brain-hud-scouter-player" + (playerGuid ? "[data-guid=\"" + playerGuid + "\"]" : ".active")), oldSort = container.data("sort"), newSort = !oldSort || oldSort == "element-klass" ? "power-asc" : "element-klass";
+            var container = $("div.brain-hud-scouter-player" + (playerGuid ? "[data-guid=\"" + playerGuid + "\"]" : ".active")), sortTags = ["element-klass", "power-asc", "hp-asc", "name"], oldSortIndex = sortTags.indexOf(container.data("sort") || "element-klass"), newSort = sortTags[oldSortIndex + 1] || "element-klass";
             container.data("sort", newSort);
             if (!playerGuid) {
                 playerGuid = container.data("guid");
@@ -2622,6 +2646,14 @@ var bh;
                     var aP = a.powerPercent, bP = b.powerPercent;
                     if (aP != bP)
                         return aP < bP ? -1 : 1;
+                }
+                if (newSort == "hp-asc") {
+                    var aHP = a.hitPoints, bHP = b.hitPoints;
+                    if (aHP != bHP)
+                        return aHP < bHP ? -1 : 1;
+                }
+                if (newSort == "name") {
+                    return bh.utils.sort.byName(a, b);
                 }
                 return bh.utils.sort.byElementThenKlass(a, b);
             });
@@ -3191,7 +3223,7 @@ var bh;
         }
         hud.render = render;
         function renderCss() {
-            var css = "<style id=\"brain-hud-styles\" type=\"text/css\">\ndiv.brain-hud-container { font-size:8pt; position:fixed; top:0; right:0; width:275px; background:#FFF; color:#000; border:2px solid #000; z-index:9999; padding:2px; max-height:" + (jQuery(window).height() - 10) + "px; overflow:auto; }\ndiv.brain-hud-container div { clear:both; }\ndiv.brain-hud-container table { width:100%; margin:0; padding:0; border:0; }\ndiv.brain-hud-container td { padding:0; margin:0; border:0; }\ndiv.brain-hud-container select { width:205px; }\ndiv.brain-hud-container textarea { width:265px; font-size:8pt; display:none; }\n\ndiv.brain-hud-container .Air { background-color:#f3f3f3; }\ndiv.brain-hud-container .Earth { background-color:#e0eed5; }\ndiv.brain-hud-container .Fire { background-color:#fce5cd; }\ndiv.brain-hud-container .Spirit { background-color:#f3e2f6; }\ndiv.brain-hud-container .Water { background-color:#deeaf4; }\ndiv.brain-hud-container .grayscale { filter: grayscale(100%); }\n\ndiv.brain-hud-header { text-align:center; font-weight:bold; }\n\ndiv.brain-hud-main-container,\ndiv.brain-hud-scouter-guild-container,\ndiv.brain-hud-scouter-player-container,\ndiv.brain-hud-scouter-player,\ndiv.brain-hud-scouter-panel-content,\ndiv.brain-hud-inventory,\ndiv.brain-hud-inventory-container,\ndiv.brain-hud-child-scroller { display:none; }\n\ndiv.brain-hud-scouter-panel-content,\ndiv.brain-hud-child-scroller { padding-left:10px; }\n\ndiv.brain-hud-scouter-player-report { display:none; padding:0 2px; text-align:left; }\ndiv.brain-hud-scouter-player > div.player-name { font-size:10pt; font-weight:bold; text-align:center; }\n\ndiv.brain-hud-scouter-panel-header { padding:2px 0 0 0; }\ndiv.brain-hud-scouter-panel-header > button { cursor:default; border:0; width:265px; text-align:left; padding:0; margin:0; }\ndiv.brain-hud-scouter-panel-header > button[data-action] { cursor:pointer; }\ndiv.brain-hud-scouter-panel-header > button > span.hero-icon { display:inline-block; width:20px; text-align:center; }\ndiv.brain-hud-scouter-panel-header > button > span.hero-level { display:inline-block; width:30px; text-align:right; }\ndiv.brain-hud-scouter-panel-header > button > span.hero-name { display:inline-block; width:60px; }\ndiv.brain-hud-scouter-panel-header > button > span.hero-hp { display:inline-block; width:50px; text-align:center; }\ndiv.brain-hud-scouter-panel-header > button > span.hero-rating { display:inline-block; width:95px; }\n\ndiv.brain-hud-inventory-buttons { text-align:center; }\n\ndiv.brain-hud-container .active { display:block; }\n\ndiv.brain-hud-container .star { color: darkgoldenrod; text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black; }\ndiv.brain-hud-container .evo-star { color: gold; text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black; }\n\ndiv.brain-hud-container img { height:16px; width:16px; }\ndiv.brain-hud-container img.icon-12 { height:12px; width:12px; }\ndiv.brain-hud-container img.icon-20 { height:20px; width:20px; }\n\ndiv.brain-hud-child-scroller { max-height:180px; overflow:auto; }\ndiv.brain-hud-scouter-panel-content.active,\ndiv.brain-hud-child-scroller.active { border:1px solid #aaa; border-radius:10px; }\n\ndiv.progress { margin-bottom:0; height:10px; }\ndiv.progress > div.progress-bar { line-height:10px; font-size:8px; font-weight:bold; clear:none; }\n\ndiv.brain-hud-container .badge,\ndiv.brain-hud-container .bs-btn-group-xs > .bs-btn,\ndiv.brain-hud-container .bs-btn-xs { font-size:11px; }\n\ndiv.brain-hud-container .badge.bg-success { background-color:#3c763d; }\ndiv.brain-hud-container .badge.bg-danger { background-color:#a94442; }\ndiv.brain-hud-container [data-action=\"sort-heroes\"] { cursor:pointer; }\n</style>";
+            var css = "<style id=\"brain-hud-styles\" type=\"text/css\">\ndiv.brain-hud-container { font-size:8pt; position:fixed; top:0; right:0; width:275px; background:#FFF; color:#000; border:2px solid #000; z-index:9999; padding:2px; max-height:" + (jQuery(window).height() - 10) + "px; overflow:auto; }\ndiv.brain-hud-container div { clear:both; }\ndiv.brain-hud-container table { width:100%; margin:0; padding:0; border:0; }\ndiv.brain-hud-container td { padding:0; margin:0; border:0; }\ndiv.brain-hud-container select { width:205px; }\ndiv.brain-hud-container textarea { width:265px; font-size:8pt; display:none; }\n\ndiv.brain-hud-container .Air { background-color:#f3f3f3; }\ndiv.brain-hud-container .Earth { background-color:#e0eed5; }\ndiv.brain-hud-container .Fire { background-color:#fce5cd; }\ndiv.brain-hud-container .Spirit { background-color:#f3e2f6; }\ndiv.brain-hud-container .Water { background-color:#deeaf4; }\ndiv.brain-hud-container .grayscale { filter: grayscale(100%); }\n\ndiv.brain-hud-header { text-align:center; font-weight:bold; }\n\ndiv.brain-hud-main-container,\ndiv.brain-hud-scouter-guild-container,\ndiv.brain-hud-scouter-player-container,\ndiv.brain-hud-scouter-player,\ndiv.brain-hud-scouter-panel-content,\ndiv.brain-hud-inventory,\ndiv.brain-hud-inventory-container,\ndiv.brain-hud-child-scroller { display:none; }\n\ndiv.brain-hud-scouter-panel-content,\ndiv.brain-hud-child-scroller { padding-left:10px; }\n\ndiv.brain-hud-scouter-player-report { display:none; padding:0 2px; text-align:left; }\ndiv.brain-hud-scouter-player > div.player-name { font-size:10pt; font-weight:bold; text-align:center; }\n\ndiv.brain-hud-scouter-panel-header { padding:2px 0 0 0; }\ndiv.brain-hud-scouter-panel-header > button { cursor:default; border:0; width:265px; text-align:left; padding:0; margin:0; }\ndiv.brain-hud-scouter-panel-header > button[data-action] { cursor:pointer; }\ndiv.brain-hud-scouter-panel-header > button > span.hero-icon { display:inline-block; width:20px; text-align:center; }\ndiv.brain-hud-scouter-panel-header > button > span.hero-level { display:inline-block; width:30px; text-align:right; }\ndiv.brain-hud-scouter-panel-header > button > span.hero-name { display:inline-block; width:60px; }\ndiv.brain-hud-scouter-panel-header > button > span.hero-hp { display:inline-block; width:50px; text-align:center; }\ndiv.brain-hud-scouter-panel-header > button > span.hero-rating-bar { display:inline-block; width:60px; }\ndiv.brain-hud-scouter-panel-header > button > span.hero-rating { display:inline-block; width:35px; text-align:right; font-size:8pt; vertical-align:top; }\n\ndiv.brain-hud-inventory-buttons { text-align:center; }\n\ndiv.brain-hud-container .active { display:block; }\n\ndiv.brain-hud-container .star { color: darkgoldenrod; text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black; }\ndiv.brain-hud-container .evo-star { color: gold; text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black; }\n\ndiv.brain-hud-container img { height:16px; width:16px; }\ndiv.brain-hud-container img.icon-12 { height:12px; width:12px; }\ndiv.brain-hud-container img.icon-20 { height:20px; width:20px; }\n\ndiv.brain-hud-child-scroller { max-height:180px; overflow:auto; }\ndiv.brain-hud-scouter-panel-content.active,\ndiv.brain-hud-child-scroller.active { border:1px solid #aaa; border-radius:10px; }\n\ndiv.progress { margin-bottom:0; height:10px; }\ndiv.progress > div.progress-bar { line-height:10px; font-size:8px; font-weight:bold; clear:none; }\n\ndiv.brain-hud-container .badge,\ndiv.brain-hud-container .bs-btn-group-xs > .bs-btn,\ndiv.brain-hud-container .bs-btn-xs { font-size:11px; }\n\ndiv.brain-hud-container .badge.bg-success { background-color:#3c763d; }\ndiv.brain-hud-container .badge.bg-danger { background-color:#a94442; }\ndiv.brain-hud-container [data-action=\"sort-heroes\"] { cursor:pointer; }\n</style>";
             bh.$("head").append(css);
         }
         function renderBootstrapCss() {
@@ -3231,7 +3263,12 @@ var bh;
                 if (arenaIndex === void 0) { arenaIndex = -1; }
                 var star = player.isFullMeat ? "&#9734;" : "", averagePercentText = player.powerPercent == player.averagePowerPercent ? "" : "; Avg " + player.averagePowerPercent + "%", percentText = player.isArena ? "" : " <span style=\"white-space:nowrap;\">(" + player.powerPercent + "%" + averagePercentText + ")</span>", html = "<div class=\"player-name\" data-action=\"sort-heroes\">" + star + " " + bh.utils.htmlFriendly(player.name) + " " + percentText + "</div>", playerHeroes = player.heroes.sort(bh.utils.sort.byElementThenKlass);
                 playerHeroes.forEach(function (hero) {
-                    var id = player.guid + "-" + hero.guid, icon = bh.getImg("heroes", hero.name), level = hero.level == bh.MaxLevel ? hero.isMeat ? "<span class=\"evo-star\">&#9734;</span>" : "<span class=\"star\">&#9734;</span>" : "(" + hero.level + ")", powerPercent = hero.powerPercent, progressBG = hero.isOp ? "background-color:pink;" : "", color = powerPercent < 25 ? "progress-bar-info" : powerPercent < 50 ? "progress-bar-success" : powerPercent < 75 ? "progress-bar-warning" : "progress-bar-danger", progressBar = "<div class=\"progress\" style=\"" + progressBG + "\"><div class=\"progress-bar " + color + "\" style=\"width:" + powerPercent + "%;\"><span>" + powerPercent + "%</span></div></div>", title = "<span class=\"hero-icon\">" + icon + "</span><span class=\"hero-name\">" + hero.name + "</span><span class=\"hero-level\">" + level + "</span><span class=\"hero-hp\">" + bh.utils.truncateNumber(hero.hitPoints) + " HP</span><span class=\"hero-rating\">" + progressBar + "</span>", content = "";
+                    var id = player.guid + "-" + hero.guid, icon = bh.getImg("heroes", hero.name), level = hero.level == bh.MaxLevel ? hero.isMeat ? "<span class=\"evo-star\">&#9734;</span>" : "<span class=\"star\">&#9734;</span>" : "(" + hero.level + ")", powerPercent = hero.powerPercent, progressBG = hero.isOp ? "background-color:pink;" : "", color = powerPercent < 25 ? "progress-bar-info" : powerPercent < 50 ? "progress-bar-success" : powerPercent < 75 ? "progress-bar-warning" : "progress-bar-danger", progressBar = "<div class=\"progress\" style=\"" + progressBG + "\"><div class=\"progress-bar " + color + "\" style=\"width:" + powerPercent + "%;\"><span></span></div></div>", title = "<span class=\"hero-icon\">" + icon + "</span>"
+                        + ("<span class=\"hero-name\">" + hero.name + "</span>")
+                        + ("<span class=\"hero-level\">" + level + "</span>")
+                        + ("<span class=\"hero-hp\">" + bh.utils.truncateNumber(hero.hitPoints) + " HP</span>")
+                        + ("<span class=\"hero-rating-bar\">" + progressBar + "</span>")
+                        + ("<span class=\"hero-rating\">(" + powerPercent + "%)</span>"), content = "";
                     if (player.isMe || player.isAlly) {
                         var abilities = hero.playerHeroAbilities
                             .map(function (playerHeroAbility) {

@@ -34,8 +34,13 @@ namespace bh {
 						powerPercent = hero.powerPercent,
 						progressBG = hero.isOp ? "background-color:pink;" : "",
 						color = powerPercent < 25 ? "progress-bar-info" : powerPercent < 50 ? "progress-bar-success" : powerPercent < 75 ? "progress-bar-warning" : "progress-bar-danger",
-						progressBar = `<div class="progress" style="${progressBG}"><div class="progress-bar ${color}" style="width:${powerPercent}%;"><span>${powerPercent}%</span></div></div>`,
-						title = `<span class="hero-icon">${icon}</span><span class="hero-name">${hero.name}</span><span class="hero-level">${level}</span><span class="hero-hp">${utils.truncateNumber(hero.hitPoints)} HP</span><span class="hero-rating">${progressBar}</span>`,
+						progressBar = `<div class="progress" style="${progressBG}"><div class="progress-bar ${color}" style="width:${powerPercent}%;"><span></span></div></div>`,
+						title = `<span class="hero-icon">${icon}</span>`
+							+ `<span class="hero-name">${hero.name}</span>`
+							+ `<span class="hero-level">${level}</span>`
+							+ `<span class="hero-hp">${utils.truncateNumber(hero.hitPoints)} HP</span>`
+							+ `<span class="hero-rating-bar">${progressBar}</span>`
+							+ `<span class="hero-rating">(${powerPercent}%)</span>`,
 						content = "";
 					if (player.isMe || player.isAlly) {
 						var abilities = hero.playerHeroAbilities

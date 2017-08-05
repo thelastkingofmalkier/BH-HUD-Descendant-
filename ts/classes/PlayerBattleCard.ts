@@ -76,7 +76,7 @@ namespace bh {
 					.replace(/Mischievous/, "Misch.")
 					.replace(/Protection/, "Prot.")
 					.replace(/-[\w-]+-/, "-...-");
-			return `${this.battleOrBragImage} ${this.evoLevel} <small>${stars}</small> ${name} ${count} ${typeAndValue}`;
+			return `${this.battleOrBragImage} ${this.evoLevel} <small>${stars}</small> ${name} ${typeAndValue} ${count}`;
 		}
 		public get isActive() { return (this.evo > 0 || this.level > 1) && !this.isMaxed; }
 		public get isMaxed() { return this.evoLevel == ["1.10", "2.20", "3.35", "4.50", "5.50"][this.rarityType]; }
@@ -90,8 +90,6 @@ namespace bh {
 		public get powerRating() { return PowerRating.ratePlayerCard(this.playerCard); }
 		public get rarityEvoLevel() { return `${RarityType[this.rarityType][0]}.${this.evoLevel}`; }
 		public get rowHtml() { return this._rowHtml();  }
-		// public get goldHtml() { return this._rowHtml(this.maxMaxGoldNeeded);  }
-		// public get wcHtml() { return this._rowHtml(this.maxWildCardsNeeded);  }
 		public get scoutHtml() { return `${this.rarityEvoLevel} ${this.name} ${this.count > 1 ? `x${this.count}` : ``}`; }
 		public get typeImage() { return this.types.length ? getImg12("cardtypes", this.types[0]) : ``; }
 		public get value() { return this.playerCard && data.cards.battle.calculateValue(this.playerCard) || 0; };

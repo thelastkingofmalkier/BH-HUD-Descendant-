@@ -45,7 +45,8 @@ div.brain-hud-scouter-panel-header > button > span.hero-icon { display:inline-bl
 div.brain-hud-scouter-panel-header > button > span.hero-level { display:inline-block; width:30px; text-align:right; }
 div.brain-hud-scouter-panel-header > button > span.hero-name { display:inline-block; width:60px; }
 div.brain-hud-scouter-panel-header > button > span.hero-hp { display:inline-block; width:50px; text-align:center; }
-div.brain-hud-scouter-panel-header > button > span.hero-rating { display:inline-block; width:95px; }
+div.brain-hud-scouter-panel-header > button > span.hero-rating-bar { display:inline-block; width:60px; }
+div.brain-hud-scouter-panel-header > button > span.hero-rating { display:inline-block; width:35px; text-align:right; font-size:8pt; vertical-align:top; }
 
 div.brain-hud-inventory-buttons { text-align:center; }
 
