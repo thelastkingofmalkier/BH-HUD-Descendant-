@@ -10,17 +10,13 @@ namespace bh {
 	// }
 			export interface IScoutReport { [guid: string]: string; }
 			interface IBattleData {
-				oCount: number;
-				oWinCount: number;
-				oLossCount: number;
-				dCount: number;
-				dWinCount: number;
-				dLossCount: number;
+				winCount: number;
+				lossCount: number;
+				dwCount: number;
 				score: number;
-				oBrags: number;
-				tsv: string;
-				legacyTsv: string;
+				brags: number;
 			}
+
 			var reports: IScoutReport = { };
 			export function getReport(guid: string): IScoutReport {
 				var report = getGuildWarReport(guid);
@@ -89,39 +85,23 @@ namespace bh {
 			}
 			function calculateBattleData(war: IGuildWar, member: IGuild.Player) {
 				var battles = war.currentWar.battles,
-					oCount = 0, oWinCount = 0, oLossCount = 0, oBrags = 0, offensiveScore = 0,
-					dCount = 0, dWinCount = 0, dLossCount = 0, dBrags = 0, defensiveScore = 0,
-					totalScore = 0;
+					winCount = 0, lossCount = 0, dwCount = 0, brags = 0, score = 0;
 
 				if (member) {
 					battles.forEach(battle => {
 						if (battle.initiator.playerId == member.playerId) {
-							oCount++;
-							if (battle.initiator.winner) oWinCount++; else oLossCount++;
-							if (battle.completedBragId) oBrags++;
-							offensiveScore += battle.initiator.totalScore;
+							battle.initiator.winner ? winCount++ : lossCount++;
+							if (battle.completedBragId) brags++;
+							score += battle.initiator.totalScore;
 						}
 						if (battle.opponent.playerId == member.playerId) {
-							dCount++;
-							if (battle.opponent.winner) dWinCount++; else dLossCount++;
-							if (battle.completedBragId) dBrags++;
-							defensiveScore += battle.opponent.totalScore;
+							if (battle.opponent.winner) dwCount++;
+							score += battle.opponent.totalScore;
 						}
 					})
 				}
 
-				return <IBattleData>{
-					oCount: oCount,
-					oWinCount: oWinCount,
-					oLossCount: oLossCount,
-					dCount: dCount,
-					dWinCount: dWinCount,
-					dLossCount: dLossCount,
-					score: totalScore,
-					oBrags: oBrags,
-					tsv: [oCount, oWinCount, oBrags, oLossCount, dCount, dWinCount, dLossCount, totalScore].join("\t"),
-					legacyTsv: [oWinCount, oLossCount, dWinCount, totalScore].join("\t"),
-				};
+				return <IBattleData>{ winCount: winCount, lossCount: lossCount, dwCount: dwCount, score: score, brags: brags };
 			}
 			function guildWarToReport(war: IGuildWar) {
 				var heroes = data.HeroRepo.sorted,
@@ -139,11 +119,8 @@ namespace bh {
 
 				function _mapMemberToOutput(index: number, member: IGuild.Player, oppo: IGuild.Player): string {
 					var memberTsv = mapMemberToOutput(member, index),
-						battleData = calculateBattleData(war, member),
-						oppoBattleData = calculateBattleData(war, oppo);
-					// if (legacy)
-					return `${memberTsv}\t${battleData.legacyTsv}`;
-					// return `${memberTsv}\t${battleData.tsv}\t${oppoBattleData.tsv}`;
+						battleData = calculateBattleData(war, member);
+					return `${memberTsv}\t${battleData.winCount}\t${battleData.lossCount}\t${battleData.dwCount}\t${battleData.score}`;
 				}
 			}
 		}

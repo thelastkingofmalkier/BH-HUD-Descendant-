@@ -2,6 +2,28 @@ namespace bh {
 
 	export namespace utils {
 		// Strings
+		export function formatString(value: string, args: any[]): string {
+			// Similar to String.format, except that it uses named properties of an object:
+			//    String.namedFormat("I am #{age} #{what} old.", { age:8, what:"years" });
+			//    String.namedFormat("I am #{age} #{what} old.", { age:8 }, { what:"years" });
+			var keyRegex: RegExp = new RegExp("\\w+");
+			var keys: string[] = value.match(new RegExp("#{\\w+}", "g"));
+			for (var i = 0, l = keys.length; i < l; i++) {
+				keys[i] = keys[i].match(keyRegex)[0];
+			}
+			var result = value;
+			for (i = 0, l = keys.length; i < l; i++) {
+				var key: string = keys[i];
+				for (var j = 0, m = args.length; j < m; j++) {
+					var obj = args[j];
+					if (key in obj) {
+						result = result.replace("#{" + key + "}", obj[key]);
+						break;
+					}
+				}
+			}
+			return result;
+		}
 		export function htmlFriendly(value: string) {
 			return String(value).replace(/\</g, "&lt;").replace(/\>/g, "&gt;");
 		}
@@ -37,9 +59,8 @@ namespace bh {
 			return char === "y" || char === "t" || string === "1";
 		}
 
-		export function evoToStars(rarityType: RarityType, evoLevel: string): string {
+		export function evoToStars(rarityType: RarityType, evoLevel: string = String(rarityType+1)): string {
 			var evo = +evoLevel.split(".")[0],
-				level = +evoLevel.split(".")[1],
 				stars: number = rarityType + 1,
 				count = 0,
 				value = "";

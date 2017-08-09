@@ -1096,7 +1096,7 @@ var bh;
             configurable: true
         });
         Object.defineProperty(PlayerBoosterCard.prototype, "rowHtml", {
-            get: function () { return "<div class=\"" + bh.ElementType[this.elementType] + "\" data-element-type=\"" + this.elementType + "\" data-type=\"" + this.type + "\" data-rarity-type=\"" + this.rarityType + "\">" + bh.getImg20("misc", "Boosters") + " " + bh.RarityType[this.rarityType][0] + (this.challenge ? "*" : "") + " " + this.name + " <span class=\"badge pull-right\">" + this.count + "</span></div>"; },
+            get: function () { return "<div class=\"" + bh.ElementType[this.elementType] + "\" data-element-type=\"" + this.elementType + "\" data-type=\"" + this.type + "\" data-rarity-type=\"" + this.rarityType + "\">" + bh.getImg20("misc", "Boosters") + " " + bh.RarityType[this.rarityType][0] + (this.challenge ? "*" : "") + " " + this.name + " <span class=\"badge pull-right\">" + bh.utils.formatNumber(this.count) + "</span></div>"; },
             enumerable: true,
             configurable: true
         });
@@ -2519,43 +2519,23 @@ var bh;
                 }
             }
             function calculateBattleData(war, member) {
-                var battles = war.currentWar.battles, oCount = 0, oWinCount = 0, oLossCount = 0, oBrags = 0, offensiveScore = 0, dCount = 0, dWinCount = 0, dLossCount = 0, dBrags = 0, defensiveScore = 0, totalScore = 0;
+                var battles = war.currentWar.battles, winCount = 0, lossCount = 0, dwCount = 0, brags = 0, score = 0;
                 if (member) {
                     battles.forEach(function (battle) {
                         if (battle.initiator.playerId == member.playerId) {
-                            oCount++;
-                            if (battle.initiator.winner)
-                                oWinCount++;
-                            else
-                                oLossCount++;
+                            battle.initiator.winner ? winCount++ : lossCount++;
                             if (battle.completedBragId)
-                                oBrags++;
-                            offensiveScore += battle.initiator.totalScore;
+                                brags++;
+                            score += battle.initiator.totalScore;
                         }
                         if (battle.opponent.playerId == member.playerId) {
-                            dCount++;
                             if (battle.opponent.winner)
-                                dWinCount++;
-                            else
-                                dLossCount++;
-                            if (battle.completedBragId)
-                                dBrags++;
-                            defensiveScore += battle.opponent.totalScore;
+                                dwCount++;
+                            score += battle.opponent.totalScore;
                         }
                     });
                 }
-                return {
-                    oCount: oCount,
-                    oWinCount: oWinCount,
-                    oLossCount: oLossCount,
-                    dCount: dCount,
-                    dWinCount: dWinCount,
-                    dLossCount: dLossCount,
-                    score: totalScore,
-                    oBrags: oBrags,
-                    tsv: [oCount, oWinCount, oBrags, oLossCount, dCount, dWinCount, dLossCount, totalScore].join("\t"),
-                    legacyTsv: [oWinCount, oLossCount, dWinCount, totalScore].join("\t"),
-                };
+                return { winCount: winCount, lossCount: lossCount, dwCount: dwCount, score: score, brags: brags };
             }
             function guildWarToReport(war) {
                 var heroes = data.HeroRepo.sorted, us = war.guilds[0], them = war.guilds.find(function (g) { return g.id != us.id; }), ourMembers = war.members[us.id].sort(bh.utils.sort.byPositionThenName), theirMembers = war.members[them.id].sort(bh.utils.sort.byPositionThenName), ourOutput = ourMembers.map(function (m, i) { return _mapMemberToOutput(i, m, theirMembers[i]); }).join("\n"), theirOutput = theirMembers.map(function (m, i) { return _mapMemberToOutput(i, m, ourMembers[i]); }).join("\n"), report = {}, legacy = true;
@@ -2563,8 +2543,8 @@ var bh;
                 report[them.id] = theirOutput;
                 return report;
                 function _mapMemberToOutput(index, member, oppo) {
-                    var memberTsv = mapMemberToOutput(member, index), battleData = calculateBattleData(war, member), oppoBattleData = calculateBattleData(war, oppo);
-                    return memberTsv + "\t" + battleData.legacyTsv;
+                    var memberTsv = mapMemberToOutput(member, index), battleData = calculateBattleData(war, member);
+                    return memberTsv + "\t" + battleData.winCount + "\t" + battleData.lossCount + "\t" + battleData.dwCount + "\t" + battleData.score;
                 }
             }
         })(reports = data.reports || (data.reports = {}));
@@ -3295,6 +3275,32 @@ var bh;
 })(bh || (bh = {}));
 var bh;
 (function (bh) {
+    var library;
+    (function (library) {
+        var $ = jQuery;
+        function init() {
+            bh.data.cards.battle.init().then(renderCards, function (reason) { return console.error(reason); });
+        }
+        library.init = init;
+        function renderCards(cards) {
+            console.log(cards);
+            var tbody = $("tbody");
+            cards.forEach(function (card) {
+                var html = "<tr><td>";
+                html += "<span class=\"card-element\">" + bh.getImg("crystals", bh.ElementType[card.elementType]) + "</span>";
+                html += "<span class=\"card-klass\">" + bh.getImg("classes", bh.KlassType[card.klassType]) + "</span>";
+                html += "<span class=\"card-stars\">" + bh.utils.evoToStars(card.rarityType) + "</span>";
+                html += "<span class=\"card-name\">" + card.name + "</span>";
+                html += "</td></tr>";
+                tbody.append(html);
+            });
+            $("div.alert").remove();
+            $("table.table").show();
+        }
+    })(library = bh.library || (bh.library = {}));
+})(bh || (bh = {}));
+var bh;
+(function (bh) {
     var utils;
     (function (utils) {
         var sort;
@@ -3364,6 +3370,26 @@ var bh;
 (function (bh) {
     var utils;
     (function (utils) {
+        function formatString(value, args) {
+            var keyRegex = new RegExp("\\w+");
+            var keys = value.match(new RegExp("#{\\w+}", "g"));
+            for (var i = 0, l = keys.length; i < l; i++) {
+                keys[i] = keys[i].match(keyRegex)[0];
+            }
+            var result = value;
+            for (i = 0, l = keys.length; i < l; i++) {
+                var key = keys[i];
+                for (var j = 0, m = args.length; j < m; j++) {
+                    var obj = args[j];
+                    if (key in obj) {
+                        result = result.replace("#{" + key + "}", obj[key]);
+                        break;
+                    }
+                }
+            }
+            return result;
+        }
+        utils.formatString = formatString;
         function htmlFriendly(value) {
             return String(value).replace(/\</g, "&lt;").replace(/\>/g, "&gt;");
         }
@@ -3395,7 +3421,8 @@ var bh;
         }
         utils.parseBoolean = parseBoolean;
         function evoToStars(rarityType, evoLevel) {
-            var evo = +evoLevel.split(".")[0], level = +evoLevel.split(".")[1], stars = rarityType + 1, count = 0, value = "";
+            if (evoLevel === void 0) { evoLevel = String(rarityType + 1); }
+            var evo = +evoLevel.split(".")[0], stars = rarityType + 1, count = 0, value = "";
             while (evo--) {
                 count++;
                 value += "<span class='evo-star'>&#9733;</span>";
