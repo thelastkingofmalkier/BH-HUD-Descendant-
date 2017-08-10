@@ -4,11 +4,22 @@ namespace bh {
 
 		export function init() {
 			bh.host = "http://brains.sth.ovh";
-			data.ItemRepo.init();
-			data.cards.battle.init().then((cards) => { renderCards(cards); onSearchClear(); }, (reason) => console.error(reason));
+			data.init().then(() => {
+				renderCards(data.cards.battle.getAll());
+				onSearchClear();
+			});
 			$(`body`).on("click", `[data-action="show-card"]`, onShowCard);
 			$("#library-search").on("change keyup", onSearch);
-			$("#library-search-clear").on("change", onSearchClear);
+			$("#library-search-clear").on("click", onSearchClear);
+
+			var evoTabs = $("#card-evolution div.tab-pane"),
+				template = evoTabs.html();
+			evoTabs.html(template).toArray().forEach((div, i) => $(div).find("h3").text(`Evolution from ${i} to ${i+1}`));
+		}
+		function onSearchClear() {
+			searching = null;
+			$("#library-search").val("");
+			$("tbody > tr[id]").show();
 		}
 
 		function onShowCard(ev: JQueryEventObject) {
@@ -16,10 +27,11 @@ namespace bh {
 				tr = link.closest("tr"),
 				guid = tr.attr("id"),
 				card = data.cards.battle.find(guid);
-			$("div.card-list").removeClass("col-xs-12").addClass("col-xs-6 col-sm-8");
-			$("div.card-info").show();
+			$("div.modal-card").modal("show");
 
-			$(`#card-name`).html(card.name);
+			// $(`#card-name`).html(card.name);
+			// $(`#card-name`).html(getImg20("battlecards", "icons", card.name.replace(/\W/g, "")) + " " + card.name);
+			$(`#card-name`).html(card.name + " " + mapHeroesToImages(card).join(""));
 			$(`#card-tier`).html(card.tier || "");
 			$(`#card-image`).attr("src", getSrc("battlecards", "blank", card.name.replace(/\W/g, "")));
 			$(`#card-element`).html((card.elementType == ElementType.Neutral?"":getImg20("elements", ElementType[card.elementType])) + " " + ElementType[card.elementType]);
@@ -39,17 +51,41 @@ namespace bh {
 			$(`#card-mats`).html(card.mats.map(mat => getImg20("evojars", mat.replace(/\W/g, "")) + " " + mat).join("<br/>"));
 
 			var recipe = new Recipe(card),
-				html = ``;
-			recipe.evos.forEach(evo => {
-				html += `<div class="form-group"><label class="col-sm-3 control-label">${evo.evoFrom} -> ${evo.evoTo}</label><div class="col-sm-9"><p class="form-control-static">`;
-				html += evo.items.filter(item => !!item.max)
-					.map(item => getImg20("evojars", item.item.name.replace(/\W/g, "")) + " " + item.item.name + " <small>(" + item.min + " - " + item.max + ")</small>")
-					.join("<br/>");
-				if (evo.evoTo == 5) {
+				tabs = $("#card-evolution > ul.nav > li").toArray();
+			[0,1,2,3,4].forEach(index => {
+				var evo = recipe.evos[index],
+					target = `#evo-${index}-${index+1}`,
+					tab = $(tabs[index]).removeClass("disabled");
+				if (!evo) {
+					$(`${target} tbody`).html("");
+					tab.addClass("disabled");
+					return;
 				}
-				html += `</p></div></div>`;
+
+				var html = ``;
+
+				html += evoRow(getImg("misc", "Coin"), "Gold", data.getMinGoldNeeded(card.rarityType, evo.evoFrom), data.getMaxGoldNeeded(card.rarityType, evo.evoFrom));
+
+				evo.items.filter(item => !!item.max)
+					.forEach(item => html += evoRow(getImg20("evojars", item.item.name.replace(/\W/g, "")), item.item.name, item.min, item.max));
+
+				if (evo.evoTo == 5) {
+					var crystal = data.ItemRepo.crystals.find(item => item.elementType == card.elementType),
+						hero = data.HeroRepo.all.find(hero => hero.elementType == card.elementType && hero.klassType == card.klassType),
+						rune = data.ItemRepo.runes.find(item => item.name.startsWith(hero.name));
+					html += evoRow(getImg20("crystals", ElementType[card.elementType]), crystal.name, data.getMinCrystalsNeeded(card.rarityType, evo.evoFrom), data.getMaxCrystalsNeeded(card.rarityType, evo.evoFrom));
+					html += evoRow(getImg20("runes", hero.trait.name.replace(/\W/g, "")), rune.name, data.getMinRunesNeeded(card.rarityType, evo.evoFrom), data.getMaxRunesNeeded(card.rarityType, evo.evoFrom));
+				}
+
+				$(`${target} tbody`).html(html);
 			});
-			$("#card-evos").html(html);
+
+			$("#card-evolution .active").removeClass("active");
+			$("#card-evolution > ul.nav > li").first().addClass("active");
+			$("#card-evolution > div.tab-content > div.tab-pane").first().addClass("active");
+		}
+		function evoRow(image: string, name: string, min: number, max: number) {
+			return `<tr><td class="icon">${image}</td><td class="name">${name}</td><td class="min">${utils.formatNumber(min)}</td><td class="max">${utils.formatNumber(max)}</td></tr>`;
 		}
 
 		var filteredLists: { [search: string]: string[] } = { };
@@ -103,12 +139,6 @@ namespace bh {
 			return !!getTests(card).find(test => test.includes(lower));
 		}
 
-		function onSearchClear() {
-			searching = null;
-			$("#library-search").val("");
-			$("tbody > tr[id]").show();
-		}
-
 		function mapPerksEffectsToImages(card: IDataBattleCard) {
 			var list: string[] = [];
 			(<string[]>card.targets || []).concat(card.effects || []).concat(card.perks || []).forEach(pushItem);
@@ -129,17 +159,24 @@ namespace bh {
 			return card.mats.filter(s => !!s.replace(/\W/g, "")).map(s => `<span class="card-mat" title="${s.trim()}">${getImg20("evojars", s.replace(/\W/g, ""))}</span>`);
 		}
 
+		function mapHeroesToImages(card: IDataBattleCard) {
+			return data.HeroRepo.all
+				.filter(hero => (card.elementType == ElementType.Neutral || hero.elementType == card.elementType) && hero.klassType == card.klassType)
+				.map(hero => getImg20("heroes", hero.name));
+		}
+
 		function renderCards(cards: IDataBattleCard[]) {
-			var tbody = $("tbody");
+			var tbody = $("table.card-list > tbody");
 			cards.forEach(card => {
 				getTests(card);
-				var html = `<tr id="${card.guid}"><td>`;
-					html += `<span class="card-element">${card.elementType == ElementType.Neutral?"":getImg20("elements", ElementType[card.elementType])}</span>`;
-					html += `<span class="card-klass ${KlassType[card.klassType]}">${getImg20("classes", KlassType[card.klassType])}</span>`;
-					html += `<span class="card-stars">${utils.evoToStars(card.rarityType)}</span>`;
-					html += `<span class="card-name"><a class="btn btn-link" data-action="show-card" style="padding:0;">${card.name}</a></span>`;
-					html += `<span class="card-effects">${mapPerksEffectsToImages(card).join("")}</span>`;
-					html += `<span class="card-mats">${mapMatsToImages(card).join("")}</span>`;
+				var html = `<tr id="${card.guid}">`;
+					html += `<td><span class="card-element">${card.elementType == ElementType.Neutral?"":getImg20("elements", ElementType[card.elementType])}</span></td>`;
+					html += `<td><span class="card-klass ${KlassType[card.klassType]}">${getImg20("classes", KlassType[card.klassType])}</span></td>`;
+					html += `<td><span class="card-stars">${utils.evoToStars(card.rarityType)}</span></td>`;
+					html += `<td><span class="card-name"><a class="btn btn-link" data-action="show-card" style="padding:0;">${card.name}</a></span></td>`;
+					html += `<td class="hidden-xs"><span class="card-heroes">${mapHeroesToImages(card).join("")}</span></td>`;
+					html += `<td class="hidden-xs"><span class="card-effects">${mapPerksEffectsToImages(card).join("")}</span></td>`;
+					html += `<td class="hidden-xs"><span class="card-mats">${mapMatsToImages(card).join("")}</span></td>`;
 				html += "</td></tr>";
 				tbody.append(html);
 			});
