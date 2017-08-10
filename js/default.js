@@ -1,5 +1,5 @@
 var __extends = (this && this.__extends) || (function () {
-   var extendStatics = Object.setPrototypeOf ||
+    var extendStatics = Object.setPrototypeOf ||
         ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
         function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
     return function (d, b) {
@@ -329,12 +329,12 @@ var bh;
                             break;
                         case "targets":
                         case "types":
-                            object[key] = value.split("|");
+                            object[key] = value.split("|").filter(function (s) { return !!s; });
                             break;
                         case "effects":
                         case "mats":
                         case "perks":
-                            object[key] = value.split(",");
+                            object[key] = value.split(",").filter(function (s) { return !!s; });
                             break;
                         case "turns":
                             object[key] = +value;
@@ -2760,10 +2760,14 @@ var bh;
             image = getRoot() + "/images/" + parts.join("/") + ".png";
         return image;
     }
+    bh.getSrc = getSrc;
     var images;
     (function (images) {
         var battlecards;
         (function (battlecards) {
+            var blank;
+            (function (blank) {
+            })(blank = battlecards.blank || (battlecards.blank = {}));
             var icons;
             (function (icons) {
             })(icons = battlecards.icons || (battlecards.icons = {}));
@@ -2777,6 +2781,9 @@ var bh;
         var crystals;
         (function (crystals) {
         })(crystals = images.crystals || (images.crystals = {}));
+        var effects;
+        (function (effects) {
+        })(effects = images.effects || (images.effects = {}));
         var elements;
         (function (elements) {
         })(elements = images.elements || (images.elements = {}));
@@ -3277,20 +3284,128 @@ var bh;
 (function (bh) {
     var library;
     (function (library) {
-        var $ = jQuery;
+        var $ = window["jQuery"];
         function init() {
-            bh.data.cards.battle.init().then(renderCards, function (reason) { return console.error(reason); });
+            bh.data.cards.battle.init().then(function (cards) { renderCards(cards); onSearchClear(); }, function (reason) { return console.error(reason); });
+            $("body").on("click", "[data-action=\"show-card\"]", onShowCard);
+            $("#library-search").on("change keyup", onSearch);
+            $("#library-search-clear").on("change", onSearchClear);
         }
         library.init = init;
+        function onShowCard(ev) {
+            var link = $(ev.target), tr = link.closest("tr"), guid = tr.attr("id"), card = bh.data.cards.battle.find(guid);
+            $("div.col-xs-12").removeClass("col-xs-12").addClass("col-xs-8");
+            $("div.col-xs-4").show();
+            $("#card-name").html(card.name);
+            $("#card-tier").html(card.tier || "");
+            $("div.panel-card div.panel-body").css("background-image", "url(" + bh.getSrc("battlecards", "blank", card.name.replace(/\W/g, "")) + ")");
+            $("#card-element").html((card.elementType == bh.ElementType.Neutral ? "" : bh.getImg20("elements", bh.ElementType[card.elementType])) + " " + bh.ElementType[card.elementType]);
+            $("#card-klass").html(bh.getImg20("classes", bh.KlassType[card.klassType]) + " " + bh.KlassType[card.klassType]);
+            $("#card-rarity").html(bh.utils.evoToStars(card.rarityType) + " " + bh.RarityType[card.rarityType]);
+            $("#card-types").html(card.types.map(function (type) { return bh.getImg20("cardtypes", type) + " " + type; }).join("<br/>"));
+            $("#card-turns").html(String(card.turns));
+            $("div.panel-card span.card-targets").html(card.targets.join());
+            $("div.panel-card span.card-brag").html(String(card.brag));
+            $("div.panel-card span.card-min").html(card.minValues.map(function (v) { return v.join(); }).join(" :: "));
+            $("div.panel-card span.card-max").html(card.maxValues.join(" :: "));
+            $("div.panel-card span.card-mats").html(card.mats.join());
+            $("#card-effects").html(card.effects.map(function (effect) { return bh.getImg20("effects", effect.replace(/\W/g, "")) + " " + effect + "<br/>"; }).join(""));
+            $("#card-perks").html(card.perks.map(function (perk) { return bh.getImg20("effects", perk.replace(/\W/g, "")) + " " + perk; }).join("<br/>"));
+            $("div.panel-card span.card-perk").html(card.perkBase + "%");
+            $("#card-mats").html(card.mats.map(function (mat) { return bh.getImg20("evojars", mat.replace(/\W/g, "")) + " " + mat; }).join("<br/>"));
+        }
+        var filteredLists = {};
+        function onSearch() {
+            var el = $("#library-search"), value = el.val(), lower = value.trim().toLowerCase();
+            if (!lower)
+                return onSearchClear();
+            var filteredGuids = filteredLists[lower], cards = bh.data.cards.battle.getAll();
+            if (filteredGuids) {
+                console.log("existing");
+                $(filteredGuids.join()).show();
+            }
+            else {
+                console.log("searching");
+                var show = filteredLists[lower] = [], hide = [];
+                bh.utils.asyncForEach(cards, function (card) {
+                    try {
+                        if (matchCard(card, lower)) {
+                            show.push("#" + card.guid);
+                        }
+                        else {
+                            hide.push("#" + card.guid);
+                        }
+                    }
+                    catch (ex) {
+                        console.error(ex);
+                    }
+                }).then(function () {
+                    try {
+                        $(show.join()).show();
+                        $(hide.join()).show();
+                    }
+                    catch (ex) {
+                        console.error(ex);
+                    }
+                });
+            }
+        }
+        var tests = {};
+        function getTests(card) {
+            if (!tests[card.guid]) {
+                var list = tests[card.guid] = [];
+                if (card.brag)
+                    list.push("brag");
+                card.effects.forEach(function (s) { return list.push(s.toLowerCase()); });
+                list.push(bh.ElementType[card.elementType].toLowerCase());
+                list.push(bh.KlassType[card.klassType].toLowerCase());
+                list.push(card.lower);
+                card.mats.forEach(function (s) { return list.push(s.toLowerCase()); });
+                card.perks.forEach(function (s) { return list.push(s.toLowerCase()); });
+                list.push(bh.RarityType[card.rarityType].toLowerCase());
+                card.targets.forEach(function (s) { return list.push(s.toLowerCase()); });
+                list.push(String(card.turns));
+                card.types.forEach(function (s) { return list.push(s.toLowerCase()); });
+            }
+            return tests[card.guid] || [];
+        }
+        function matchCard(card, lower) {
+            return getTests(card).find(function (test) { return test.includes(lower); });
+        }
+        function onSearchClear() {
+            $("#library-search").val("");
+            $("tbody > tr[id]").show();
+        }
+        function mapPerksEffectsToImages(card) {
+            var list = [];
+            (card.targets || []).concat(card.effects || []).concat(card.perks || []).forEach(pushItem);
+            return list.filter(function (s) { return !!s.replace(/\W/g, ""); }).map(function (s) { return "<span class=\"card-effect\" title=\"" + s.trim() + "\">" + bh.getImg20("effects", s.replace(/\W/g, "")) + "</span>"; });
+            function pushItem(item) {
+                if (item == "MultiFlurry") {
+                    pushItem("Multi");
+                }
+                else if (item != "Flurry" && item.endsWith("Flurry")) {
+                    pushItem("Flurry");
+                }
+                else if (item != "Self" && item != "Single" && !list.includes(item)) {
+                    list.push(item);
+                }
+            }
+        }
+        function mapMatsToImages(card) {
+            return card.mats.filter(function (s) { return !!s.replace(/\W/g, ""); }).map(function (s) { return "<span class=\"card-mat\" title=\"" + s.trim() + "\">" + bh.getImg20("evojars", s.replace(/\W/g, "")) + "</span>"; });
+        }
         function renderCards(cards) {
-            console.log(cards);
             var tbody = $("tbody");
             cards.forEach(function (card) {
-                var html = "<tr><td>";
-                html += "<span class=\"card-element\">" + bh.getImg("crystals", bh.ElementType[card.elementType]) + "</span>";
-                html += "<span class=\"card-klass\">" + bh.getImg("classes", bh.KlassType[card.klassType]) + "</span>";
+                getTests(card);
+                var html = "<tr id=\"" + card.guid + "\"><td>";
+                html += "<span class=\"card-element\">" + (card.elementType == bh.ElementType.Neutral ? "" : bh.getImg20("elements", bh.ElementType[card.elementType])) + "</span>";
+                html += "<span class=\"card-klass\">" + bh.getImg20("classes", bh.KlassType[card.klassType]) + "</span>";
                 html += "<span class=\"card-stars\">" + bh.utils.evoToStars(card.rarityType) + "</span>";
-                html += "<span class=\"card-name\">" + card.name + "</span>";
+                html += "<span class=\"card-name\"><a class=\"btn btn-link\" data-action=\"show-card\" style=\"padding:0;\">" + card.name + "</a></span>";
+                html += "<span class=\"card-effects\">" + mapPerksEffectsToImages(card).join("") + "</span>";
+                html += "<span class=\"card-mats\">" + mapMatsToImages(card).join("") + "</span>";
                 html += "</td></tr>";
                 tbody.append(html);
             });
@@ -3394,6 +3509,10 @@ var bh;
             return String(value).replace(/\</g, "&lt;").replace(/\>/g, "&gt;");
         }
         utils.htmlFriendly = htmlFriendly;
+        function unique(array) {
+            return array.reduce(function (out, curr) { return out.includes(curr) ? out : out.concat([curr]); }, []);
+        }
+        utils.unique = unique;
         function formatNumber(value) {
             var num = String(value).split(""), out = [], o = 0;
             for (var i = num.length; i--;) {
