@@ -3286,6 +3286,7 @@ var bh;
     (function (library) {
         var $ = window["jQuery"];
         function init() {
+            bh.host = "http://brains.sth.ovh";
             bh.data.ItemRepo.init();
             bh.data.cards.battle.init().then(function (cards) { renderCards(cards); onSearchClear(); }, function (reason) { return console.error(reason); });
             $("body").on("click", "[data-action=\"show-card\"]", onShowCard);

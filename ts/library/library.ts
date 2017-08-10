@@ -3,6 +3,7 @@ namespace bh {
 		var $: JQueryStatic = (<any>window)["jQuery"];
 
 		export function init() {
+			bh.host = "http://brains.sth.ovh";
 			data.ItemRepo.init();
 			data.cards.battle.init().then((cards) => { renderCards(cards); onSearchClear(); }, (reason) => console.error(reason));
 			$(`body`).on("click", `[data-action="show-card"]`, onShowCard);
