@@ -19,7 +19,7 @@ namespace bh {
 	export function getImg12(...parts: string[]): string {return img(getSrc(...parts), "icon-12"); }
 	export function getImg20(...parts: string[]): string {return img(getSrc(...parts), "icon-20"); }
 	export function getImgG(...parts: string[]): string { return img(getSrc(...parts), "grayscale"); }
-	function getSrc(...parts: string[]): string {
+	export function getSrc(...parts: string[]): string {
 		var sliced = parts.slice(),
 			image = (<any>images)[sliced.shift()];
 		while (sliced.length) image = image[sliced.shift()];
@@ -28,6 +28,9 @@ namespace bh {
 	}
 	export namespace images {
 		export namespace battlecards {
+			export namespace blank {
+				export declare var HoistTheColours: string;
+			}
 			export namespace icons {
 				export declare var HoistTheColours: string;
 			}
@@ -52,6 +55,9 @@ namespace bh {
 			export declare var Neutral: string;
 			export declare var Spirit: string;
 			export declare var Water: string;
+		}
+		export namespace effects {
+			export declare var Critical: string;
 		}
 		export namespace elements {
 			export declare var Air: string;

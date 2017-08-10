@@ -135,13 +135,13 @@ namespace bh {
 
 							case "targets":
 							case "types":
-								object[key] = value.split("|");
+								object[key] = value.split("|").filter(s => !!s);
 								break;
 
 							case "effects":
 							case "mats":
 							case "perks":
-								object[key] = value.split(",");
+								object[key] = value.split(",").filter(s => !!s);
 								break;
 
 							case "turns":

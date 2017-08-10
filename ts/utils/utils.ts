@@ -28,6 +28,11 @@ namespace bh {
 			return String(value).replace(/\</g, "&lt;").replace(/\>/g, "&gt;");
 		}
 
+		// Arrays
+		export function unique<T>(array: T[]): T[] {
+			return array.reduce((out, curr) => out.includes(curr) ? out : out.concat([curr]), []);
+		}
+
 		// Numbers
 		export function formatNumber(value: number) {
 			var num = String(value).split(""),
