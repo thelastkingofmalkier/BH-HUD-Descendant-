@@ -6,7 +6,7 @@
 		<script type="text/javascript" src="https://code.jquery.com/jquery-2.2.0.min.js"></script>
 		<script type="text/javascript" src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
 		<!-- <script type="text/javascript" src="./js/data.all.js"></script> -->
-		<script type="text/javascript" src="./js/default.js"></script>
+		<script type="text/javascript" src="./js/default.min.js"></script>
 		<script>
 			$(function() { bh.library.init(); });
 		</script>
@@ -31,9 +31,18 @@
 		#card-evolution th.icon, #card-evolution td.icon { width:30px; text-align:center; }
 		#card-evolution th.min, #card-evolution td.min { width:75px; text-align:center; }
 		#card-evolution th.max, #card-evolution td.max { width:75px; text-align:center; }
+		#card-name > img { height:24px; width:24px; }
+		table.card-list td > span { white-space: nowrap; }
 		@media screen and (max-width:767px) {
+			body > div.container-fluid { padding:0; }
+			body > div.container-fluid > div.row { margin:0; }
+			.table-condensed > tbody > tr > td { padding:2px; }
 			ul.nav.nav-pills li { display: table-cell; width: 1%; }
 			ul.nav.nav-pills li.disabled { display:none; }
+			li.search-tab { width:50%; }
+		}
+		@media screen and (min-width:768px) {
+			li.search-tab { width:33%; }
 		}
 		</style>
 		<title>The BattleHand Card Library</title>
@@ -41,31 +50,47 @@
 	<body>
 
 		<div class="container-fluid">
-			<div class="row">
+			<div class="row alert-row">
 				<div class="col-xs-12 col-sm-8 col-sm-offset-2 col-md-6 col-md-offset-3">
 					<div class="alert alert-info text-center">Loading, please wait ...</div>
 				</div>
 			</div>
-			<div class="row">
-				<div class="card-list col-xs-12">
-					<table class="table table-striped table-condensed table-hover" style="display:none;margin-bottom:0;">
-						<thead>
-							<tr>
-								<th>Battle Cards</th>
-								<th style="width:300px;">
-									<div class="input-group input-group-sm">
-										<input type="text" class="form-control" placeholder="Search for..." id="library-search">
-										<span class="input-group-btn">
-											<button class="btn btn-default" type="button" id="library-search-clear">Clear</button>
-										</span>
-									</div>
-								</th>
-							</tr>
-						</thead>
-					</table>
-					<table class="card-list table table-striped table-condensed table-hover" style="display:none;">
-						<tbody/>
-					</table>
+			<div class="row table-row" style="display:none;">
+				<ul class="nav nav-tabs" role="tablist">
+					<li role="presentation" class="active"><a href="#card-table" aria-controls="card-table" role="tab" data-toggle="tab">Battle Cards</a></li>
+					<li role="presentation"><a href="#effect-table" aria-controls="effect-table" role="tab" data-toggle="tab">Effects</a></li>
+					<li role="presentation"><a href="#mat-table" aria-controls="mat-table" role="tab" data-toggle="tab">Materials</a></li>
+					<li class="pull-right search-tab hidden-xs">
+						<div class="input-group input-group-sm">
+							<input type="text" class="form-control library-search" placeholder="Search for...">
+							<span class="input-group-btn">
+								<button class="btn btn-default library-search-clear" type="button">Clear</button>
+							</span>
+						</div>
+					</li>
+				</ul>
+				<div class="input-group input-group-sm visible-xs-block">
+					<input style="width:80%;" type="text" class="form-control library-search" placeholder="Search for...">
+					<span style="width:20%;" class="input-group-btn">
+						<button style="width:100%;" class="btn btn-default library-search-clear" type="button">Clear</button>
+					</span>
+				</div>
+				<div class="tab-content">
+					<div role="tabpanel" class="tab-pane active" id="card-table">
+						<table class="card-list table table-striped table-condensed table-hover">
+							<tbody/>
+						</table>
+					</div>
+					<div role="tabpanel" class="tab-pane" id="effect-table">
+						<table class="effect-list table table-striped table-condensed table-hover">
+							<tbody/>
+						</table>
+					</div>
+					<div role="tabpanel" class="tab-pane" id="mat-table">
+						<table class="mat-list table table-striped table-condensed table-hover">
+							<tbody/>
+						</table>
+					</div>
 				</div>
 			</div>
 		</div>

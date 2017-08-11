@@ -3285,30 +3285,33 @@ var bh;
     var library;
     (function (library) {
         var $ = window["jQuery"];
+        function cleanGuid(value) {
+            return "#" + value.trim().toLowerCase().replace(/\W/g, "-");
+        }
+        function cleanImageName(value) {
+            return value.trim().replace(/\W/g, "");
+        }
         function init() {
             bh.host = "http://brains.sth.ovh";
-            bh.data.init().then(function () {
-                renderCards(bh.data.cards.battle.getAll());
-                onSearchClear();
-            });
+            bh.data.init().then(render);
             $("body").on("click", "[data-action=\"show-card\"]", onShowCard);
-            $("#library-search").on("change keyup", onSearch);
-            $("#library-search-clear").on("click", onSearchClear);
+            $("input.library-search").on("change keyup", onSearch);
+            $("button.library-search-clear").on("click", onSearchClear);
             var evoTabs = $("#card-evolution div.tab-pane"), template = evoTabs.html();
             evoTabs.html(template).toArray().forEach(function (div, i) { return $(div).find("h3").text("Evolution from " + i + " to " + (i + 1)); });
         }
         library.init = init;
         function onSearchClear() {
             searching = null;
-            $("#library-search").val("");
+            $("input.library-search").val("");
             $("tbody > tr[id]").show();
         }
         function onShowCard(ev) {
             var link = $(ev.target), tr = link.closest("tr"), guid = tr.attr("id"), card = bh.data.cards.battle.find(guid);
             $("div.modal-card").modal("show");
-            $("#card-name").html(card.name + " " + mapHeroesToImages(card).join(""));
+            $("#card-name").html(card.name + " &nbsp; " + mapHeroesToImages(card).join(" "));
             $("#card-tier").html(card.tier || "");
-            $("#card-image").attr("src", bh.getSrc("battlecards", "blank", card.name.replace(/\W/g, "")));
+            $("#card-image").attr("src", bh.getSrc("battlecards", "blank", cleanImageName(card.name)));
             $("#card-element").html((card.elementType == bh.ElementType.Neutral ? "" : bh.getImg20("elements", bh.ElementType[card.elementType])) + " " + bh.ElementType[card.elementType]);
             $("#card-klass").html(bh.getImg20("classes", bh.KlassType[card.klassType]) + " " + bh.KlassType[card.klassType]);
             $("#card-klass").removeClass("Magic Might Skill").addClass(bh.KlassType[card.klassType]);
@@ -3320,10 +3323,10 @@ var bh;
             $("div.panel-card span.card-min").html(card.minValues.map(function (v) { return v.join(); }).join(" :: "));
             $("div.panel-card span.card-max").html(card.maxValues.join(" :: "));
             $("div.panel-card span.card-mats").html(card.mats.join());
-            $("#card-effects").html(card.effects.map(function (effect) { return bh.getImg20("effects", effect.replace(/\W/g, "")) + " " + effect + "<br/>"; }).join(""));
-            $("#card-perks").html(card.perks.map(function (perk) { return bh.getImg20("effects", perk.replace(/\W/g, "")) + " " + perk; }).join("<br/>"));
+            $("#card-effects").html(card.effects.map(function (effect) { return bh.getImg20("effects", cleanImageName(effect)) + " " + effect + "<br/>"; }).join(""));
+            $("#card-perks").html(card.perks.map(function (perk) { return bh.getImg20("effects", cleanImageName(perk)) + " " + perk; }).join("<br/>"));
             $("div.panel-card span.card-perk").html(card.perkBase + "%");
-            $("#card-mats").html(card.mats.map(function (mat) { return bh.getImg20("evojars", mat.replace(/\W/g, "")) + " " + mat; }).join("<br/>"));
+            $("#card-mats").html(card.mats.map(function (mat) { return bh.getImg20("evojars", cleanImageName(mat)) + " " + mat; }).join("<br/>"));
             var recipe = new bh.Recipe(card), tabs = $("#card-evolution > ul.nav > li").toArray();
             [0, 1, 2, 3, 4].forEach(function (index) {
                 var evo = recipe.evos[index], target = "#evo-" + index + "-" + (index + 1), tab = $(tabs[index]).removeClass("disabled");
@@ -3335,11 +3338,11 @@ var bh;
                 var html = "";
                 html += evoRow(bh.getImg("misc", "Coin"), "Gold", bh.data.getMinGoldNeeded(card.rarityType, evo.evoFrom), bh.data.getMaxGoldNeeded(card.rarityType, evo.evoFrom));
                 evo.items.filter(function (item) { return !!item.max; })
-                    .forEach(function (item) { return html += evoRow(bh.getImg20("evojars", item.item.name.replace(/\W/g, "")), item.item.name, item.min, item.max); });
+                    .forEach(function (item) { return html += evoRow(bh.getImg20("evojars", cleanImageName(item.item.name)), item.item.name, item.min, item.max); });
                 if (evo.evoTo == 5) {
                     var crystal = bh.data.ItemRepo.crystals.find(function (item) { return item.elementType == card.elementType; }), hero = bh.data.HeroRepo.all.find(function (hero) { return hero.elementType == card.elementType && hero.klassType == card.klassType; }), rune = bh.data.ItemRepo.runes.find(function (item) { return item.name.startsWith(hero.name); });
                     html += evoRow(bh.getImg20("crystals", bh.ElementType[card.elementType]), crystal.name, bh.data.getMinCrystalsNeeded(card.rarityType, evo.evoFrom), bh.data.getMaxCrystalsNeeded(card.rarityType, evo.evoFrom));
-                    html += evoRow(bh.getImg20("runes", hero.trait.name.replace(/\W/g, "")), rune.name, bh.data.getMinRunesNeeded(card.rarityType, evo.evoFrom), bh.data.getMaxRunesNeeded(card.rarityType, evo.evoFrom));
+                    html += evoRow(bh.getImg20("runes", cleanImageName(hero.trait.name)), rune.name, bh.data.getMinRunesNeeded(card.rarityType, evo.evoFrom), bh.data.getMaxRunesNeeded(card.rarityType, evo.evoFrom));
                 }
                 $(target + " tbody").html(html);
             });
@@ -3350,27 +3353,49 @@ var bh;
         function evoRow(image, name, min, max) {
             return "<tr><td class=\"icon\">" + image + "</td><td class=\"name\">" + name + "</td><td class=\"min\">" + bh.utils.formatNumber(min) + "</td><td class=\"max\">" + bh.utils.formatNumber(max) + "</td></tr>";
         }
-        var filteredLists = {};
+        var filteredCards = {};
+        var filteredEffects = {};
+        var filteredItems = {};
+        var allEffects = [];
         var searching;
-        function onSearch() {
-            var el = $("#library-search"), value = el.val(), lower = value.trim().toLowerCase();
+        function onSearch(ev) {
+            var el = $(ev.target), value = el.val(), lower = value.trim().toLowerCase();
             if (!lower)
                 return onSearchClear();
             searching = lower;
             setTimeout(function (lower) {
-                if (filteredLists[lower]) {
-                    hideShowResults(lower);
-                }
-                else {
+                if (!filteredCards[lower]) {
                     matchCards(lower);
-                    hideShowResults(lower);
                 }
+                hideShowCards(lower);
+                if (!filteredEffects[lower]) {
+                    matchEffects(lower);
+                }
+                hideShowEffects(lower);
+                if (!filteredItems[lower]) {
+                    matchItems(lower);
+                }
+                hideShowItems(lower);
             }, 0, lower);
         }
-        function hideShowResults(search) {
+        function hideShowCards(search) {
             if (search != searching)
                 return;
-            var show = filteredLists[search] || [], hide = bh.data.cards.battle.getAll().map(function (card) { return "#" + card.guid; }).filter(function (guid) { return !show.includes(guid); });
+            var show = filteredCards[search] || [], hide = bh.data.cards.battle.getAll().map(function (card) { return cleanGuid(card.guid); }).filter(function (guid) { return !show.includes(guid); });
+            $(show.join()).show();
+            $(hide.join()).hide();
+        }
+        function hideShowEffects(search) {
+            if (search != searching)
+                return;
+            var show = filteredEffects[search] || [], hide = allEffects.map(function (effect) { return cleanGuid(effect); }).filter(function (guid) { return !show.includes(guid); });
+            $(show.join()).show();
+            $(hide.join()).hide();
+        }
+        function hideShowItems(search) {
+            if (search != searching)
+                return;
+            var show = filteredItems[search] || [], hide = bh.data.ItemRepo.all.map(function (item) { return cleanGuid(item.guid); }).filter(function (guid) { return !show.includes(guid); });
             $(show.join()).show();
             $(hide.join()).hide();
         }
@@ -3390,19 +3415,38 @@ var bh;
                 card.targets.forEach(function (s) { return list.push(s.toLowerCase()); });
                 list.push(String(card.turns));
                 card.types.forEach(function (s) { return list.push(s.toLowerCase()); });
+                bh.data.HeroRepo.all.filter(function (hero) { return hero.klassType == card.klassType && (card.elementType == bh.ElementType.Neutral || hero.elementType == card.elementType); }).forEach(function (hero) { return list.push(hero.lower); });
             }
             return tests[card.guid] || [];
         }
         function matchCards(lower) {
-            filteredLists[lower] = bh.data.cards.battle.getAll().filter(function (card) { return matchCard(card, lower); }).map(function (card) { return "#" + card.guid; });
+            var words = lower.split(/\s+/);
+            filteredCards[lower] = bh.data.cards.battle.getAll()
+                .filter(function (card) { return !words.find(function (word) { return !matchCard(card, word); }); })
+                .map(function (card) { return cleanGuid(card.guid); });
+        }
+        function matchEffects(lower) {
+            var words = lower.split(/\s+/);
+            filteredEffects[lower] = allEffects
+                .filter(function (effect) { return !words.find(function (word) { return !effect.includes(word); }); })
+                .map(function (effect) { return cleanGuid(effect); });
+        }
+        function matchItems(lower) {
+            var words = lower.split(/\s+/);
+            filteredItems[lower] = bh.data.ItemRepo.all
+                .filter(function (item) { return !words.find(function (word) { return !matchItem(item, word); }); })
+                .map(function (item) { return cleanGuid(item.guid); });
         }
         function matchCard(card, lower) {
             return !!getTests(card).find(function (test) { return test.includes(lower); });
         }
-        function mapPerksEffectsToImages(card) {
+        function matchItem(item, lower) {
+            return item.name.includes(lower) || bh.ElementType[item.elementType].toLowerCase().includes(lower) || bh.RarityType[item.rarityType].toLowerCase().includes(lower);
+        }
+        function mapPerksEffects(card) {
             var list = [];
             (card.targets || []).concat(card.effects || []).concat(card.perks || []).forEach(pushItem);
-            return list.filter(function (s) { return !!s.replace(/\W/g, ""); }).map(function (s) { return "<span class=\"card-effect\" title=\"" + s.trim() + "\">" + bh.getImg20("effects", s.replace(/\W/g, "")) + "</span>"; });
+            return list.filter(function (s) { return !!cleanImageName(s); });
             function pushItem(item) {
                 if (item == "MultiFlurry") {
                     pushItem("Multi");
@@ -3415,31 +3459,67 @@ var bh;
                 }
             }
         }
+        function mapPerksEffectsToImages(card) {
+            return mapPerksEffects(card).map(function (s) { return "<span class=\"card-effect\" title=\"" + s.trim() + "\">" + bh.getImg20("effects", cleanImageName(s)) + "</span>"; });
+        }
         function mapMatsToImages(card) {
-            return card.mats.filter(function (s) { return !!s.replace(/\W/g, ""); }).map(function (s) { return "<span class=\"card-mat\" title=\"" + s.trim() + "\">" + bh.getImg20("evojars", s.replace(/\W/g, "")) + "</span>"; });
+            return card.mats.filter(function (s) { return !!cleanImageName(s); }).map(function (s) { return "<span class=\"card-mat\" title=\"" + s.trim() + "\">" + bh.getImg20("evojars", cleanImageName(s)) + "</span>"; });
         }
         function mapHeroesToImages(card) {
             return bh.data.HeroRepo.all
                 .filter(function (hero) { return (card.elementType == bh.ElementType.Neutral || hero.elementType == card.elementType) && hero.klassType == card.klassType; })
-                .map(function (hero) { return bh.getImg20("heroes", hero.name); });
+                .map(function (hero) { return bh.getImg("heroes", hero.name); });
+        }
+        function render() {
+            var cards = bh.data.cards.battle.getAll();
+            renderCards(cards);
+            var effects = [];
+            cards.forEach(function (card) { return mapPerksEffects(card).forEach(function (effect) { return effects.includes(effect) ? void 0 : effects.push(effect); }); });
+            renderEffects(effects.sort());
+            allEffects = effects.map(function (effect) { return effect.toLowerCase(); });
+            renderItems(bh.data.ItemRepo.all);
+            $("div.row.alert-row").remove();
+            $("div.row.table-row").show();
         }
         function renderCards(cards) {
             var tbody = $("table.card-list > tbody");
             cards.forEach(function (card) {
                 getTests(card);
                 var html = "<tr id=\"" + card.guid + "\">";
-                html += "<td><span class=\"card-element\">" + (card.elementType == bh.ElementType.Neutral ? "" : bh.getImg20("elements", bh.ElementType[card.elementType])) + "</span></td>";
-                html += "<td><span class=\"card-klass " + bh.KlassType[card.klassType] + "\">" + bh.getImg20("classes", bh.KlassType[card.klassType]) + "</span></td>";
-                html += "<td><span class=\"card-stars\">" + bh.utils.evoToStars(card.rarityType) + "</span></td>";
+                html += "<td><span class=\"card-cardType\">" + bh.getImg20("cardtypes", card.brag ? "Brag" : "BattleCard") + "</span></td>";
                 html += "<td><span class=\"card-name\"><a class=\"btn btn-link\" data-action=\"show-card\" style=\"padding:0;\">" + card.name + "</a></span></td>";
+                html += "<td><span class=\"card-stars\">" + bh.utils.evoToStars(card.rarityType) + "</span></td>";
+                html += "<td><span class=\"card-element\">" + (card.elementType == bh.ElementType.Neutral ? "" : bh.getImg20("elements", bh.ElementType[card.elementType])) + "</span></td>";
+                html += "<td><span class=\"hidden-xs card-klass " + bh.KlassType[card.klassType] + "\">" + bh.getImg20("classes", bh.KlassType[card.klassType]) + "</span></td>";
                 html += "<td class=\"hidden-xs\"><span class=\"card-heroes\">" + mapHeroesToImages(card).join("") + "</span></td>";
                 html += "<td class=\"hidden-xs\"><span class=\"card-effects\">" + mapPerksEffectsToImages(card).join("") + "</span></td>";
                 html += "<td class=\"hidden-xs\"><span class=\"card-mats\">" + mapMatsToImages(card).join("") + "</span></td>";
+                html += "<td class=\"hidden-xs\" style=\"width:100%;\"></td>";
                 html += "</td></tr>";
                 tbody.append(html);
             });
-            $("div.alert").remove();
-            $("table.table").show();
+        }
+        function renderEffects(effects) {
+            var tbody = $("table.effect-list > tbody");
+            effects.forEach(function (effect) {
+                var html = "<tr id=\"" + cleanGuid(effect).slice(1) + "\">";
+                html += "<td><span class=\"card-icon\">" + bh.getImg20("effects", cleanImageName(effect)) + "</span></td>";
+                html += "<td><span class=\"card-name\">" + effect + "</span></td>";
+                html += "<td class=\"hidden-xs\" style=\"width:100%;\"></td>";
+                html += "</td></tr>";
+                tbody.append(html);
+            });
+        }
+        function renderItems(items) {
+            var tbody = $("table.mat-list > tbody");
+            items.forEach(function (item) {
+                var folder = bh.ItemType[item.itemType].toLowerCase() + "s", name = item.itemType == bh.ItemType.EvoJar ? cleanImageName(item.name) : item.itemType == bh.ItemType.Crystal ? item.name.split(/ /)[0] : cleanImageName(bh.data.HeroRepo.find(item.name.split("'")[0]).abilities[0].name), html = "<tr id=\"" + item.guid + "\">";
+                html += "<td><span class=\"card-icon\">" + bh.getImg20(folder, name) + "</span></td>";
+                html += "<td><span class=\"card-name\">" + item.name + "</span></td>";
+                html += "<td class=\"hidden-xs\" style=\"width:100%;\"></td>";
+                html += "</td></tr>";
+                tbody.append(html);
+            });
         }
     })(library = bh.library || (bh.library = {}));
 })(bh || (bh = {}));
