@@ -173,7 +173,7 @@ namespace bh {
 			return !!getTests(card).find(test => test.includes(lower));
 		}
 		function matchItem(item: IDataInventoryItem, lower: string) {
-			return item.name.includes(lower) || ElementType[item.elementType].toLowerCase().includes(lower) || RarityType[item.rarityType].toLowerCase().includes(lower);
+			return item.lower.includes(lower) || ElementType[item.elementType].toLowerCase().includes(lower) || RarityType[item.rarityType].toLowerCase().includes(lower);
 		}
 
 		function mapPerksEffects(card: IDataBattleCard) {

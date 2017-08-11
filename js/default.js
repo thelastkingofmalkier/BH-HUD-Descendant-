@@ -3441,7 +3441,7 @@ var bh;
             return !!getTests(card).find(function (test) { return test.includes(lower); });
         }
         function matchItem(item, lower) {
-            return item.name.includes(lower) || bh.ElementType[item.elementType].toLowerCase().includes(lower) || bh.RarityType[item.rarityType].toLowerCase().includes(lower);
+            return item.lower.includes(lower) || bh.ElementType[item.elementType].toLowerCase().includes(lower) || bh.RarityType[item.rarityType].toLowerCase().includes(lower);
         }
         function mapPerksEffects(card) {
             var list = [];
