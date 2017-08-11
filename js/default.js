@@ -664,7 +664,7 @@ var bh;
             configurable: true
         });
         Object.defineProperty(Player.prototype, "isMe", {
-            get: function () { return [bh.Messenger.ActivePlayerGuid, "b0a8b57b-54f5-47d8-8b7a-f9dac8300ca0"].includes(this.guid); },
+            get: function () { return bh.Messenger.ActivePlayerGuid == this.guid; },
             enumerable: true,
             configurable: true
         });

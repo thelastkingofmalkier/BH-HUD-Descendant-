@@ -63,7 +63,7 @@ namespace bh {
 		public get canScout() { return this.guid == "b0a8b57b-54f5-47d8-8b7a-f9dac8300ca0"; }
 		public get isExtended() { return !!this._pp; }
 		public get isFullMeat() { return this.heroes.length == data.HeroRepo.length && !this.heroes.find(hero => !hero.isMeat); }
-		public get isMe() { return [Messenger.ActivePlayerGuid, "b0a8b57b-54f5-47d8-8b7a-f9dac8300ca0"].includes(this.guid); }
+		public get isMe() { return Messenger.ActivePlayerGuid == this.guid; }
 		public get name() { return this._pp ? this._pp.name : this._gp && this._gp.name || null; }
 		public get position() { return this._gp && this._gp.position || null; }
 		public get averagePowerPercent() { var percents = this.heroes.map(ph => ph.powerPercent); return Math.floor(percents.reduce((out, p) => out + p, 0) / percents.length); }
