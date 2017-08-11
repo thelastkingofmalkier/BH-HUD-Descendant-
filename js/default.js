@@ -3304,6 +3304,9 @@ var bh;
         function onSearchClear() {
             searching = null;
             $("input.library-search").val("");
+            $("a[href=\"#card-table\"] > span.badge").text(String(bh.data.cards.battle.getAll().length));
+            $("a[href=\"#effect-table\"] > span.badge").text(String(allEffects.length));
+            $("a[href=\"#item-table\"] > span.badge").text(String(bh.data.ItemRepo.length));
             $("tbody > tr[id]").show();
         }
         function onShowCard(ev) {
@@ -3379,25 +3382,31 @@ var bh;
             }, 0, lower);
         }
         function hideShowCards(search) {
+            var badge = $("a[href=\"#card-table\"] > span.badge");
             if (search != searching)
                 return;
             var show = filteredCards[search] || [], hide = bh.data.cards.battle.getAll().map(function (card) { return cleanGuid(card.guid); }).filter(function (guid) { return !show.includes(guid); });
             $(show.join()).show();
             $(hide.join()).hide();
+            badge.text(String(show.length));
         }
         function hideShowEffects(search) {
+            var badge = $("a[href=\"#effect-table\"] > span.badge");
             if (search != searching)
                 return;
             var show = filteredEffects[search] || [], hide = allEffects.map(function (effect) { return cleanGuid(effect); }).filter(function (guid) { return !show.includes(guid); });
             $(show.join()).show();
             $(hide.join()).hide();
+            badge.text(String(show.length));
         }
         function hideShowItems(search) {
+            var badge = $("a[href=\"#item-table\"] > span.badge");
             if (search != searching)
                 return;
             var show = filteredItems[search] || [], hide = bh.data.ItemRepo.all.map(function (item) { return cleanGuid(item.guid); }).filter(function (guid) { return !show.includes(guid); });
             $(show.join()).show();
             $(hide.join()).hide();
+            badge.text(String(show.length));
         }
         var tests = {};
         function getTests(card) {
@@ -3482,6 +3491,7 @@ var bh;
             $("div.row.table-row").show();
         }
         function renderCards(cards) {
+            $("a[href=\"#card-table\"] > span.badge").text(String(cards.length));
             var tbody = $("table.card-list > tbody");
             cards.forEach(function (card) {
                 getTests(card);
@@ -3500,6 +3510,7 @@ var bh;
             });
         }
         function renderEffects(effects) {
+            $("a[href=\"#effect-table\"] > span.badge").text(String(effects.length));
             var tbody = $("table.effect-list > tbody");
             effects.forEach(function (effect) {
                 var html = "<tr id=\"" + cleanGuid(effect).slice(1) + "\">";
@@ -3511,6 +3522,7 @@ var bh;
             });
         }
         function renderItems(items) {
+            $("a[href=\"#item-table\"] > span.badge").text(String(items.length));
             var tbody = $("table.mat-list > tbody");
             items.forEach(function (item) {
                 var folder = bh.ItemType[item.itemType].toLowerCase() + "s", name = item.itemType == bh.ItemType.EvoJar ? cleanImageName(item.name) : item.itemType == bh.ItemType.Crystal ? item.name.split(/ /)[0] : cleanImageName(bh.data.HeroRepo.find(item.name.split("'")[0]).abilities[0].name), html = "<tr id=\"" + item.guid + "\">";

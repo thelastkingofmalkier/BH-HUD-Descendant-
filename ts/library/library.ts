@@ -23,6 +23,9 @@ namespace bh {
 		function onSearchClear() {
 			searching = null;
 			$("input.library-search").val("");
+			$(`a[href="#card-table"] > span.badge`).text(String(data.cards.battle.getAll().length));
+			$(`a[href="#effect-table"] > span.badge`).text(String(allEffects.length));
+			$(`a[href="#item-table"] > span.badge`).text(String(data.ItemRepo.length));
 			$("tbody > tr[id]").show();
 		}
 
@@ -111,25 +114,31 @@ namespace bh {
 			}, 0, lower);
 		}
 		function hideShowCards(search: string) {
+			var badge = $(`a[href="#card-table"] > span.badge`);
 			if (search != searching) return;
 			var show = filteredCards[search] || [],
 				hide = data.cards.battle.getAll().map(card => cleanGuid(card.guid)).filter(guid => !show.includes(guid));
 			$(show.join()).show();
 			$(hide.join()).hide();
+			badge.text(String(show.length));
 		}
 		function hideShowEffects(search: string) {
+			var badge = $(`a[href="#effect-table"] > span.badge`);
 			if (search != searching) return;
 			var show = filteredEffects[search] || [],
 				hide = allEffects.map(effect => cleanGuid(effect)).filter(guid => !show.includes(guid));
 			$(show.join()).show();
 			$(hide.join()).hide();
+			badge.text(String(show.length));
 		}
 		function hideShowItems(search: string) {
+			var badge = $(`a[href="#item-table"] > span.badge`);
 			if (search != searching) return;
 			var show = filteredItems[search] || [],
 				hide = data.ItemRepo.all.map(item => cleanGuid(item.guid)).filter(guid => !show.includes(guid));
 			$(show.join()).show();
 			$(hide.join()).hide();
+			badge.text(String(show.length));
 		}
 
 		var tests: { [guid: string]: string[] } = {};
@@ -221,6 +230,7 @@ namespace bh {
 			$("div.row.table-row").show();
 		}
 		function renderCards(cards: IDataBattleCard[]) {
+			$(`a[href="#card-table"] > span.badge`).text(String(cards.length));
 			var tbody = $("table.card-list > tbody");
 			cards.forEach(card => {
 				getTests(card);
@@ -239,6 +249,7 @@ namespace bh {
 			});
 		}
 		function renderEffects(effects: string[]) {
+			$(`a[href="#effect-table"] > span.badge`).text(String(effects.length));
 			var tbody = $("table.effect-list > tbody");
 			effects.forEach(effect => {
 				var html = `<tr id="${cleanGuid(effect).slice(1)}">`;
@@ -251,6 +262,7 @@ namespace bh {
 			});
 		}
 		function renderItems(items: IDataInventoryItem[]) {
+			$(`a[href="#item-table"] > span.badge`).text(String(items.length));
 			var tbody = $("table.mat-list > tbody");
 			items.forEach(item => {
 				var folder = ItemType[item.itemType].toLowerCase() + "s",
