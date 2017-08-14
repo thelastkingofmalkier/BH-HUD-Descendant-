@@ -133,11 +133,11 @@ namespace bh {
 						content = panel.find(".brain-hud-scouter-panel-content");
 					content.toggleClass("active");
 					break;
-				case "toggle-hud":
-					var visible = $("div.brain-hud-main-container").toggleClass("active").hasClass("active");
-					$("div#brain-hud-container").css("width", visible ? 250 : 25);
-					$("div.brain-hud-header>span.header")[visible?"show":"hide"]();
-					$(`button.brain-hud-toggle[data-action="toggle-hud"]`).text(visible ? "[-]" : "[+]");
+				case "toggle-hud-bigger":
+					hud.resize(true);
+					break;
+				case "toggle-hud-smaller":
+					hud.resize(false);
 					break;
 				case "toggle-guild-scouter":
 					var visible = $("textarea#brain-hud-scouter-guild-report").toggleClass("active").hasClass("active");

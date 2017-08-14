@@ -1,18 +1,56 @@
 namespace bh {
 	export namespace hud {
+		export var WidthDefault = 275;
+		export var WidthCurrent = +localStorage.getItem("BH-HUD-WidthCurrent") || WidthDefault;
+		export var WidthMinimum = 200;
+		export var WidthDelta = 25;
+		export var WidthCollapsed = 25;
 		export function render() {
 			renderBootstrapCss();
 			renderHtml();
+			postResize();
 			events.init();
+		}
+		export function resize(bigger: boolean) {
+			if (bigger) {
+				WidthCurrent += WidthDelta;
+				if (WidthCurrent < WidthMinimum) {
+					WidthCurrent = WidthMinimum;
+				}
+			}else if (!bigger) {
+				WidthCurrent -= WidthDelta;
+				if (WidthCurrent && WidthCurrent < WidthMinimum) {
+					WidthCurrent = WidthCollapsed;
+				}
+				if (!WidthCurrent) {
+					WidthCurrent = WidthCollapsed;
+				}
+			}
+			localStorage.setItem("BH-HUD-WidthCurrent", String(WidthCurrent));
+			postResize();
+		}
+		function postResize() {
+			var visible = WidthCurrent != WidthCollapsed;
+			$("div#brain-hud-container").css("width", WidthCurrent);
+			$("div.brain-hud-main-container")[visible ? "addClass" : "removeClass"]("active");
+			$("div.brain-hud-header>span.header")[visible ? "show" : "hide"]();
+			$(`div.brain-hud-header>span[data-action="toggle-hud-smaller"]`)[visible ? "show" : "hide"]();
+
+			$("div#brain-hud-container").css("width", WidthCurrent);
+			$("div#brain-hud-container").css("max-height", jQuery(window).height() - 10);
+			$("div.brain-hud-container select").css("width", WidthCurrent - 70);
+			$("div.brain-hud-container textarea").css("width", WidthCurrent - 10);
+			$("div.brain-hud-scouter-panel-header > button").css("width", WidthCurrent - 10);
+			$("div.brain-hud-scouter-panel-header > button > span.hero-rating-bar").css("width", WidthCurrent - 205);
 		}
 		function renderCss() {
 var css = `<style id="brain-hud-styles" type="text/css">
-div.brain-hud-container { font-size:8pt; position:fixed; top:0; right:0; width:275px; background:#FFF; color:#000; border:2px solid #000; z-index:9999; padding:2px; max-height:${jQuery(window).height()-10}px; overflow:auto; }
+div.brain-hud-container { font-size:8pt; position:fixed; top:0; right:0; width:${WidthCurrent}px; background:#FFF; color:#000; border:2px solid #000; z-index:9999; padding:2px; max-height:${jQuery(window).height()-10}px; overflow:auto; }
 div.brain-hud-container div { clear:both; }
 div.brain-hud-container table { width:100%; margin:0; padding:0; border:0; }
 div.brain-hud-container td { padding:0; margin:0; border:0; }
-div.brain-hud-container select { width:205px; }
-div.brain-hud-container textarea { width:265px; font-size:8pt; display:none; }
+div.brain-hud-container select { width:${WidthCurrent-70}px; }
+div.brain-hud-container textarea { width:${WidthCurrent-10}px; font-size:8pt; display:none; }
 
 div.brain-hud-container .Air { background-color:#f3f3f3; }
 div.brain-hud-container .Earth { background-color:#e0eed5; }
@@ -39,14 +77,14 @@ div.brain-hud-scouter-player-report { display:none; padding:0 2px; text-align:le
 div.brain-hud-scouter-player > div.player-name { font-size:10pt; font-weight:bold; text-align:center; }
 
 div.brain-hud-scouter-panel-header { padding:2px 0 0 0; }
-div.brain-hud-scouter-panel-header > button { cursor:default; border:0; width:265px; text-align:left; padding:0; margin:0; }
+div.brain-hud-scouter-panel-header > button { cursor:default; border:0; width:${WidthCurrent-10}px; text-align:left; padding:0; margin:0; }
 div.brain-hud-scouter-panel-header > button[data-action] { cursor:pointer; }
 div.brain-hud-scouter-panel-header > button > span.hero-icon { display:inline-block; width:20px; text-align:center; }
 div.brain-hud-scouter-panel-header > button > span.hero-level { display:inline-block; width:30px; text-align:right; }
 div.brain-hud-scouter-panel-header > button > span.hero-name { display:inline-block; width:60px; }
-div.brain-hud-scouter-panel-header > button > span.hero-hp { display:inline-block; width:50px; text-align:center; }
-div.brain-hud-scouter-panel-header > button > span.hero-rating-bar { display:inline-block; width:60px; }
-div.brain-hud-scouter-panel-header > button > span.hero-rating { display:inline-block; width:35px; text-align:right; font-size:8pt; vertical-align:top; }
+div.brain-hud-scouter-panel-header > button > span.hero-hp { display:inline-block; width:50px; text-align:center; overflow:hidden; }
+div.brain-hud-scouter-panel-header > button > span.hero-rating-bar { display:inline-block; width:${WidthCurrent-205}px; }
+div.brain-hud-scouter-panel-header > button > span.hero-rating { display:inline-block; width:30px; text-align:right; font-size:8pt; vertical-align:top; }
 
 div.brain-hud-inventory-buttons { text-align:center; }
 
@@ -87,7 +125,8 @@ div.brain-hud-container [data-action="sort-heroes"] { cursor:pointer; }
 		}
 		function renderHtml() {
 			var html = `<div class="brain-hud-header">
-	<button class="bs-btn bs-btn-link bs-btn-xs brain-hud-toggle pull-right" data-action="toggle-hud">[-]</button>
+	<button class="bs-btn bs-btn-link bs-btn-xs brain-hud-toggle pull-left" data-action="toggle-hud-bigger">[+]</button>
+	<button class="bs-btn bs-btn-link bs-btn-xs brain-hud-toggle pull-right" data-action="toggle-hud-smaller">[-]</button>
 	<span class="header">The Brain BattleHand HUD</span>
 </div>
 <div class="brain-hud-main-container active">
