@@ -847,8 +847,8 @@ var bh;
                             html += bh.PlayerInventoryItem.toRowHtml(item, item.count, recipeItem.max * _this.count);
                         }
                     });
-                    var wcNeeded = bh.data.getMaxWildCardsNeeded(this) * this.count, wcOwned = me.wildCards[this.rarityType] && me.wildCards[this.rarityType].count || 0, wcColor = wcOwned < wcNeeded ? "bg-danger" : "bg-success";
-                    html += "<div>" + bh.getImg20("cardtypes", "WildCard") + " " + bh.RarityType[this.rarityType] + " WC <span class=\"badge pull-right " + wcColor + "\">" + bh.utils.formatNumber(wcOwned) + " / " + bh.utils.formatNumber(wcNeeded) + "</span></div>";
+                    var wcNeeded = bh.data.getMaxWildCardsNeeded(this) * this.count, wc = me.wildCards[this.rarityType], iwc = !wc && bh.data.WildCardRepo.find(bh.RarityType[this.rarityType]) || null, wcOwned = wc && me.wildCards[this.rarityType].count || 0;
+                    html += bh.PlayerWildCard.toRowHtml(wc || iwc, wcOwned, wcNeeded);
                     var runesNeeded = bh.data.calcMaxRunesNeeded(this.playerCard, this.evoLevel), rune = me.inventory.find(function (item) { return item.isRune && _this.matchesHero(bh.data.HeroRepo.find(item.name.split("'")[0])); }), runesOwned = rune && rune.count || 0;
                     if (runesNeeded && rune) {
                         html += bh.PlayerInventoryItem.toRowHtml(rune, runesOwned, runesNeeded);
@@ -1810,6 +1810,10 @@ var bh;
             enumerable: true,
             configurable: true
         });
+        PlayerWildCard.toRowHtml = function (wc, count, needed) {
+            var image = bh.getImg20("cardtypes", "WildCard"), color = count < needed ? "bg-danger" : "bg-success", badge = "<span class=\"badge pull-right " + color + "\">" + bh.utils.formatNumber(count) + " / " + bh.utils.formatNumber(needed) + "</span>";
+            return "<div>" + image + " " + wc.name + " WC " + badge + "</div>";
+        };
         return PlayerWildCard;
     }());
     bh.PlayerWildCard = PlayerWildCard;
