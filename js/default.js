@@ -842,11 +842,21 @@ var bh;
                     var goldNeeded = bh.data.calcMaxGoldNeeded(this.playerCard, this.evoLevel) * this.count, goldOwned = me.gold, goldColor = goldOwned < goldNeeded ? "bg-danger" : "bg-success";
                     html += "<div>" + bh.getImg20("misc", "Coin") + " Gold <span class=\"badge pull-right " + goldColor + "\">" + bh.utils.formatNumber(goldOwned) + " / " + bh.utils.formatNumber(goldNeeded) + "</span></div>";
                     activeRecipe.all.forEach(function (recipeItem) {
-                        var item = me.inventory.find(function (item) { return item.guid == recipeItem.item.guid; });
-                        html += bh.PlayerInventoryItem.toRowHtml(item, item.count, recipeItem.max * _this.count);
+                        if (recipeItem.max) {
+                            var item = me.inventory.find(function (item) { return item.guid == recipeItem.item.guid; });
+                            html += bh.PlayerInventoryItem.toRowHtml(item, item.count, recipeItem.max * _this.count);
+                        }
                     });
                     var wcNeeded = bh.data.getMaxWildCardsNeeded(this) * this.count, wcOwned = me.wildCards[this.rarityType] && me.wildCards[this.rarityType].count || 0, wcColor = wcOwned < wcNeeded ? "bg-danger" : "bg-success";
                     html += "<div>" + bh.getImg20("cardtypes", "WildCard") + " " + bh.RarityType[this.rarityType] + " WC <span class=\"badge pull-right " + wcColor + "\">" + bh.utils.formatNumber(wcOwned) + " / " + bh.utils.formatNumber(wcNeeded) + "</span></div>";
+                    var runesNeeded = bh.data.calcMaxRunesNeeded(this.playerCard, this.evoLevel), rune = me.inventory.find(function (item) { return item.isRune && _this.matchesHero(bh.data.HeroRepo.find(item.name.split("'")[0])); }), runesOwned = rune && rune.count || 0;
+                    if (runesNeeded && rune) {
+                        html += bh.PlayerInventoryItem.toRowHtml(rune, runesOwned, runesNeeded);
+                    }
+                    var crystalsNeeded = bh.data.calcMaxCrystalsNeeded(this.playerCard, this.evoLevel), crystal = me.inventory.find(function (item) { return item.isCrystal && _this.elementType == item.elementType; }), crystalsOwned = crystal && crystal.count || 0;
+                    if (crystalsNeeded && crystal) {
+                        html += bh.PlayerInventoryItem.toRowHtml(crystal, crystalsOwned, crystalsNeeded);
+                    }
                 }
             }
             return html;
@@ -3131,7 +3141,9 @@ var bh;
                         .sort(function (a, b) { return a.text < b.text ? -1 : a.text == b.text ? 0 : 1; })
                         .forEach(function (el) { return select.append(el); });
                 }
-                bh.data.PlayerRepo.put(player);
+                if (!player.isMe || player.isExtended) {
+                    bh.data.PlayerRepo.put(player);
+                }
                 hud.scouter.loadPlayer(player);
                 if (player.isMe) {
                     loadPlayer(player);
@@ -3195,7 +3207,7 @@ var bh;
                 });
             }
             player_1.playerGet = playerGet;
-            hud.listener.addAction("refresh-player", null, function (message) { console.log("refresh-player: " + (message && message.data)); playerGet(message.data); });
+            hud.listener.addAction("refresh-player", null, function (message) { playerGet(message.data); });
         })(player = hud.player || (hud.player = {}));
     })(hud = bh.hud || (bh.hud = {}));
 })(bh || (bh = {}));

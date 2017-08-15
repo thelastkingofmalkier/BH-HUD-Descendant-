@@ -13,14 +13,33 @@ namespace bh {
 						goldOwned = me.gold,
 						goldColor = goldOwned < goldNeeded ? `bg-danger` : `bg-success`;
 					html += `<div>${getImg20("misc", "Coin")} Gold <span class="badge pull-right ${goldColor}">${utils.formatNumber(goldOwned)} / ${utils.formatNumber(goldNeeded)}</span></div>`;
+
 					activeRecipe.all.forEach(recipeItem => {
-						var item = me.inventory.find(item => item.guid == recipeItem.item.guid);
-						html += PlayerInventoryItem.toRowHtml(item, item.count, recipeItem.max * this.count);
+						if (recipeItem.max) {
+							var item = me.inventory.find(item => item.guid == recipeItem.item.guid);
+							html += PlayerInventoryItem.toRowHtml(item, item.count, recipeItem.max * this.count);
+						}
 					});
+
 					var wcNeeded = data.getMaxWildCardsNeeded(this) * this.count,
-						wcOwned = me.wildCards[this.rarityType] && me.wildCards[this.rarityType].count || 0,
-						wcColor = wcOwned < wcNeeded ? `bg-danger` : `bg-success`;
-					html += `<div>${getImg20("cardtypes", "WildCard")} ${RarityType[this.rarityType]} WC <span class="badge pull-right ${wcColor}">${utils.formatNumber(wcOwned)} / ${utils.formatNumber(wcNeeded)}</span></div>`;
+						wc = me.wildCards[this.rarityType],
+						iwc = !wc && data.WildCardRepo.find(RarityType[this.rarityType]) || null,
+						wcOwned = wc && me.wildCards[this.rarityType].count || 0;
+					html += PlayerWildCard.toRowHtml(wc || iwc, wcOwned, wcNeeded);
+
+					var runesNeeded = data.calcMaxRunesNeeded(this.playerCard, this.evoLevel),
+						rune = me.inventory.find(item => item.isRune && this.matchesHero(data.HeroRepo.find(item.name.split("'")[0]))),
+						runesOwned = rune && rune.count || 0;
+					if (runesNeeded && rune) {
+						html += PlayerInventoryItem.toRowHtml(rune, runesOwned, runesNeeded);
+					}
+
+					var crystalsNeeded = data.calcMaxCrystalsNeeded(this.playerCard, this.evoLevel),
+						crystal = me.inventory.find(item => item.isCrystal && this.elementType == item.elementType),
+						crystalsOwned = crystal && crystal.count || 0;
+					if (crystalsNeeded && crystal) {
+						html += PlayerInventoryItem.toRowHtml(crystal, crystalsOwned, crystalsNeeded);
+					}
 				}
 			}
 			return html;

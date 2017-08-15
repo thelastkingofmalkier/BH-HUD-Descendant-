@@ -39,5 +39,12 @@ namespace bh {
 			return `<div data-type="${this.type}" data-rarity-type="${this.rarityType}"><div>${html} ${expander}</div>${children}</div>`;
 		}
 		public type = "WildCard";
+
+		public static toRowHtml(wc: PlayerWildCard | IDataWildCard, count: number, needed: number) {
+			var image = getImg20("cardtypes", "WildCard"),
+				color = count < needed ? "bg-danger" : "bg-success",
+				badge = `<span class="badge pull-right ${color}">${utils.formatNumber(count)} / ${utils.formatNumber(needed)}</span>`;
+			return `<div>${image} ${wc.name} WC ${badge}</div>`;
+		}
 	}
 }
