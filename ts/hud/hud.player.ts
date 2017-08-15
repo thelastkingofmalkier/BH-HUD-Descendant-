@@ -34,8 +34,12 @@ namespace bh {
 						.sort((a: HTMLOptionElement, b: HTMLOptionElement) => { return a.text < b.text ? -1 : a.text == b.text ? 0 : 1 })
 						.forEach(el => select.append(el));
 				}
-				data.PlayerRepo.put(player);
+
+				if (!player.isMe || player.isExtended) {
+					data.PlayerRepo.put(player);
+				}
 				scouter.loadPlayer(player);
+
 				if (player.isMe) {
 					loadPlayer(player);
 					var guilds = player.guilds;
@@ -90,7 +94,7 @@ namespace bh {
 					}, rej);
 				});
 			}
-			listener.addAction("refresh-player", null, message => { console.log(`refresh-player: ${message&&message.data}`); playerGet(message.data); });
+			listener.addAction("refresh-player", null, message => { playerGet(message.data); });
 		}
 	}
 }
