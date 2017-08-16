@@ -47,11 +47,11 @@ namespace bh {
 				export function evoMultiplier(fromEvo: number) {
 					return [0.80, 0.85, 0.88, 0.90, 1.0][fromEvo];
 				}
-				export function calculateValue(playerCard: IPlayer.PlayerCard): number {
+				export function calculateValue(playerCard: IPlayer.PlayerCard, typeIndex = 0): number {
 					var card = find(playerCard.configId);
 					if (!card) return 0;
-					var min = card.minValues[0][playerCard.evolutionLevel],
-						delta = calcDelta(card.minValues[0].slice().pop(), card.maxValues[0], card.rarityType);
+					var min = card.minValues[typeIndex][playerCard.evolutionLevel],
+						delta = calcDelta(card.minValues[typeIndex].slice().pop(), card.maxValues[typeIndex], card.rarityType);
 					return Math.floor(min + delta * playerCard.level);
 				}
 

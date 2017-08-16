@@ -29,6 +29,17 @@ namespace bh {
 			$("tbody > tr[id]").show();
 		}
 
+		function getMinValue(card: IDataBattleCard, typeIndex: number) {
+			var playerCard = { configId:card.guid, evolutionLevel:0, level:0 };
+			return data.cards.battle.calculateValue(<any>playerCard, typeIndex);
+		}
+		function getMaxValue(card: IDataBattleCard, typeIndex: number) {
+			var maxEvo = card.rarityType + 1,
+				maxLevel = data.cards.battle.levelsPerRarity(card.rarityType) - 1;
+			var playerCard = { configId:card.guid, evolutionLevel:maxEvo, level:maxLevel };
+			return data.cards.battle.calculateValue(<any>playerCard, typeIndex);
+		}
+
 		function onShowCard(ev: JQueryEventObject) {
 			var link = $(ev.target),
 				tr = link.closest("tr"),
@@ -45,7 +56,7 @@ namespace bh {
 			$(`#card-klass`).html(getImg20("classes", KlassType[card.klassType]) + " " + KlassType[card.klassType]);
 			$(`#card-klass`).removeClass("Magic Might Skill").addClass(KlassType[card.klassType]);
 			$(`#card-rarity`).html(utils.evoToStars(card.rarityType) + " " + RarityType[card.rarityType]);
-			$(`#card-types`).html(card.types.map(type => getImg20("cardtypes", type) + " " + type).join("<br/>"));
+			$(`#card-types`).html(card.types.map((type, typeIndex) => getImg20("cardtypes", type) + ` ${type} (${utils.formatNumber(getMinValue(card, typeIndex))} - ${utils.formatNumber(getMaxValue(card, typeIndex))})`).join("<br/>"));
 			$(`#card-turns`).html(String(card.turns));
 			$(`div.panel-card span.card-targets`).html(card.targets.join());
 			$(`div.panel-card span.card-brag`).html(String(card.brag));
@@ -58,7 +69,9 @@ namespace bh {
 			$(`#card-mats`).html(card.mats.map(mat => getImg20("evojars", cleanImageName(mat)) + " " + mat).join("<br/>"));
 
 			var recipe = new Recipe(card),
-				tabs = $("#card-evolution > ul.nav > li").toArray();
+				minGold = 0,
+				maxGold = 0,
+			tabs = $("#card-evolution > ul.nav > li").toArray();
 			[0,1,2,3,4].forEach(index => {
 				var evo = recipe.evos[index],
 					target = `#evo-${index}-${index+1}`,
@@ -69,9 +82,14 @@ namespace bh {
 					return;
 				}
 
-				var html = ``;
+				var html = ``,
+					minGp = data.getMinGoldNeeded(card.rarityType, evo.evoFrom),
+					maxGp = data.getMaxGoldNeeded(card.rarityType, evo.evoFrom);
 
-				html += evoRow(getImg("misc", "Coin"), "Gold", data.getMinGoldNeeded(card.rarityType, evo.evoFrom), data.getMaxGoldNeeded(card.rarityType, evo.evoFrom));
+				minGold += minGp;
+				maxGold += maxGp;
+
+				html += evoRow(getImg("misc", "Coin"), "Gold", minGp, maxGp);
 
 				evo.items.filter(item => !!item.max)
 					.forEach(item => html += evoRow(getImg20("evojars", cleanImageName(item.item.name)), item.item.name, item.min, item.max));
@@ -86,6 +104,20 @@ namespace bh {
 
 				$(`${target} tbody`).html(html);
 			});
+
+			var allEvos = recipe.all,
+				allTBody = $("#evo-all tbody").html("");
+			allTBody.append(evoRow(getImg("misc", "Coin"), "Gold", minGold, maxGold));
+			recipe.all.forEach(item => {
+				allTBody.append(evoRow(getImg20("evojars", cleanImageName(item.item.name)), item.item.name, item.min, item.max));
+			});
+			if (card.rarityType == RarityType.Legendary) {
+				var crystal = data.ItemRepo.crystals.find(item => item.elementType == card.elementType),
+					hero = data.HeroRepo.all.find(hero => hero.elementType == card.elementType && hero.klassType == card.klassType),
+					rune = data.ItemRepo.runes.find(item => item.name.startsWith(hero.name));
+				allTBody.append(evoRow(getImg20("crystals", ElementType[card.elementType]), crystal.name, data.getMinCrystalsNeeded(card.rarityType, 0), data.getMaxCrystalsNeeded(card.rarityType, 4)));
+				allTBody.append(evoRow(getImg20("runes", cleanImageName(hero.trait.name)), rune.name, data.getMinRunesNeeded(card.rarityType, 0), data.getMaxRunesNeeded(card.rarityType, 4)));
+			}
 
 			$("#card-evolution .active").removeClass("active");
 			$("#card-evolution > ul.nav > li").first().addClass("active");
