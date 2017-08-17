@@ -227,6 +227,10 @@ namespace bh {
 				.map(hero => getImg("heroes", hero.name));
 		}
 
+		function mapRarityToStars(rarityType: RarityType) {
+			return `<span class="stars" title="${RarityType[rarityType]}" data-toggle="tooltip" data-placement="top">${utils.evoToStars(rarityType)}</span>`;
+		}
+
 		function render() {
 			renderCards();
 			renderEffects();
@@ -245,7 +249,7 @@ namespace bh {
 				var html = `<tr id="${card.guid}">`;
 					html += `<td><span class="card-cardType">${getImg20("cardtypes", card.brag?"Brag":"BattleCard")}</span></td>`;
 					html += `<td><span class="card-name"><a class="btn btn-link" data-action="show-card" style="padding:0;">${card.name}</a></span></td>`;
-					html += `<td><span class="card-stars">${utils.evoToStars(card.rarityType)}</span></td>`;
+					html += `<td>${mapRarityToStars(card.rarityType)}</td>`;
 					html += `<td><span class="card-element">${ElementRepo.toImage(card.elementType)}</span></td>`;
 					html += `<td><span class="hidden-xs card-klass ${KlassType[card.klassType]}">${KlassRepo.toImage(card.klassType)}</span></td>`;
 					html += `<td class="hidden-xs"><span class="card-heroes">${mapHeroesToImages(card).join("")}</span></td>`;
@@ -264,8 +268,8 @@ namespace bh {
 				setEffectTests(effect);
 				var html = `<tr id="${effect.guid}">`;
 					html += `<td><span class="card-icon">${EffectRepo.toImage(effect)}</span></td>`;
-					html += `<td><span class="card-name">${effect.name}</span></td>`;
-					html += `<td style="width:100%;"><span class="card-description">${effect.description}</span></td>`;
+					html += `<td><span class="card-name">${effect.name}</span><div class="visible-xs-block" style="border-top:1px dotted #666;">${effect.description}</div></td>`;
+					html += `<td class="hidden-xs" style="width:100%;"><span class="card-description">${effect.description}</span></td>`;
 					// html += `<td><span class="card-name"><a class="btn btn-link" data-action="show-effect" style="padding:0;">${effect}</a></span></td>`;
 					// html += `<td class="hidden-xs" style="width:100%;"></td>`;
 					html += "</td></tr>";
@@ -281,6 +285,7 @@ namespace bh {
 				var html = `<tr id="${item.guid}">`;
 				html += `<td><span class="card-icon">${ItemRepo.toImage(item)}</span></td>`;
 				html += `<td><span class="card-name">${item.name}</span></td>`;
+				html += `<td>${mapRarityToStars(item.rarityType)}</td>`;
 				// html += `<td><span class="card-name"><a class="btn btn-link" data-action="show-effect" style="padding:0;">${mat}</a></span></td>`;
 				html += `<td class="hidden-xs" style="width:100%;"></td>`;
 				html += "</td></tr>";

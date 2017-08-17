@@ -745,7 +745,7 @@ var bh;
         Object.defineProperty(Player.prototype, "isAlly", {
             get: function () {
                 var _this = this;
-                return this.fromCache("isAlly", function () { return !!Player.me.guilds.find(function (g) { return g.guid == _this.guildGuid; }); });
+                return this.fromCache("isAlly", function () { return !!(Player.me && Player.me.guilds || []).find(function (g) { return g.guid == _this.guildGuid; }); });
             },
             enumerable: true,
             configurable: true
@@ -3620,6 +3620,9 @@ var bh;
                 .filter(function (hero) { return (card.elementType == bh.ElementType.Neutral || hero.elementType == card.elementType) && hero.klassType == card.klassType; })
                 .map(function (hero) { return bh.getImg("heroes", hero.name); });
         }
+        function mapRarityToStars(rarityType) {
+            return "<span class=\"stars\" title=\"" + bh.RarityType[rarityType] + "\" data-toggle=\"tooltip\" data-placement=\"top\">" + bh.utils.evoToStars(rarityType) + "</span>";
+        }
         function render() {
             renderCards();
             renderEffects();
@@ -3637,7 +3640,7 @@ var bh;
                 var html = "<tr id=\"" + card.guid + "\">";
                 html += "<td><span class=\"card-cardType\">" + bh.getImg20("cardtypes", card.brag ? "Brag" : "BattleCard") + "</span></td>";
                 html += "<td><span class=\"card-name\"><a class=\"btn btn-link\" data-action=\"show-card\" style=\"padding:0;\">" + card.name + "</a></span></td>";
-                html += "<td><span class=\"card-stars\">" + bh.utils.evoToStars(card.rarityType) + "</span></td>";
+                html += "<td>" + mapRarityToStars(card.rarityType) + "</td>";
                 html += "<td><span class=\"card-element\">" + bh.ElementRepo.toImage(card.elementType) + "</span></td>";
                 html += "<td><span class=\"hidden-xs card-klass " + bh.KlassType[card.klassType] + "\">" + bh.KlassRepo.toImage(card.klassType) + "</span></td>";
                 html += "<td class=\"hidden-xs\"><span class=\"card-heroes\">" + mapHeroesToImages(card).join("") + "</span></td>";
@@ -3656,8 +3659,8 @@ var bh;
                 setEffectTests(effect);
                 var html = "<tr id=\"" + effect.guid + "\">";
                 html += "<td><span class=\"card-icon\">" + bh.EffectRepo.toImage(effect) + "</span></td>";
-                html += "<td><span class=\"card-name\">" + effect.name + "</span></td>";
-                html += "<td style=\"width:100%;\"><span class=\"card-description\">" + effect.description + "</span></td>";
+                html += "<td><span class=\"card-name\">" + effect.name + "</span><div class=\"visible-xs-block\" style=\"border-top:1px dotted #666;\">" + effect.description + "</div></td>";
+                html += "<td class=\"hidden-xs\" style=\"width:100%;\"><span class=\"card-description\">" + effect.description + "</span></td>";
                 html += "</td></tr>";
                 tbody.append(html);
             });
@@ -3671,6 +3674,7 @@ var bh;
                 var html = "<tr id=\"" + item.guid + "\">";
                 html += "<td><span class=\"card-icon\">" + bh.ItemRepo.toImage(item) + "</span></td>";
                 html += "<td><span class=\"card-name\">" + item.name + "</span></td>";
+                html += "<td>" + mapRarityToStars(item.rarityType) + "</td>";
                 html += "<td class=\"hidden-xs\" style=\"width:100%;\"></td>";
                 html += "</td></tr>";
                 tbody.append(html);

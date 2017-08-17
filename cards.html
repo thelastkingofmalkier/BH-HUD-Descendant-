@@ -2,50 +2,55 @@
 <html>
 	<head>
 		<meta charset="UTF-16" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+
+		<title>The BattleHand Card Library</title>
+
 		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css"/>
+
 		<script type="text/javascript" src="https://code.jquery.com/jquery-2.2.0.min.js"></script>
 		<script type="text/javascript" src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
 		<!-- <script type="text/javascript" src="./js/data.all.js"></script> -->
-		<script type="text/javascript" src="./js/default.min.js"></script>
+		<script type="text/javascript" src="./js/default.js"></script>
 		<script>
 			$(function() { bh.library.init(); });
 		</script>
+
 		<style type="text/css">
-		body { padding:5px; }
-		span.card-element { display:inline-block; width:20px; text-align:center; }
-		span.card-klass { display:inline-block; width:20px; text-align:center; }
-		span.card-stars { display:inline-block; width:75px; text-align:center; }
-		span.card-name { display:inline-block; width:175px; }
-		span.card-effects { display:inline-block; width:125px; }
-		span.card-mats { display:inline-block; width:100px; }
-		span.evo-star { font-size:8pt; color: gold; text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black; }
-		img { height:16px; width:16px; }
-		#card-image { height:250px; width:200px; float:right; }
-		img.icon-12 { height:12px; width:12px; }
-		img.icon-20 { height:20px; width:20px; }
-		.card-klass { text-align:center; width:20px; }
-		.Magic > img { width:18px; }
-		.Skill > img, .Might > img { width:15px; }
-		.form-group { margin-bottom:0; }
-		.form-horizontal .form-group:after { clear:none; }
-		#card-evolution th.icon, #card-evolution td.icon { width:30px; text-align:center; }
-		#card-evolution th.min, #card-evolution td.min { width:75px; text-align:center; }
-		#card-evolution th.max, #card-evolution td.max { width:75px; text-align:center; }
-		#card-name > img { height:24px; width:24px; }
-		table.card-list td > span { white-space: nowrap; }
-		@media screen and (max-width:767px) {
-			body > div.container-fluid { padding:0; }
-			body > div.container-fluid > div.row { margin:0; }
-			.table-condensed > tbody > tr > td { padding:2px; }
-			ul.nav.nav-pills li { display: table-cell; width: 1%; }
-			ul.nav.nav-pills li.disabled { display:none; }
-			li.search-tab { width:50%; }
-		}
-		@media screen and (min-width:768px) {
-			li.search-tab { width:33%; }
-		}
+			body { padding:5px; }
+			span.card-element { display:inline-block; width:20px; text-align:center; }
+			span.card-klass { display:inline-block; width:20px; text-align:center; }
+			span.stars { display:inline-block; width:50px; text-align:center; }
+			span.card-name { display:inline-block; width:175px; }
+			span.card-effects { display:inline-block; width:125px; }
+			span.card-mats { display:inline-block; width:100px; }
+			span.evo-star { font-size:6pt; color: gold; text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black; }
+			img { height:16px; width:16px; }
+			#card-image { height:250px; width:200px; float:right; }
+			img.icon-12 { height:12px; width:12px; }
+			img.icon-20 { height:20px; width:20px; }
+			.card-klass { text-align:center; width:20px; }
+			.Magic > img { width:18px; }
+			.Skill > img, .Might > img { width:15px; }
+			.form-group { margin-bottom:0; }
+			.form-horizontal .form-group:after { clear:none; }
+			#card-evolution th.icon, #card-evolution td.icon { width:30px; text-align:center; }
+			#card-evolution th.min, #card-evolution td.min { width:75px; text-align:center; }
+			#card-evolution th.max, #card-evolution td.max { width:75px; text-align:center; }
+			#card-name > img { height:24px; width:24px; }
+			table.card-list td > span { white-space: nowrap; }
+			@media screen and (max-width:767px) {
+				body > div.container-fluid { padding:0; }
+				body > div.container-fluid > div.row { margin:0; }
+				.table-condensed > tbody > tr > td { padding:2px; }
+				ul.nav.nav-tabs > li > a { padding:5px 10px; }
+				ul.nav.nav-pills li { display: table-cell; width: 1%; }
+				ul.nav.nav-pills > li > a { padding:5px 10px; }
+				ul.nav.nav-pills li.disabled { display:none; }
+			}
+			@media screen and (min-width:768px) {
+			}
 		</style>
-		<title>The BattleHand Card Library</title>
 	</head>
 	<body>
 
@@ -57,9 +62,9 @@
 			</div>
 			<div class="row table-row" style="display:none;">
 				<ul class="nav nav-tabs" role="tablist">
-					<li role="presentation" class="active"><a href="#card-table" aria-controls="card-table" role="tab" data-toggle="tab">Battle Cards <span class="badge">0</span></a></li>
+					<li role="presentation" class="active"><a href="#card-table" aria-controls="card-table" role="tab" data-toggle="tab"><span class="hidden-xs">Battle</span> Cards <span class="badge">0</span></a></li>
 					<li role="presentation"><a href="#effect-table" aria-controls="effect-table" role="tab" data-toggle="tab">Effects <span class="badge">0</span></a></li>
-					<li role="presentation"><a href="#item-table" aria-controls="item-table" role="tab" data-toggle="tab">Materials <span class="badge">0</span></a></li>
+					<li role="presentation"><a href="#item-table" aria-controls="item-table" role="tab" data-toggle="tab">Mat<span class="hidden-xs">erial</span>s <span class="badge">0</span></a></li>
 					<li class="pull-right search-tab hidden-xs">
 						<div class="input-group input-group-sm">
 							<input type="text" class="form-control library-search" placeholder="Search for...">
