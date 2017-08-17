@@ -186,11 +186,26 @@ namespace bh {
 			}
 			return tests[item.guid] || [];
 		}
+
+		var elementLowers = [ElementType.Air, ElementType.Earth, ElementType.Fire, ElementType.Neutral, ElementType.Spirit, ElementType.Water].map(type => ElementType[type].toLowerCase());
+		var rarityLowers = [RarityType.Common, RarityType.Uncommon, RarityType.Rare, RarityType.SuperRare, RarityType.Legendary].map(type => RarityType[type].toLowerCase());
+		var heroNameLowers: string[] = null;
+		function matchTests(which: FilterType, tests: string[], word: string) {
+			if (which == "effect") return matchTestsIncludes(tests, word);
+			if (!heroNameLowers) heroNameLowers = data.HeroRepo.all.map(hero => hero.lower);
+			return elementLowers.includes(word) || rarityLowers.includes(word) || heroNameLowers.includes(word) ? matchTestsEquals(tests, word) : matchTestsIncludes(tests, word);
+		}
+		function matchTestsEquals(tests: string[], word: string) {
+			return tests.find(test => test == word);
+		}
+		function matchTestsIncludes(tests: string[], word: string) {
+			return tests.find(test => test.includes(word));
+		}
 		function matchAndToggle(which: FilterType, search: string) {
 			if (!filtered[which][search]) {
 				var words = search.split(/\s+/);
 				filtered[which][search] = getAll(which)
-					.filter(item => !words.find(word => !(tests[item.guid] || []).find(test => test.includes(word))))
+					.filter(item => !words.find(word => !matchTests(which, tests[item.guid] || [], word)))
 					.map(item => item.guid);
 			}
 

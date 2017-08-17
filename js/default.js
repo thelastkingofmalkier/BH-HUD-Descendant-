@@ -3588,11 +3588,27 @@ var bh;
             }
             return tests[item.guid] || [];
         }
+        var elementLowers = [bh.ElementType.Air, bh.ElementType.Earth, bh.ElementType.Fire, bh.ElementType.Neutral, bh.ElementType.Spirit, bh.ElementType.Water].map(function (type) { return bh.ElementType[type].toLowerCase(); });
+        var rarityLowers = [bh.RarityType.Common, bh.RarityType.Uncommon, bh.RarityType.Rare, bh.RarityType.SuperRare, bh.RarityType.Legendary].map(function (type) { return bh.RarityType[type].toLowerCase(); });
+        var heroNameLowers = null;
+        function matchTests(which, tests, word) {
+            if (!heroNameLowers)
+                heroNameLowers = bh.data.HeroRepo.all.map(function (hero) { return hero.lower; });
+            if (which == "effect")
+                return matchTestsIncludes(tests, word);
+            return elementLowers.includes(word) || rarityLowers.includes(word) || heroNameLowers.includes(word) ? matchTestsEquals(tests, word) : matchTestsIncludes(tests, word);
+        }
+        function matchTestsEquals(tests, word) {
+            return tests.find(function (test) { return test == word; });
+        }
+        function matchTestsIncludes(tests, word) {
+            return tests.find(function (test) { return test.includes(word); });
+        }
         function matchAndToggle(which, search) {
             if (!filtered[which][search]) {
                 var words = search.split(/\s+/);
                 filtered[which][search] = getAll(which)
-                    .filter(function (item) { return !words.find(function (word) { return !(tests[item.guid] || []).find(function (test) { return test.includes(word); }); }); })
+                    .filter(function (item) { return !words.find(function (word) { return !matchTests(which, tests[item.guid] || [], word); }); })
                     .map(function (item) { return item.guid; });
             }
             var badge = $("a[href=\"#" + which + "-table\"] > span.badge"), show = filtered[which][search] || [], hide = getAll(which).map(function (item) { return item.guid; }).filter(function (guid) { return !show.includes(guid); });
