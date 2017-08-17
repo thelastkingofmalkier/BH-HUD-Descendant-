@@ -1,3 +1,4 @@
+/// <reference path="../classes/EffectRepo.ts"/>
 /// <reference path="../classes/HeroRepo.ts"/>
 /// <reference path="../classes/ItemRepo.ts"/>
 
@@ -38,7 +39,7 @@ namespace bh {
 
 	export namespace data {
 		export var BoosterCardRepo = new Repo<IDataBoosterCard>(1709781959, true);
-		export var EffectRepo = new Repo<IHasGuidAndName>(901337848, true);
+		export var EffectRepo = new bh.EffectRepo();
 		export var HeroRepo = new bh.HeroRepo();
 		export var ItemRepo = new bh.ItemRepo();
 		export var PlayerRepo = new Repo<Player>();

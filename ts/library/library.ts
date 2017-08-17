@@ -2,9 +2,6 @@ namespace bh {
 	export namespace library {
 		var $: JQueryStatic = (<any>window)["jQuery"];
 
-		function cleanGuid(value: string) {
-			return "#" + value.trim().toLowerCase().replace(/\W/g, "-");
-		}
 		function cleanImageName(value: string) {
 			return value.trim().replace(/\W/g, "");
 		}
@@ -24,7 +21,7 @@ namespace bh {
 			searching = null;
 			$("input.library-search").val("");
 			$(`a[href="#card-table"] > span.badge`).text(String(data.cards.battle.getAll().length));
-			$(`a[href="#effect-table"] > span.badge`).text(String(allEffects.length));
+			$(`a[href="#effect-table"] > span.badge`).text(String(data.EffectRepo.length));
 			$(`a[href="#item-table"] > span.badge`).text(String(data.ItemRepo.length));
 			$("tbody > tr[id]").show();
 		}
@@ -52,8 +49,8 @@ namespace bh {
 			$(`#card-name`).html(card.name + " &nbsp; " + mapHeroesToImages(card).join(" "));
 			$(`#card-tier`).html(card.tier || "");
 			$(`#card-image`).attr("src", getSrc("battlecards", "blank", cleanImageName(card.name)));
-			$(`#card-element`).html((card.elementType == ElementType.Neutral?"":getImg20("elements", ElementType[card.elementType])) + " " + ElementType[card.elementType]);
-			$(`#card-klass`).html(getImg20("classes", KlassType[card.klassType]) + " " + KlassType[card.klassType]);
+			$(`#card-element`).html(ElementRepo.toImage(card.elementType) + " " + ElementType[card.elementType]);
+			$(`#card-klass`).html(KlassRepo.toImage(card.klassType) + " " + KlassType[card.klassType]);
 			$(`#card-klass`).removeClass("Magic Might Skill").addClass(KlassType[card.klassType]);
 			$(`#card-rarity`).html(utils.evoToStars(card.rarityType) + " " + RarityType[card.rarityType]);
 			$(`#card-types`).html(card.types.map((type, typeIndex) => getImg20("cardtypes", type) + ` ${type} (${utils.formatNumber(getMinValue(card, typeIndex))} - ${utils.formatNumber(getMaxValue(card, typeIndex))})`).join("<br/>"));
@@ -63,10 +60,10 @@ namespace bh {
 			$(`div.panel-card span.card-min`).html(card.minValues.map(v => v.join()).join(" :: "));
 			$(`div.panel-card span.card-max`).html(card.maxValues.join(" :: "));
 			$(`div.panel-card span.card-mats`).html(card.mats.join());
-			$(`#card-effects`).html(card.effects.map(effect => getImg20("effects", cleanImageName(effect)) + " " + effect + "<br/>").join(""));
-			$(`#card-perks`).html(card.perks.map(perk => getImg20("effects", cleanImageName(perk)) + " " + perk).join("<br/>"));
+			$(`#card-effects`).html(EffectRepo.mapEffects(card).map(effect => EffectRepo.toImage(effect) + " " + effect.name + "<br/>").join(""));
+			$(`#card-perks`).html(EffectRepo.mapPerks(card).map(perk => EffectRepo.toImage(perk) + " " + perk.name).join("<br/>"));
 			$(`div.panel-card span.card-perk`).html(card.perkBase + "%");
-			$(`#card-mats`).html(card.mats.map(mat => getImg20("evojars", cleanImageName(mat)) + " " + mat).join("<br/>"));
+			$(`#card-mats`).html(card.mats.map(mat => data.ItemRepo.find(mat)).map(mat => ItemRepo.toImage(mat) + " " + mat.name).join("<br/>"));
 
 			var recipe = new Recipe(card),
 				minGold = 0,
@@ -127,10 +124,12 @@ namespace bh {
 			return `<tr><td class="icon">${image}</td><td class="name">${name}</td><td class="min">${utils.formatNumber(min)}</td><td class="max">${utils.formatNumber(max)}</td></tr>`;
 		}
 
-		var filteredCards: { [search: string]: string[] } = { };
-		var filteredEffects: { [search: string]: string[] } = { };
-		var filteredItems: { [search: string]: string[] } = { };
-		var allEffects: string[] = [];
+		type FilterType = "card" | "effect" | "item";
+		var filtered: { [which: string]: { [search: string]: string[]; } } = { card:{}, effect:{}, item:{} };
+
+		// var filteredCards: { [search: string]: string[] } = { };
+		// var filteredEffects: { [search: string]: string[] } = { };
+		// var filteredItems: { [search: string]: string[] } = { };
 
 		var searching: string;
 		function onSearch(ev: JQueryEventObject) {
@@ -139,42 +138,19 @@ namespace bh {
 				lower = value.trim().toLowerCase();
 			if (!lower) return onSearchClear();
 			searching = lower;
-			setTimeout((lower: string) => {
-				if (!filteredCards[lower]) { matchCards(lower); } hideShowCards(lower);
-				if (!filteredEffects[lower]) { matchEffects(lower); } hideShowEffects(lower);
-				if (!filteredItems[lower]) { matchItems(lower); } hideShowItems(lower);
-			}, 0, lower);
+			["card", "effect", "item"].forEach((which: FilterType) => setTimeout((lower: string) => { matchAndToggle(which, lower); }, 0, lower));
 		}
-		function hideShowCards(search: string) {
-			var badge = $(`a[href="#card-table"] > span.badge`);
-			if (search != searching) return;
-			var show = filteredCards[search] || [],
-				hide = data.cards.battle.getAll().map(card => cleanGuid(card.guid)).filter(guid => !show.includes(guid));
-			$(show.join()).show();
-			$(hide.join()).hide();
-			badge.text(String(show.length));
-		}
-		function hideShowEffects(search: string) {
-			var badge = $(`a[href="#effect-table"] > span.badge`);
-			if (search != searching) return;
-			var show = filteredEffects[search] || [],
-				hide = allEffects.map(effect => cleanGuid(effect)).filter(guid => !show.includes(guid));
-			$(show.join()).show();
-			$(hide.join()).hide();
-			badge.text(String(show.length));
-		}
-		function hideShowItems(search: string) {
-			var badge = $(`a[href="#item-table"] > span.badge`);
-			if (search != searching) return;
-			var show = filteredItems[search] || [],
-				hide = data.ItemRepo.all.map(item => cleanGuid(item.guid)).filter(guid => !show.includes(guid));
-			$(show.join()).show();
-			$(hide.join()).hide();
-			badge.text(String(show.length));
+		function getAll(which: FilterType): IHasGuid[] {
+			switch (which) {
+				case "card": return data.cards.battle.getAll();
+				case "effect": return data.EffectRepo.all;
+				case "item": return data.ItemRepo.all;
+				default: return [];
+			}
 		}
 
 		var tests: { [guid: string]: string[] } = {};
-		function getTests(card: IDataBattleCard) {
+		function setCardTests(card: IDataBattleCard) {
 			if (!tests[card.guid]) {
 				var list: string[] = tests[card.guid] = [];
 				if (card.brag) list.push("brag");
@@ -192,53 +168,57 @@ namespace bh {
 			}
 			return tests[card.guid] || [];
 		}
-		function matchCards(lower: string) {
-			var words = lower.split(/\s+/);
-			filteredCards[lower] = data.cards.battle.getAll()
-				.filter(card => !words.find(word => !matchCard(card, word)))
-				.map(card => cleanGuid(card.guid));
+		function setEffectTests(effect: IDataEffect) {
+			if (!tests[effect.guid]) {
+				var list: string[] = tests[effect.guid] = [];
+				list.push(effect.description.toLowerCase());
+				list.push(effect.lower);
+			}
+			return tests[effect.guid] || [];
 		}
-		function matchEffects(lower: string) {
-			var words = lower.split(/\s+/);
-			filteredEffects[lower] = allEffects
-				.filter(effect => !words.find(word => !effect.includes(word)))
-				.map(effect => cleanGuid(effect));
+		function setItemTests(item: IDataInventoryItem) {
+			if (!tests[item.guid]) {
+				var list: string[] = tests[item.guid] = [];
+				list.push(ElementType[item.elementType].toLowerCase());
+				list.push(ItemType[item.itemType].toLowerCase());
+				list.push(item.lower);
+				list.push(RarityType[item.rarityType].toLowerCase());
+			}
+			return tests[item.guid] || [];
 		}
-		function matchItems(lower: string) {
-			var words = lower.split(/\s+/);
-			filteredItems[lower] = data.ItemRepo.all
-				.filter(item => !words.find(word => !matchItem(item, word)))
-				.map(item => cleanGuid(item.guid));
-		}
-		function matchCard(card: IDataBattleCard, lower: string) {
-			return !!getTests(card).find(test => test.includes(lower));
-		}
-		function matchItem(item: IDataInventoryItem, lower: string) {
-			return item.lower.includes(lower) || ElementType[item.elementType].toLowerCase().includes(lower) || RarityType[item.rarityType].toLowerCase().includes(lower);
+		function matchAndToggle(which: FilterType, search: string) {
+			if (!filtered[which][search]) {
+				var words = search.split(/\s+/);
+				filtered[which][search] = getAll(which)
+					.filter(item => !words.find(word => !(tests[item.guid] || []).find(test => test.includes(word))))
+					.map(item => item.guid);
+			}
+
+			var badge = $(`a[href="#${which}-table"] > span.badge`),
+				show = filtered[which][search] || [],
+				hide = getAll(which).map(item => item.guid).filter(guid => !show.includes(guid));
+
+			if (search != searching) return; // in case it took too long to get to this point
+
+			$("#" + show.join(",#")).show();
+			$("#" + hide.join(",#")).hide();
+			badge.text(String(show.length));
 		}
 
 		function mapPerksEffects(card: IDataBattleCard) {
-			var list: string[] = [];
-			(<string[]>card.targets || []).concat(card.effects || []).concat(card.perks || []).forEach(pushItem);
-			return list.filter(s => !!cleanImageName(s))
-
-			function pushItem(item: string) {
-				if (item == "MultiFlurry") {
-					pushItem("Multi");
-				}else if (item != "Flurry" && item.endsWith("Flurry")) {
-					pushItem("Flurry");
-				}else if (item != "Self" && item != "Single" && !list.includes(item)) {
-					list.push(item);
-				}
-			}
+			var list: IDataEffect[] = [];
+			EffectRepo.mapTargets(card).forEach(target => !list.includes(target) ? list.push(target) : void 0);
+			EffectRepo.mapEffects(card).forEach(effect => !list.includes(effect) ? list.push(effect) : void 0);
+			EffectRepo.mapPerks(card).forEach(perk => !list.includes(perk) ? list.push(perk) : void 0);
+			return list;
 		}
 
 		function mapPerksEffectsToImages(card: IDataBattleCard) {
-			return mapPerksEffects(card).map(s => `<span class="card-effect" title="${s.trim()}">${getImg20("effects", cleanImageName(s))}</span>`);
+			return mapPerksEffects(card).map(item => `<span class="card-effect" title="${item.name}: ${item.description}" data-toggle="tooltip" data-placement="top">${EffectRepo.toImage(item)}</span>`);
 		}
 
 		function mapMatsToImages(card: IDataBattleCard) {
-			return card.mats.filter(s => !!cleanImageName(s)).map(s => `<span class="card-mat" title="${s.trim()}">${getImg20("evojars", cleanImageName(s))}</span>`);
+			return card.mats.map(mat => data.ItemRepo.find(mat)).map(item => `<span class="card-mat" title="${item.name}: ${RarityType[item.rarityType]} ${ElementType[item.elementType]} ${ItemType[item.itemType]} (${utils.formatNumber(ItemRepo.getValue(item.itemType, item.rarityType))} gold)" data-toggle="tooltip" data-placement="top">${ItemRepo.toImage(item)}</span>`)
 		}
 
 		function mapHeroesToImages(card: IDataBattleCard) {
@@ -248,30 +228,26 @@ namespace bh {
 		}
 
 		function render() {
-			var cards = data.cards.battle.getAll();
-			renderCards(cards);
-
-			var effects: string[] = [];
-			cards.forEach(card => mapPerksEffects(card).forEach(effect => effects.includes(effect) ? void 0 : effects.push(effect)));
-			renderEffects(effects.sort());
-			allEffects = effects.map(effect => effect.toLowerCase());
-
-			renderItems(data.ItemRepo.all);
+			renderCards();
+			renderEffects();
+			renderItems();
 
 			$("div.row.alert-row").remove();
 			$("div.row.table-row").show();
+			$('[data-toggle="tooltip"]').tooltip();
 		}
-		function renderCards(cards: IDataBattleCard[]) {
+		function renderCards() {
+			var cards = data.cards.battle.getAll();
 			$(`a[href="#card-table"] > span.badge`).text(String(cards.length));
 			var tbody = $("table.card-list > tbody");
 			cards.forEach(card => {
-				getTests(card);
+				setCardTests(card);
 				var html = `<tr id="${card.guid}">`;
 					html += `<td><span class="card-cardType">${getImg20("cardtypes", card.brag?"Brag":"BattleCard")}</span></td>`;
 					html += `<td><span class="card-name"><a class="btn btn-link" data-action="show-card" style="padding:0;">${card.name}</a></span></td>`;
 					html += `<td><span class="card-stars">${utils.evoToStars(card.rarityType)}</span></td>`;
-					html += `<td><span class="card-element">${card.elementType == ElementType.Neutral?"":getImg20("elements", ElementType[card.elementType])}</span></td>`;
-					html += `<td><span class="hidden-xs card-klass ${KlassType[card.klassType]}">${getImg20("classes", KlassType[card.klassType])}</span></td>`;
+					html += `<td><span class="card-element">${ElementRepo.toImage(card.elementType)}</span></td>`;
+					html += `<td><span class="hidden-xs card-klass ${KlassType[card.klassType]}">${KlassRepo.toImage(card.klassType)}</span></td>`;
 					html += `<td class="hidden-xs"><span class="card-heroes">${mapHeroesToImages(card).join("")}</span></td>`;
 					html += `<td class="hidden-xs"><span class="card-effects">${mapPerksEffectsToImages(card).join("")}</span></td>`;
 					html += `<td class="hidden-xs"><span class="card-mats">${mapMatsToImages(card).join("")}</span></td>`;
@@ -280,27 +256,30 @@ namespace bh {
 				tbody.append(html);
 			});
 		}
-		function renderEffects(effects: string[]) {
+		function renderEffects() {
+			var effects = data.EffectRepo.all;
 			$(`a[href="#effect-table"] > span.badge`).text(String(effects.length));
 			var tbody = $("table.effect-list > tbody");
 			effects.forEach(effect => {
-				var html = `<tr id="${cleanGuid(effect).slice(1)}">`;
-					html += `<td><span class="card-icon">${getImg20("effects", cleanImageName(effect))}</span></td>`;
-					html += `<td><span class="card-name">${effect}</span></td>`;
+				setEffectTests(effect);
+				var html = `<tr id="${effect.guid}">`;
+					html += `<td><span class="card-icon">${EffectRepo.toImage(effect)}</span></td>`;
+					html += `<td><span class="card-name">${effect.name}</span></td>`;
+					html += `<td style="width:100%;"><span class="card-description">${effect.description}</span></td>`;
 					// html += `<td><span class="card-name"><a class="btn btn-link" data-action="show-effect" style="padding:0;">${effect}</a></span></td>`;
-					html += `<td class="hidden-xs" style="width:100%;"></td>`;
+					// html += `<td class="hidden-xs" style="width:100%;"></td>`;
 					html += "</td></tr>";
 				tbody.append(html);
 			});
 		}
-		function renderItems(items: IDataInventoryItem[]) {
+		function renderItems() {
+			var items = data.ItemRepo.all;
 			$(`a[href="#item-table"] > span.badge`).text(String(items.length));
 			var tbody = $("table.mat-list > tbody");
 			items.forEach(item => {
-				var folder = ItemType[item.itemType].toLowerCase() + "s",
-					name = item.itemType == ItemType.EvoJar ? cleanImageName(item.name) : item.itemType == ItemType.Crystal ? item.name.split(/ /)[0] : cleanImageName(data.HeroRepo.find(item.name.split("'")[0]).abilities[0].name),
-					html = `<tr id="${item.guid}">`;
-				html += `<td><span class="card-icon">${getImg20(folder, name)}</span></td>`;
+				setItemTests(item);
+				var html = `<tr id="${item.guid}">`;
+				html += `<td><span class="card-icon">${ItemRepo.toImage(item)}</span></td>`;
 				html += `<td><span class="card-name">${item.name}</span></td>`;
 				// html += `<td><span class="card-name"><a class="btn btn-link" data-action="show-effect" style="padding:0;">${mat}</a></span></td>`;
 				html += `<td class="hidden-xs" style="width:100%;"></td>`;

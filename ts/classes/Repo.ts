@@ -165,4 +165,14 @@ namespace bh {
 			return Repo.AllRepos.map(repo => repo.init());
 		}
 	}
+	export class ElementRepo {
+		public static toImage(elementType: ElementType, fn = getImg20) {
+			return elementType == ElementType.Neutral ? "" : fn("elements", ElementType[elementType]);
+		}
+	}
+	export class KlassRepo {
+		public static toImage(klassType: KlassType, fn = getImg20) {
+			return fn("classes", KlassType[klassType]);
+		}
+	}
 }

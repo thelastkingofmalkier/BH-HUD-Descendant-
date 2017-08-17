@@ -19,6 +19,15 @@ namespace bh {
 			if (itemType == ItemType.Rune) return 2000;
 			return [300, 800, 1500, 3000][rarityType];
 		}
-		public static get sandsOfTime() { return data.ItemRepo.find("Sands of Time"); }
+		public static get sandsOfTime() {
+			return data.ItemRepo.find("Sands of Time");
+		}
+		public static toImage(item: IDataInventoryItem, fn = getImg20) {
+			var folder = ItemType[item.itemType].toLowerCase() + "s",
+				name = item.itemType == ItemType.EvoJar ? item.name.replace(/\W/g, "")
+					: item.itemType == ItemType.Crystal ? item.name.split(/ /)[0]
+					: data.HeroRepo.find(item.name.split("'")[0]).abilities[0].name.replace(/\W/g, "");
+			return fn(folder, name);
+		}
 	}
 }

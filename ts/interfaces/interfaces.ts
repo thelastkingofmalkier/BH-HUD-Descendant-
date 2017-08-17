@@ -15,6 +15,7 @@ type GameItemType = "EvoJar" | "Crystal" | "Rune";
 type GameKlass = "Magic" | "Might" | "Skill";
 type GamePowerRatingAbilityType = "HP" | "Trait" | "Active" | "Passive";
 type GameRarity = "Common" | "Uncommon" | "Rare" | "SuperRare" | "Legendary";
+type GameEffectType = "Status" | "Targeting";
 
 interface IHasAbilityType { abilityType: bh.AbilityType; }
 interface IHasElementType { elementType: bh.ElementType; }
@@ -53,6 +54,11 @@ interface IDataInventoryItem extends IHasGuid, IHasName, IHasElementType, IHasRa
 	itemType: bh.ItemType;
 }
 interface IDataWildCard extends IHasGuidAndName { }
+interface IDataEffect extends IHasGuidAndName {
+	effectType: GameEffectType;
+	alt?: string;
+	description: string;
+}
 
 interface IPlayerGuildMemberScoreSummary {
 	playerId: string;

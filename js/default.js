@@ -29,6 +29,257 @@ var bh;
 })(bh || (bh = {}));
 var bh;
 (function (bh) {
+    var Repo = (function () {
+        function Repo(idOrGid, gidOrCacheable, cacheable) {
+            Repo.AllRepos.push(this);
+            this.id = typeof (gidOrCacheable) == "number" ? idOrGid : null,
+                this.gid = typeof (gidOrCacheable) == "number" ? gidOrCacheable : idOrGid;
+            this.cacheable = gidOrCacheable === true || cacheable === true;
+        }
+        Repo.prototype.init = function () {
+            var _this = this;
+            if (!this._init) {
+                this._init = new Promise(function (resolvefn) {
+                    var tsv = (bh.TSV || {})[String(_this.gid || _this.id)];
+                    if (!tsv && _this.cacheable) {
+                        try {
+                            var cache = JSON.parse(localStorage.getItem(_this.id + "-" + _this.gid) || null);
+                            if (cache && cache.date && (new Date().getTime() < cache.date + 1000 * 60 * 60 * 24)) {
+                                tsv = cache.tsv || null;
+                            }
+                        }
+                        catch (ex) { }
+                    }
+                    if (tsv) {
+                        _this.resolveTsv(tsv, resolvefn);
+                    }
+                    else if (typeof (_this.gid) == "number") {
+                        Repo.fetchTsv(_this.id, _this.gid).then(function (tsv) { return _this.resolveTsv(tsv, resolvefn); }, function () { return _this.unresolveTsv(); });
+                    }
+                    else {
+                        resolvefn(_this.data = []);
+                    }
+                });
+            }
+            return this._init;
+        };
+        Repo.prototype.resolveTsv = function (tsv, resolvefn) {
+            var _this = this;
+            if (this.cacheable) {
+                try {
+                    localStorage.setItem(this.id + "-" + this.gid, JSON.stringify({ tsv: tsv, date: new Date().getTime() }));
+                }
+                catch (ex) { }
+            }
+            var parsed = this.parseTsv(tsv);
+            if (parsed instanceof Promise) {
+                parsed.then(function (data) { return resolvefn(data); }, function () { return _this.unresolveTsv(); });
+            }
+            else {
+                resolvefn(parsed);
+            }
+        };
+        Repo.prototype.unresolveTsv = function () {
+            this.data = [];
+        };
+        Repo.prototype.parseTsv = function (tsv) {
+            return this.data = Repo.mapTsv(tsv);
+        };
+        Object.defineProperty(Repo.prototype, "all", {
+            get: function () {
+                return this.data.slice();
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Repo.prototype, "length", {
+            get: function () {
+                return this.data.length;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Repo.prototype.find = function (value) {
+            var lower = value.toLowerCase();
+            return this.data.find(function (t) { return t.guid == value || t.name == value || t.lower == lower; });
+        };
+        Repo.prototype.put = function (value) {
+            var index = this.data.findIndex(function (t) { return t.guid == value.guid; });
+            if (-1 < index) {
+                this.data[index] = value;
+            }
+            else {
+                this.data.push(value);
+            }
+        };
+        Repo.fetchTsv = function (idOrGid, gidOrUndefined) {
+            var id = typeof (gidOrUndefined) == "number" ? idOrGid : null, gid = typeof (gidOrUndefined) == "number" ? gidOrUndefined : idOrGid;
+            if ((bh.TSV || {})[String(gid)]) {
+                return Promise.resolve(bh.TSV[String(gid)]);
+            }
+            return XmlHttpRequest.get(bh.host + "/tsv.php?gid=" + gid + (id ? "&id=" + id : ""));
+        };
+        Repo.mapTsv = function (raw) {
+            var lines = raw.split(/\n/), keys = lines.shift().split(/\t/).map(function (s) { return s.trim(); });
+            return lines
+                .filter(function (line) { return !!line.trim().length; })
+                .map(function (line) {
+                var values = line.split(/\t/).map(function (s) { return s.trim(); }), object = {};
+                keys.forEach(function (key, index) {
+                    var value = values[index];
+                    switch (key) {
+                        case "element":
+                        case "elementType":
+                            object["elementType"] = bh.ElementType[value];
+                            break;
+                        case "rarity":
+                        case "rarityType":
+                            object["rarityType"] = bh.RarityType[value.replace(/ /g, "")];
+                            break;
+                        case "klass":
+                        case "klassType":
+                            object["klassType"] = bh.KlassType[value];
+                            break;
+                        case "itemType":
+                            object["itemType"] = bh.ItemType[value.replace(/ /g, "")];
+                            break;
+                        case "abilityType":
+                            object["abilityType"] = bh.AbilityType[value];
+                            break;
+                        case "brag":
+                            object["brag"] = bh.utils.parseBoolean(value);
+                            break;
+                        case "minValues":
+                            object[key] = value.split("|").map(function (s) { return s.split(",").map(function (s) { return +s; }); });
+                            break;
+                        case "maxValues":
+                            object[key] = value.split("|").map(function (s) { return +s; });
+                            break;
+                        case "targets":
+                        case "types":
+                            object[key] = value.split("|").filter(function (s) { return !!s; });
+                            break;
+                        case "effects":
+                        case "mats":
+                        case "perks":
+                            object[key] = value.split(",").filter(function (s) { return !!s; });
+                            break;
+                        case "turns":
+                            object[key] = +value;
+                            break;
+                        case "name":
+                            object["lower"] = value.toLowerCase();
+                        default:
+                            object[key] = value;
+                            break;
+                    }
+                });
+                return object;
+            });
+        };
+        Repo.init = function () {
+            return Repo.AllRepos.map(function (repo) { return repo.init(); });
+        };
+        Repo.AllRepos = [];
+        return Repo;
+    }());
+    bh.Repo = Repo;
+    var ElementRepo = (function () {
+        function ElementRepo() {
+        }
+        ElementRepo.toImage = function (elementType, fn) {
+            if (fn === void 0) { fn = bh.getImg20; }
+            return elementType == bh.ElementType.Neutral ? "" : fn("elements", bh.ElementType[elementType]);
+        };
+        return ElementRepo;
+    }());
+    bh.ElementRepo = ElementRepo;
+    var KlassRepo = (function () {
+        function KlassRepo() {
+        }
+        KlassRepo.toImage = function (klassType, fn) {
+            if (fn === void 0) { fn = bh.getImg20; }
+            return fn("classes", bh.KlassType[klassType]);
+        };
+        return KlassRepo;
+    }());
+    bh.KlassRepo = KlassRepo;
+})(bh || (bh = {}));
+var bh;
+(function (bh) {
+    var EffectRepo = (function (_super) {
+        __extends(EffectRepo, _super);
+        function EffectRepo() {
+            return _super.call(this, 901337848, true) || this;
+        }
+        EffectRepo.prototype.parseTsv = function (tsv) {
+            this.data = bh.Repo.mapTsv(tsv);
+            this.data.forEach(function (effect) { return effect.guid = effect.lower.replace(/\W/g, "-"); });
+            return this.data;
+        };
+        EffectRepo.prototype.find = function (value) {
+            var lower = value.toLowerCase();
+            return this.data.find(function (t) { return t.lower == lower || (t.alt || "").toLowerCase() == lower; });
+        };
+        EffectRepo.mapEffects = function (card) {
+            var effects = [];
+            card.effects.forEach(function (effect) {
+                mapTargetOrEffectOrPerk(effect).forEach(function (item) {
+                    if (!effects.includes(item))
+                        effects.push(item);
+                });
+            });
+            return effects;
+        };
+        EffectRepo.mapPerks = function (card) {
+            var perks = [];
+            card.perks.forEach(function (perk) {
+                mapTargetOrEffectOrPerk(perk).forEach(function (item) {
+                    if (!perks.includes(item))
+                        perks.push(item);
+                });
+            });
+            return perks;
+        };
+        EffectRepo.mapTargets = function (card) {
+            var targets = [];
+            card.targets.forEach(function (target, index) {
+                mapTargetOrEffectOrPerk(target, card.types[index]).forEach(function (item) {
+                    if (!targets.includes(item))
+                        targets.push(item);
+                });
+            });
+            return targets;
+        };
+        EffectRepo.toImage = function (effect, fn) {
+            if (fn === void 0) { fn = bh.getImg20; }
+            return ["Self", "Single"].includes(effect.name) ? "" : fn("effects", effect.name.replace(/\W/g, ""));
+        };
+        return EffectRepo;
+    }(bh.Repo));
+    bh.EffectRepo = EffectRepo;
+    function mapTargetOrEffectOrPerk(item, type) {
+        if (type === void 0) { type = null; }
+        var items = [];
+        if (item.includes("Multi")) {
+            items.push(type == "Attack" ? "Multi-Target (Enemy)" : "Multi-Target (Ally)");
+        }
+        if (item.includes("Flurry")) {
+            items.push("Flurry");
+        }
+        if (!item.includes("Multi") && !item.includes("Flurry")) {
+            items.push(item);
+        }
+        return items.map(function (i) {
+            var effect = i ? bh.data.EffectRepo.find(i) : null;
+            if (!effect)
+                console.log(item);
+            return effect;
+        }).filter(function (i) { return !!i; });
+    }
+})(bh || (bh = {}));
+var bh;
+(function (bh) {
     var AbilityType;
     (function (AbilityType) {
         AbilityType[AbilityType["Trait"] = 0] = "Trait";
@@ -201,164 +452,6 @@ var bh;
 })(bh || (bh = {}));
 var bh;
 (function (bh) {
-    var Repo = (function () {
-        function Repo(idOrGid, gidOrCacheable, cacheable) {
-            Repo.AllRepos.push(this);
-            this.id = typeof (gidOrCacheable) == "number" ? idOrGid : null,
-                this.gid = typeof (gidOrCacheable) == "number" ? gidOrCacheable : idOrGid;
-            this.cacheable = gidOrCacheable === true || cacheable === true;
-        }
-        Repo.prototype.init = function () {
-            var _this = this;
-            if (!this._init) {
-                this._init = new Promise(function (resolvefn) {
-                    var tsv = (bh.TSV || {})[String(_this.gid || _this.id)];
-                    if (!tsv && _this.cacheable) {
-                        try {
-                            var cache = JSON.parse(localStorage.getItem(_this.id + "-" + _this.gid) || null);
-                            if (cache && cache.date && (new Date().getTime() < cache.date + 1000 * 60 * 60 * 24)) {
-                                tsv = cache.tsv || null;
-                            }
-                        }
-                        catch (ex) { }
-                    }
-                    if (tsv) {
-                        _this.resolveTsv(tsv, resolvefn);
-                    }
-                    else if (typeof (_this.gid) == "number") {
-                        Repo.fetchTsv(_this.id, _this.gid).then(function (tsv) { return _this.resolveTsv(tsv, resolvefn); }, function () { return _this.unresolveTsv(); });
-                    }
-                    else {
-                        resolvefn(_this.data = []);
-                    }
-                });
-            }
-            return this._init;
-        };
-        Repo.prototype.resolveTsv = function (tsv, resolvefn) {
-            var _this = this;
-            if (this.cacheable) {
-                try {
-                    localStorage.setItem(this.id + "-" + this.gid, JSON.stringify({ tsv: tsv, date: new Date().getTime() }));
-                }
-                catch (ex) { }
-            }
-            var parsed = this.parseTsv(tsv);
-            if (parsed instanceof Promise) {
-                parsed.then(function (data) { return resolvefn(data); }, function () { return _this.unresolveTsv(); });
-            }
-            else {
-                resolvefn(parsed);
-            }
-        };
-        Repo.prototype.unresolveTsv = function () {
-            this.data = [];
-        };
-        Repo.prototype.parseTsv = function (tsv) {
-            return this.data = Repo.mapTsv(tsv);
-        };
-        Object.defineProperty(Repo.prototype, "all", {
-            get: function () {
-                return this.data.slice();
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(Repo.prototype, "length", {
-            get: function () {
-                return this.data.length;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Repo.prototype.find = function (value) {
-            var lower = value.toLowerCase();
-            return this.data.find(function (t) { return t.guid == value || t.name == value || t.lower == lower; });
-        };
-        Repo.prototype.put = function (value) {
-            var index = this.data.findIndex(function (t) { return t.guid == value.guid; });
-            if (-1 < index) {
-                this.data[index] = value;
-            }
-            else {
-                this.data.push(value);
-            }
-        };
-        Repo.fetchTsv = function (idOrGid, gidOrUndefined) {
-            var id = typeof (gidOrUndefined) == "number" ? idOrGid : null, gid = typeof (gidOrUndefined) == "number" ? gidOrUndefined : idOrGid;
-            if ((bh.TSV || {})[String(gid)]) {
-                return Promise.resolve(bh.TSV[String(gid)]);
-            }
-            return XmlHttpRequest.get(bh.host + "/tsv.php?gid=" + gid + (id ? "&id=" + id : ""));
-        };
-        Repo.mapTsv = function (raw) {
-            var lines = raw.split(/\n/), keys = lines.shift().split(/\t/).map(function (s) { return s.trim(); });
-            return lines
-                .filter(function (line) { return !!line.trim().length; })
-                .map(function (line) {
-                var values = line.split(/\t/).map(function (s) { return s.trim(); }), object = {};
-                keys.forEach(function (key, index) {
-                    var value = values[index];
-                    switch (key) {
-                        case "element":
-                        case "elementType":
-                            object["elementType"] = bh.ElementType[value];
-                            break;
-                        case "rarity":
-                        case "rarityType":
-                            object["rarityType"] = bh.RarityType[value.replace(/ /g, "")];
-                            break;
-                        case "klass":
-                        case "klassType":
-                            object["klassType"] = bh.KlassType[value];
-                            break;
-                        case "itemType":
-                            object["itemType"] = bh.ItemType[value.replace(/ /g, "")];
-                            break;
-                        case "abilityType":
-                            object["abilityType"] = bh.AbilityType[value];
-                            break;
-                        case "brag":
-                            object["brag"] = bh.utils.parseBoolean(value);
-                            break;
-                        case "minValues":
-                            object[key] = value.split("|").map(function (s) { return s.split(",").map(function (s) { return +s; }); });
-                            break;
-                        case "maxValues":
-                            object[key] = value.split("|").map(function (s) { return +s; });
-                            break;
-                        case "targets":
-                        case "types":
-                            object[key] = value.split("|").filter(function (s) { return !!s; });
-                            break;
-                        case "effects":
-                        case "mats":
-                        case "perks":
-                            object[key] = value.split(",").filter(function (s) { return !!s; });
-                            break;
-                        case "turns":
-                            object[key] = +value;
-                            break;
-                        case "name":
-                            object["lower"] = value.toLowerCase();
-                        default:
-                            object[key] = value;
-                            break;
-                    }
-                });
-                return object;
-            });
-        };
-        Repo.init = function () {
-            return Repo.AllRepos.map(function (repo) { return repo.init(); });
-        };
-        Repo.AllRepos = [];
-        return Repo;
-    }());
-    bh.Repo = Repo;
-})(bh || (bh = {}));
-var bh;
-(function (bh) {
     var HeroRepo = (function (_super) {
         __extends(HeroRepo, _super);
         function HeroRepo() {
@@ -433,10 +526,19 @@ var bh;
             return [300, 800, 1500, 3000][rarityType];
         };
         Object.defineProperty(ItemRepo, "sandsOfTime", {
-            get: function () { return bh.data.ItemRepo.find("Sands of Time"); },
+            get: function () {
+                return bh.data.ItemRepo.find("Sands of Time");
+            },
             enumerable: true,
             configurable: true
         });
+        ItemRepo.toImage = function (item, fn) {
+            if (fn === void 0) { fn = bh.getImg20; }
+            var folder = bh.ItemType[item.itemType].toLowerCase() + "s", name = item.itemType == bh.ItemType.EvoJar ? item.name.replace(/\W/g, "")
+                : item.itemType == bh.ItemType.Crystal ? item.name.split(/ /)[0]
+                    : bh.data.HeroRepo.find(item.name.split("'")[0]).abilities[0].name.replace(/\W/g, "");
+            return fn(folder, name);
+        };
         return ItemRepo;
     }(bh.Repo));
     bh.ItemRepo = ItemRepo;
@@ -2201,7 +2303,7 @@ var bh;
     var data;
     (function (data) {
         data.BoosterCardRepo = new bh.Repo(1709781959, true);
-        data.EffectRepo = new bh.Repo(901337848, true);
+        data.EffectRepo = new bh.EffectRepo();
         data.HeroRepo = new bh.HeroRepo();
         data.ItemRepo = new bh.ItemRepo();
         data.PlayerRepo = new bh.Repo();
@@ -3342,9 +3444,6 @@ var bh;
     var library;
     (function (library) {
         var $ = window["jQuery"];
-        function cleanGuid(value) {
-            return "#" + value.trim().toLowerCase().replace(/\W/g, "-");
-        }
         function cleanImageName(value) {
             return value.trim().replace(/\W/g, "");
         }
@@ -3362,7 +3461,7 @@ var bh;
             searching = null;
             $("input.library-search").val("");
             $("a[href=\"#card-table\"] > span.badge").text(String(bh.data.cards.battle.getAll().length));
-            $("a[href=\"#effect-table\"] > span.badge").text(String(allEffects.length));
+            $("a[href=\"#effect-table\"] > span.badge").text(String(bh.data.EffectRepo.length));
             $("a[href=\"#item-table\"] > span.badge").text(String(bh.data.ItemRepo.length));
             $("tbody > tr[id]").show();
         }
@@ -3381,8 +3480,8 @@ var bh;
             $("#card-name").html(card.name + " &nbsp; " + mapHeroesToImages(card).join(" "));
             $("#card-tier").html(card.tier || "");
             $("#card-image").attr("src", bh.getSrc("battlecards", "blank", cleanImageName(card.name)));
-            $("#card-element").html((card.elementType == bh.ElementType.Neutral ? "" : bh.getImg20("elements", bh.ElementType[card.elementType])) + " " + bh.ElementType[card.elementType]);
-            $("#card-klass").html(bh.getImg20("classes", bh.KlassType[card.klassType]) + " " + bh.KlassType[card.klassType]);
+            $("#card-element").html(bh.ElementRepo.toImage(card.elementType) + " " + bh.ElementType[card.elementType]);
+            $("#card-klass").html(bh.KlassRepo.toImage(card.klassType) + " " + bh.KlassType[card.klassType]);
             $("#card-klass").removeClass("Magic Might Skill").addClass(bh.KlassType[card.klassType]);
             $("#card-rarity").html(bh.utils.evoToStars(card.rarityType) + " " + bh.RarityType[card.rarityType]);
             $("#card-types").html(card.types.map(function (type, typeIndex) { return bh.getImg20("cardtypes", type) + (" " + type + " (" + bh.utils.formatNumber(getMinValue(card, typeIndex)) + " - " + bh.utils.formatNumber(getMaxValue(card, typeIndex)) + ")"); }).join("<br/>"));
@@ -3392,10 +3491,10 @@ var bh;
             $("div.panel-card span.card-min").html(card.minValues.map(function (v) { return v.join(); }).join(" :: "));
             $("div.panel-card span.card-max").html(card.maxValues.join(" :: "));
             $("div.panel-card span.card-mats").html(card.mats.join());
-            $("#card-effects").html(card.effects.map(function (effect) { return bh.getImg20("effects", cleanImageName(effect)) + " " + effect + "<br/>"; }).join(""));
-            $("#card-perks").html(card.perks.map(function (perk) { return bh.getImg20("effects", cleanImageName(perk)) + " " + perk; }).join("<br/>"));
+            $("#card-effects").html(bh.EffectRepo.mapEffects(card).map(function (effect) { return bh.EffectRepo.toImage(effect) + " " + effect.name + "<br/>"; }).join(""));
+            $("#card-perks").html(bh.EffectRepo.mapPerks(card).map(function (perk) { return bh.EffectRepo.toImage(perk) + " " + perk.name; }).join("<br/>"));
             $("div.panel-card span.card-perk").html(card.perkBase + "%");
-            $("#card-mats").html(card.mats.map(function (mat) { return bh.getImg20("evojars", cleanImageName(mat)) + " " + mat; }).join("<br/>"));
+            $("#card-mats").html(card.mats.map(function (mat) { return bh.data.ItemRepo.find(mat); }).map(function (mat) { return bh.ItemRepo.toImage(mat) + " " + mat.name; }).join("<br/>"));
             var recipe = new bh.Recipe(card), minGold = 0, maxGold = 0, tabs = $("#card-evolution > ul.nav > li").toArray();
             [0, 1, 2, 3, 4].forEach(function (index) {
                 var evo = recipe.evos[index], target = "#evo-" + index + "-" + (index + 1), tab = $(tabs[index]).removeClass("disabled");
@@ -3434,60 +3533,25 @@ var bh;
         function evoRow(image, name, min, max) {
             return "<tr><td class=\"icon\">" + image + "</td><td class=\"name\">" + name + "</td><td class=\"min\">" + bh.utils.formatNumber(min) + "</td><td class=\"max\">" + bh.utils.formatNumber(max) + "</td></tr>";
         }
-        var filteredCards = {};
-        var filteredEffects = {};
-        var filteredItems = {};
-        var allEffects = [];
+        var filtered = { card: {}, effect: {}, item: {} };
         var searching;
         function onSearch(ev) {
             var el = $(ev.target), value = el.val(), lower = value.trim().toLowerCase();
             if (!lower)
                 return onSearchClear();
             searching = lower;
-            setTimeout(function (lower) {
-                if (!filteredCards[lower]) {
-                    matchCards(lower);
-                }
-                hideShowCards(lower);
-                if (!filteredEffects[lower]) {
-                    matchEffects(lower);
-                }
-                hideShowEffects(lower);
-                if (!filteredItems[lower]) {
-                    matchItems(lower);
-                }
-                hideShowItems(lower);
-            }, 0, lower);
+            ["card", "effect", "item"].forEach(function (which) { return setTimeout(function (lower) { matchAndToggle(which, lower); }, 0, lower); });
         }
-        function hideShowCards(search) {
-            var badge = $("a[href=\"#card-table\"] > span.badge");
-            if (search != searching)
-                return;
-            var show = filteredCards[search] || [], hide = bh.data.cards.battle.getAll().map(function (card) { return cleanGuid(card.guid); }).filter(function (guid) { return !show.includes(guid); });
-            $(show.join()).show();
-            $(hide.join()).hide();
-            badge.text(String(show.length));
-        }
-        function hideShowEffects(search) {
-            var badge = $("a[href=\"#effect-table\"] > span.badge");
-            if (search != searching)
-                return;
-            var show = filteredEffects[search] || [], hide = allEffects.map(function (effect) { return cleanGuid(effect); }).filter(function (guid) { return !show.includes(guid); });
-            $(show.join()).show();
-            $(hide.join()).hide();
-            badge.text(String(show.length));
-        }
-        function hideShowItems(search) {
-            var badge = $("a[href=\"#item-table\"] > span.badge");
-            if (search != searching)
-                return;
-            var show = filteredItems[search] || [], hide = bh.data.ItemRepo.all.map(function (item) { return cleanGuid(item.guid); }).filter(function (guid) { return !show.includes(guid); });
-            $(show.join()).show();
-            $(hide.join()).hide();
-            badge.text(String(show.length));
+        function getAll(which) {
+            switch (which) {
+                case "card": return bh.data.cards.battle.getAll();
+                case "effect": return bh.data.EffectRepo.all;
+                case "item": return bh.data.ItemRepo.all;
+                default: return [];
+            }
         }
         var tests = {};
-        function getTests(card) {
+        function setCardTests(card) {
             if (!tests[card.guid]) {
                 var list = tests[card.guid] = [];
                 if (card.brag)
@@ -3506,51 +3570,50 @@ var bh;
             }
             return tests[card.guid] || [];
         }
-        function matchCards(lower) {
-            var words = lower.split(/\s+/);
-            filteredCards[lower] = bh.data.cards.battle.getAll()
-                .filter(function (card) { return !words.find(function (word) { return !matchCard(card, word); }); })
-                .map(function (card) { return cleanGuid(card.guid); });
+        function setEffectTests(effect) {
+            if (!tests[effect.guid]) {
+                var list = tests[effect.guid] = [];
+                list.push(effect.description.toLowerCase());
+                list.push(effect.lower);
+            }
+            return tests[effect.guid] || [];
         }
-        function matchEffects(lower) {
-            var words = lower.split(/\s+/);
-            filteredEffects[lower] = allEffects
-                .filter(function (effect) { return !words.find(function (word) { return !effect.includes(word); }); })
-                .map(function (effect) { return cleanGuid(effect); });
+        function setItemTests(item) {
+            if (!tests[item.guid]) {
+                var list = tests[item.guid] = [];
+                list.push(bh.ElementType[item.elementType].toLowerCase());
+                list.push(bh.ItemType[item.itemType].toLowerCase());
+                list.push(item.lower);
+                list.push(bh.RarityType[item.rarityType].toLowerCase());
+            }
+            return tests[item.guid] || [];
         }
-        function matchItems(lower) {
-            var words = lower.split(/\s+/);
-            filteredItems[lower] = bh.data.ItemRepo.all
-                .filter(function (item) { return !words.find(function (word) { return !matchItem(item, word); }); })
-                .map(function (item) { return cleanGuid(item.guid); });
-        }
-        function matchCard(card, lower) {
-            return !!getTests(card).find(function (test) { return test.includes(lower); });
-        }
-        function matchItem(item, lower) {
-            return item.lower.includes(lower) || bh.ElementType[item.elementType].toLowerCase().includes(lower) || bh.RarityType[item.rarityType].toLowerCase().includes(lower);
+        function matchAndToggle(which, search) {
+            if (!filtered[which][search]) {
+                var words = search.split(/\s+/);
+                filtered[which][search] = getAll(which)
+                    .filter(function (item) { return !words.find(function (word) { return !(tests[item.guid] || []).find(function (test) { return test.includes(word); }); }); })
+                    .map(function (item) { return item.guid; });
+            }
+            var badge = $("a[href=\"#" + which + "-table\"] > span.badge"), show = filtered[which][search] || [], hide = getAll(which).map(function (item) { return item.guid; }).filter(function (guid) { return !show.includes(guid); });
+            if (search != searching)
+                return;
+            $("#" + show.join(",#")).show();
+            $("#" + hide.join(",#")).hide();
+            badge.text(String(show.length));
         }
         function mapPerksEffects(card) {
             var list = [];
-            (card.targets || []).concat(card.effects || []).concat(card.perks || []).forEach(pushItem);
-            return list.filter(function (s) { return !!cleanImageName(s); });
-            function pushItem(item) {
-                if (item == "MultiFlurry") {
-                    pushItem("Multi");
-                }
-                else if (item != "Flurry" && item.endsWith("Flurry")) {
-                    pushItem("Flurry");
-                }
-                else if (item != "Self" && item != "Single" && !list.includes(item)) {
-                    list.push(item);
-                }
-            }
+            bh.EffectRepo.mapTargets(card).forEach(function (target) { return !list.includes(target) ? list.push(target) : void 0; });
+            bh.EffectRepo.mapEffects(card).forEach(function (effect) { return !list.includes(effect) ? list.push(effect) : void 0; });
+            bh.EffectRepo.mapPerks(card).forEach(function (perk) { return !list.includes(perk) ? list.push(perk) : void 0; });
+            return list;
         }
         function mapPerksEffectsToImages(card) {
-            return mapPerksEffects(card).map(function (s) { return "<span class=\"card-effect\" title=\"" + s.trim() + "\">" + bh.getImg20("effects", cleanImageName(s)) + "</span>"; });
+            return mapPerksEffects(card).map(function (item) { return "<span class=\"card-effect\" title=\"" + item.name + ": " + item.description + "\" data-toggle=\"tooltip\" data-placement=\"top\">" + bh.EffectRepo.toImage(item) + "</span>"; });
         }
         function mapMatsToImages(card) {
-            return card.mats.filter(function (s) { return !!cleanImageName(s); }).map(function (s) { return "<span class=\"card-mat\" title=\"" + s.trim() + "\">" + bh.getImg20("evojars", cleanImageName(s)) + "</span>"; });
+            return card.mats.map(function (mat) { return bh.data.ItemRepo.find(mat); }).map(function (item) { return "<span class=\"card-mat\" title=\"" + item.name + ": " + bh.RarityType[item.rarityType] + " " + bh.ElementType[item.elementType] + " " + bh.ItemType[item.itemType] + " (" + bh.utils.formatNumber(bh.ItemRepo.getValue(item.itemType, item.rarityType)) + " gold)\" data-toggle=\"tooltip\" data-placement=\"top\">" + bh.ItemRepo.toImage(item) + "</span>"; });
         }
         function mapHeroesToImages(card) {
             return bh.data.HeroRepo.all
@@ -3558,27 +3621,25 @@ var bh;
                 .map(function (hero) { return bh.getImg("heroes", hero.name); });
         }
         function render() {
-            var cards = bh.data.cards.battle.getAll();
-            renderCards(cards);
-            var effects = [];
-            cards.forEach(function (card) { return mapPerksEffects(card).forEach(function (effect) { return effects.includes(effect) ? void 0 : effects.push(effect); }); });
-            renderEffects(effects.sort());
-            allEffects = effects.map(function (effect) { return effect.toLowerCase(); });
-            renderItems(bh.data.ItemRepo.all);
+            renderCards();
+            renderEffects();
+            renderItems();
             $("div.row.alert-row").remove();
             $("div.row.table-row").show();
+            $('[data-toggle="tooltip"]').tooltip();
         }
-        function renderCards(cards) {
+        function renderCards() {
+            var cards = bh.data.cards.battle.getAll();
             $("a[href=\"#card-table\"] > span.badge").text(String(cards.length));
             var tbody = $("table.card-list > tbody");
             cards.forEach(function (card) {
-                getTests(card);
+                setCardTests(card);
                 var html = "<tr id=\"" + card.guid + "\">";
                 html += "<td><span class=\"card-cardType\">" + bh.getImg20("cardtypes", card.brag ? "Brag" : "BattleCard") + "</span></td>";
                 html += "<td><span class=\"card-name\"><a class=\"btn btn-link\" data-action=\"show-card\" style=\"padding:0;\">" + card.name + "</a></span></td>";
                 html += "<td><span class=\"card-stars\">" + bh.utils.evoToStars(card.rarityType) + "</span></td>";
-                html += "<td><span class=\"card-element\">" + (card.elementType == bh.ElementType.Neutral ? "" : bh.getImg20("elements", bh.ElementType[card.elementType])) + "</span></td>";
-                html += "<td><span class=\"hidden-xs card-klass " + bh.KlassType[card.klassType] + "\">" + bh.getImg20("classes", bh.KlassType[card.klassType]) + "</span></td>";
+                html += "<td><span class=\"card-element\">" + bh.ElementRepo.toImage(card.elementType) + "</span></td>";
+                html += "<td><span class=\"hidden-xs card-klass " + bh.KlassType[card.klassType] + "\">" + bh.KlassRepo.toImage(card.klassType) + "</span></td>";
                 html += "<td class=\"hidden-xs\"><span class=\"card-heroes\">" + mapHeroesToImages(card).join("") + "</span></td>";
                 html += "<td class=\"hidden-xs\"><span class=\"card-effects\">" + mapPerksEffectsToImages(card).join("") + "</span></td>";
                 html += "<td class=\"hidden-xs\"><span class=\"card-mats\">" + mapMatsToImages(card).join("") + "</span></td>";
@@ -3587,24 +3648,28 @@ var bh;
                 tbody.append(html);
             });
         }
-        function renderEffects(effects) {
+        function renderEffects() {
+            var effects = bh.data.EffectRepo.all;
             $("a[href=\"#effect-table\"] > span.badge").text(String(effects.length));
             var tbody = $("table.effect-list > tbody");
             effects.forEach(function (effect) {
-                var html = "<tr id=\"" + cleanGuid(effect).slice(1) + "\">";
-                html += "<td><span class=\"card-icon\">" + bh.getImg20("effects", cleanImageName(effect)) + "</span></td>";
-                html += "<td><span class=\"card-name\">" + effect + "</span></td>";
-                html += "<td class=\"hidden-xs\" style=\"width:100%;\"></td>";
+                setEffectTests(effect);
+                var html = "<tr id=\"" + effect.guid + "\">";
+                html += "<td><span class=\"card-icon\">" + bh.EffectRepo.toImage(effect) + "</span></td>";
+                html += "<td><span class=\"card-name\">" + effect.name + "</span></td>";
+                html += "<td style=\"width:100%;\"><span class=\"card-description\">" + effect.description + "</span></td>";
                 html += "</td></tr>";
                 tbody.append(html);
             });
         }
-        function renderItems(items) {
+        function renderItems() {
+            var items = bh.data.ItemRepo.all;
             $("a[href=\"#item-table\"] > span.badge").text(String(items.length));
             var tbody = $("table.mat-list > tbody");
             items.forEach(function (item) {
-                var folder = bh.ItemType[item.itemType].toLowerCase() + "s", name = item.itemType == bh.ItemType.EvoJar ? cleanImageName(item.name) : item.itemType == bh.ItemType.Crystal ? item.name.split(/ /)[0] : cleanImageName(bh.data.HeroRepo.find(item.name.split("'")[0]).abilities[0].name), html = "<tr id=\"" + item.guid + "\">";
-                html += "<td><span class=\"card-icon\">" + bh.getImg20(folder, name) + "</span></td>";
+                setItemTests(item);
+                var html = "<tr id=\"" + item.guid + "\">";
+                html += "<td><span class=\"card-icon\">" + bh.ItemRepo.toImage(item) + "</span></td>";
                 html += "<td><span class=\"card-name\">" + item.name + "</span></td>";
                 html += "<td class=\"hidden-xs\" style=\"width:100%;\"></td>";
                 html += "</td></tr>";
