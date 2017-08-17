@@ -18,12 +18,12 @@
 
 		<style type="text/css">
 			body { padding:5px; }
-			span.card-element { display:inline-block; width:20px; text-align:center; }
-			span.card-klass { display:inline-block; width:20px; text-align:center; }
-			span.stars { display:inline-block; width:50px; text-align:center; }
-			span.card-name { display:inline-block; width:175px; }
-			span.card-effects { display:inline-block; width:125px; }
-			span.card-mats { display:inline-block; width:100px; }
+			span.card-element { display:inline-block; white-space: nowrap; text-align:center; }
+			span.card-klass { display:inline-block; white-space: nowrap; text-align:center; }
+			span.stars { display:inline-block; white-space: nowrap; text-align:center; }
+			span.card-name { display:inline-block; white-space: nowrap; }
+			span.card-effects { display:inline-block; white-space: nowrap; }
+			span.card-mats { display:inline-block; white-space: nowrap; }
 			span.evo-star { font-size:6pt; color: gold; text-shadow: -1px 0 black, 0 1px black, 1px 0 black, 0 -1px black; }
 			img { height:16px; width:16px; }
 			#card-image { height:250px; width:200px; float:right; }
@@ -38,7 +38,8 @@
 			#card-evolution th.min, #card-evolution td.min { width:75px; text-align:center; }
 			#card-evolution th.max, #card-evolution td.max { width:75px; text-align:center; }
 			#card-name > img { height:24px; width:24px; }
-			table.card-list td > span { white-space: nowrap; }
+			table.card-list td { white-space: nowrap; }
+			div.bh-hud-image { background-size:20px 20px; background-repeat: no-repeat; height:20px; width:20px; font-size:0; display:inline-block; background-position-x: center; }
 			@media screen and (max-width:767px) {
 				body > div.container-fluid { padding:0; }
 				body > div.container-fluid > div.row { margin:0; }

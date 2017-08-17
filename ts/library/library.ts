@@ -1,12 +1,28 @@
 namespace bh {
 	export namespace library {
 		var $: JQueryStatic = (<any>window)["jQuery"];
+		var player: Player = null;
 
 		function cleanImageName(value: string) {
 			return value.trim().replace(/\W/g, "");
 		}
 
 		export function init() {
+			var hud = location.search.includes("hud");
+			if (hud) {
+				window.addEventListener("message", handleOnLoadPlayer);
+			}else {
+				_init();
+			}
+		}
+		export function handleOnLoadPlayer(ev: BaseWindowMessage) {
+			var message: IMessage = ev.data || (ev.originalEvent && ev.originalEvent.data) || null;
+			if (message && message.action == "hud-to-library" && message.data) {
+				player = new Player(message.data);
+				_init();
+			}
+		}
+		function _init() {
 			bh.host = "http://brains.sth.ovh";
 			data.init().then(render);
 			$(`body`).on("click", `[data-action="show-card"]`, onShowCard);
@@ -187,8 +203,8 @@ namespace bh {
 			return tests[item.guid] || [];
 		}
 
-		var elementLowers = [ElementType.Air, ElementType.Earth, ElementType.Fire, ElementType.Neutral, ElementType.Spirit, ElementType.Water].map(type => ElementType[type].toLowerCase());
-		var rarityLowers = [RarityType.Common, RarityType.Uncommon, RarityType.Rare, RarityType.SuperRare, RarityType.Legendary].map(type => RarityType[type].toLowerCase());
+		var elementLowers = ElementRepo.all.map(type => ElementType[type].toLowerCase());
+		var rarityLowers = RarityRepo.all.map(type => RarityType[type].toLowerCase());
 		var heroNameLowers: string[] = null;
 		function matchTests(which: FilterType, tests: string[], word: string) {
 			if (which == "effect") return matchTestsIncludes(tests, word);
@@ -225,21 +241,21 @@ namespace bh {
 			EffectRepo.mapTargets(card).forEach(target => !list.includes(target) ? list.push(target) : void 0);
 			EffectRepo.mapEffects(card).forEach(effect => !list.includes(effect) ? list.push(effect) : void 0);
 			EffectRepo.mapPerks(card).forEach(perk => !list.includes(perk) ? list.push(perk) : void 0);
-			return list;
+			return list.reduce((out, item) => ["Self", "Single"].includes(item.name) ? out : out.concat([item]), []);
 		}
 
 		function mapPerksEffectsToImages(card: IDataBattleCard) {
-			return mapPerksEffects(card).map(item => `<span class="card-effect" title="${item.name}: ${item.description}" data-toggle="tooltip" data-placement="top">${EffectRepo.toImage(item)}</span>`);
+			return mapPerksEffects(card).map(item => `<div class="bh-hud-image img-${item.guid}" title="${item.name}: ${item.description}" data-toggle="tooltip" data-placement="top"></div>`);
 		}
 
 		function mapMatsToImages(card: IDataBattleCard) {
-			return card.mats.map(mat => data.ItemRepo.find(mat)).map(item => `<span class="card-mat" title="${item.name}: ${RarityType[item.rarityType]} ${ElementType[item.elementType]} ${ItemType[item.itemType]} (${utils.formatNumber(ItemRepo.getValue(item.itemType, item.rarityType))} gold)" data-toggle="tooltip" data-placement="top">${ItemRepo.toImage(item)}</span>`)
+			return card.mats.map(mat => data.ItemRepo.find(mat)).map(item => `<div class="bh-hud-image img-${item.guid}" title="${item.name}: ${RarityType[item.rarityType]} ${ElementType[item.elementType]} ${ItemType[item.itemType]} (${utils.formatNumber(ItemRepo.getValue(item.itemType, item.rarityType))} gold)" data-toggle="tooltip" data-placement="top"></div>`)
 		}
 
 		function mapHeroesToImages(card: IDataBattleCard) {
 			return data.HeroRepo.all
 				.filter(hero => (card.elementType == ElementType.Neutral || hero.elementType == card.elementType) && hero.klassType == card.klassType)
-				.map(hero => getImg("heroes", hero.name));
+				.map(hero => `<div class="bh-hud-image img-${hero.guid}"></div>`);
 		}
 
 		function mapRarityToStars(rarityType: RarityType) {
@@ -247,29 +263,39 @@ namespace bh {
 		}
 
 		function render() {
-			renderCards();
+			css.addCardTypes($);
+			css.addEffects($);
+			css.addElements($);
+			css.addHeroes($);
+			css.addItems($);
+			css.addKlasses($);
+
 			renderEffects();
 			renderItems();
+			renderCards();
 
 			$("div.row.alert-row").remove();
 			$("div.row.table-row").show();
 			$('[data-toggle="tooltip"]').tooltip();
 		}
 		function renderCards() {
+			var complete = location.search.includes("complete");
 			var cards = data.cards.battle.getAll();
 			$(`a[href="#card-table"] > span.badge`).text(String(cards.length));
-			var tbody = $("table.card-list > tbody");
+			var tbody = $("table.card-list > tbody").html("");
 			cards.forEach(card => {
 				setCardTests(card);
+				var owned = player && player.battleCards.find(bc => card.guid == bc.guid);
 				var html = `<tr id="${card.guid}">`;
-					html += `<td><span class="card-cardType">${getImg20("cardtypes", card.brag?"Brag":"BattleCard")}</span></td>`;
+					if (player) html += `<td><span class="card-owned glyphicon ${owned ? "glyphicon-ok text-success" : "glyphicon-remove text-danger"}"></span></td>`;
+					html += `<td><div class="bh-hud-image img-${card.brag? "Brag" : "BattleCard"}"></div></td>`;
 					html += `<td><span class="card-name"><a class="btn btn-link" data-action="show-card" style="padding:0;">${card.name}</a></span></td>`;
-					html += `<td>${mapRarityToStars(card.rarityType)}</td>`;
-					html += `<td><span class="card-element">${ElementRepo.toImage(card.elementType)}</span></td>`;
-					html += `<td><span class="hidden-xs card-klass ${KlassType[card.klassType]}">${KlassRepo.toImage(card.klassType)}</span></td>`;
-					html += `<td class="hidden-xs"><span class="card-heroes">${mapHeroesToImages(card).join("")}</span></td>`;
-					html += `<td class="hidden-xs"><span class="card-effects">${mapPerksEffectsToImages(card).join("")}</span></td>`;
-					html += `<td class="hidden-xs"><span class="card-mats">${mapMatsToImages(card).join("")}</span></td>`;
+					if (complete) html += `<td>${mapRarityToStars(card.rarityType)}</td>`;
+					if (complete) html += `<td><div class="bh-hud-image img-${ElementType[card.elementType]}"></div></td>`;
+					if (complete) html += `<td><div class="hidden-xs bh-hud-image img-${KlassType[card.klassType]}"></div></td>`;
+					html += `<td>${mapHeroesToImages(card).join("")}</td>`;
+					if (complete) html += `<td class="hidden-xs">${mapPerksEffectsToImages(card).join("")}</td>`;
+					if (complete) html += `<td class="hidden-xs">${mapMatsToImages(card).join("")}</td>`;
 					html += `<td class="hidden-xs" style="width:100%;"></td>`;
 					html += "</td></tr>";
 				tbody.append(html);
@@ -282,7 +308,7 @@ namespace bh {
 			effects.forEach(effect => {
 				setEffectTests(effect);
 				var html = `<tr id="${effect.guid}">`;
-					html += `<td><span class="card-icon">${EffectRepo.toImage(effect)}</span></td>`;
+					html += `<td><div class="bh-hud-image img-${effect.guid}"></div></td>`;
 					html += `<td><span class="card-name">${effect.name}</span><div class="visible-xs-block" style="border-top:1px dotted #666;">${effect.description}</div></td>`;
 					html += `<td class="hidden-xs" style="width:100%;"><span class="card-description">${effect.description}</span></td>`;
 					// html += `<td><span class="card-name"><a class="btn btn-link" data-action="show-effect" style="padding:0;">${effect}</a></span></td>`;
@@ -298,7 +324,7 @@ namespace bh {
 			items.forEach(item => {
 				setItemTests(item);
 				var html = `<tr id="${item.guid}">`;
-				html += `<td><span class="card-icon">${ItemRepo.toImage(item)}</span></td>`;
+				html += `<td><div class="bh-hud-image img-${item.guid}"></div></td>`;
 				html += `<td><span class="card-name">${item.name}</span></td>`;
 				html += `<td>${mapRarityToStars(item.rarityType)}</td>`;
 				// html += `<td><span class="card-name"><a class="btn btn-link" data-action="show-effect" style="padding:0;">${mat}</a></span></td>`;

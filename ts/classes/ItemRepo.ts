@@ -29,5 +29,12 @@ namespace bh {
 					: data.HeroRepo.find(item.name.split("'")[0]).abilities[0].name.replace(/\W/g, "");
 			return fn(folder, name);
 		}
+		public static toImageSrc(item: IDataInventoryItem) {
+			var folder = ItemType[item.itemType].toLowerCase() + "s",
+				name = item.itemType == ItemType.EvoJar ? item.name.replace(/\W/g, "")
+					: item.itemType == ItemType.Crystal ? item.name.split(/ /)[0]
+					: data.HeroRepo.find(item.name.split("'")[0]).abilities[0].name.replace(/\W/g, "");
+			return getSrc(folder, name);
+		}
 	}
 }

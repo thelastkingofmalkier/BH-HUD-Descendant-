@@ -46,6 +46,9 @@ namespace bh {
 		public static toImage(effect: IDataEffect, fn = getImg20) {
 			return ["Self", "Single"].includes(effect.name) ? "" : fn("effects", effect.name.replace(/\W/g, ""));
 		}
+		public static toImageSrc(effect: IDataEffect) {
+			return ["Self", "Single"].includes(effect.name) ? "" : getSrc("effects", effect.name.replace(/\W/g, ""));
+		}
 	}
 	function mapTargetOrEffectOrPerk(item: string, type: GameBattleCardType = null) {
 		var items: string[] = [];

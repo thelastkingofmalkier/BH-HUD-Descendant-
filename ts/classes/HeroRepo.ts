@@ -32,5 +32,9 @@ namespace bh {
 			if (!sort) { return this.sorted; }
 			return this.data.slice().sort(sort);
 		}
+
+		public static toImageSrc(hero: Hero) {
+			return getSrc("heroes", hero.name);
+		}
 	}
 }

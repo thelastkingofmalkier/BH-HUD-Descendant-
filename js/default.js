@@ -170,7 +170,7 @@ var bh;
                         case "name":
                             object["lower"] = value.toLowerCase();
                         default:
-                            object[key] = value;
+                            object[key] = (value || "").trim();
                             break;
                     }
                 });
@@ -187,9 +187,17 @@ var bh;
     var ElementRepo = (function () {
         function ElementRepo() {
         }
+        Object.defineProperty(ElementRepo, "all", {
+            get: function () { return [0, 1, 2, 3, 4, 5]; },
+            enumerable: true,
+            configurable: true
+        });
         ElementRepo.toImage = function (elementType, fn) {
             if (fn === void 0) { fn = bh.getImg20; }
             return elementType == bh.ElementType.Neutral ? "" : fn("elements", bh.ElementType[elementType]);
+        };
+        ElementRepo.toImageSrc = function (elementType) {
+            return bh.getSrc("elements", bh.ElementType[elementType]);
         };
         return ElementRepo;
     }());
@@ -197,13 +205,32 @@ var bh;
     var KlassRepo = (function () {
         function KlassRepo() {
         }
+        Object.defineProperty(KlassRepo, "all", {
+            get: function () { return [0, 1, 2]; },
+            enumerable: true,
+            configurable: true
+        });
         KlassRepo.toImage = function (klassType, fn) {
             if (fn === void 0) { fn = bh.getImg20; }
             return fn("classes", bh.KlassType[klassType]);
         };
+        KlassRepo.toImageSrc = function (klassType) {
+            return bh.getSrc("classes", bh.KlassType[klassType]);
+        };
         return KlassRepo;
     }());
     bh.KlassRepo = KlassRepo;
+    var RarityRepo = (function () {
+        function RarityRepo() {
+        }
+        Object.defineProperty(RarityRepo, "all", {
+            get: function () { return [0, 1, 2, 3, 4]; },
+            enumerable: true,
+            configurable: true
+        });
+        return RarityRepo;
+    }());
+    bh.RarityRepo = RarityRepo;
 })(bh || (bh = {}));
 var bh;
 (function (bh) {
@@ -254,6 +281,9 @@ var bh;
         EffectRepo.toImage = function (effect, fn) {
             if (fn === void 0) { fn = bh.getImg20; }
             return ["Self", "Single"].includes(effect.name) ? "" : fn("effects", effect.name.replace(/\W/g, ""));
+        };
+        EffectRepo.toImageSrc = function (effect) {
+            return ["Self", "Single"].includes(effect.name) ? "" : bh.getSrc("effects", effect.name.replace(/\W/g, ""));
         };
         return EffectRepo;
     }(bh.Repo));
@@ -486,6 +516,9 @@ var bh;
             }
             return this.data.slice().sort(sort);
         };
+        HeroRepo.toImageSrc = function (hero) {
+            return bh.getSrc("heroes", hero.name);
+        };
         return HeroRepo;
     }(bh.Repo));
     bh.HeroRepo = HeroRepo;
@@ -538,6 +571,12 @@ var bh;
                 : item.itemType == bh.ItemType.Crystal ? item.name.split(/ /)[0]
                     : bh.data.HeroRepo.find(item.name.split("'")[0]).abilities[0].name.replace(/\W/g, "");
             return fn(folder, name);
+        };
+        ItemRepo.toImageSrc = function (item) {
+            var folder = bh.ItemType[item.itemType].toLowerCase() + "s", name = item.itemType == bh.ItemType.EvoJar ? item.name.replace(/\W/g, "")
+                : item.itemType == bh.ItemType.Crystal ? item.name.split(/ /)[0]
+                    : bh.data.HeroRepo.find(item.name.split("'")[0]).abilities[0].name.replace(/\W/g, "");
+            return bh.getSrc(folder, name);
         };
         return ItemRepo;
     }(bh.Repo));
@@ -2670,6 +2709,53 @@ var bh;
 })(bh || (bh = {}));
 var bh;
 (function (bh) {
+    var css;
+    (function (css) {
+        function addCardTypes($) {
+            if ($ === void 0) { $ = bh.$(); }
+            var style = $("<style type='text/css' id='bh-hud-cardtypes'/>").appendTo($("head"));
+            style.append("div.bh-hud-image.img-Attack { background-image:url('" + bh.getSrc("cardtypes", "Attack") + "'); }");
+            style.append("div.bh-hud-image.img-Brag { background-image:url('" + bh.getSrc("cardtypes", "Brag") + "'); }");
+            style.append("div.bh-hud-image.img-BattleCard { background-image:url('" + bh.getSrc("cardtypes", "BattleCard") + "'); }");
+            style.append("div.bh-hud-image.img-Heal { background-image:url('" + bh.getSrc("cardtypes", "Heal") + "'); }");
+            style.append("div.bh-hud-image.img-Shield { background-image:url('" + bh.getSrc("cardtypes", "Shield") + "'); }");
+            style.append("div.bh-hud-image.img-WildCard { background-image:url('" + bh.getSrc("cardtypes", "WildCard") + "'); }");
+        }
+        css.addCardTypes = addCardTypes;
+        function addEffects($) {
+            if ($ === void 0) { $ = bh.$(); }
+            var style = $("<style type='text/css' id='bh-hud-effects'/>").appendTo($("head"));
+            bh.data.EffectRepo.all.forEach(function (effect) { return style.append("div.bh-hud-image.img-" + effect.guid + " { background-image:url('" + bh.EffectRepo.toImageSrc(effect) + "'); }"); });
+        }
+        css.addEffects = addEffects;
+        function addElements($) {
+            if ($ === void 0) { $ = bh.$(); }
+            var style = $("<style type='text/css' id='bh-hud-elements'/>").appendTo($("head"));
+            bh.ElementRepo.all.forEach(function (elementType) { return elementType == bh.ElementType.Neutral ? void 0 : style.append("div.bh-hud-image.img-" + bh.ElementType[elementType] + " { background-image:url('" + bh.ElementRepo.toImageSrc(elementType) + "'); }"); });
+        }
+        css.addElements = addElements;
+        function addHeroes($) {
+            if ($ === void 0) { $ = bh.$(); }
+            var style = $("<style type='text/css' id='bh-hud-heroes'/>").appendTo($("head"));
+            bh.data.HeroRepo.all.forEach(function (hero) { return style.append("div.bh-hud-image.img-" + hero.guid + " { background-image:url('" + bh.HeroRepo.toImageSrc(hero) + "'); }"); });
+        }
+        css.addHeroes = addHeroes;
+        function addItems($) {
+            if ($ === void 0) { $ = bh.$(); }
+            var style = $("<style type='text/css' id='bh-hud-items'/>").appendTo($("head"));
+            bh.data.ItemRepo.all.forEach(function (item) { return style.append("div.bh-hud-image.img-" + item.guid + " { background-image:url('" + bh.ItemRepo.toImageSrc(item) + "'); }"); });
+        }
+        css.addItems = addItems;
+        function addKlasses($) {
+            if ($ === void 0) { $ = bh.$(); }
+            var style = $("<style type='text/css' id='bh-hud-klasses'/>").appendTo($("head")), widths = [16, 12, 12];
+            bh.KlassRepo.all.forEach(function (klassType) { return style.append("div.bh-hud-image.img-" + bh.KlassType[klassType] + " { width:16px; background-size:" + widths[klassType] + "px 20px; background-image:url('" + bh.KlassRepo.toImageSrc(klassType) + "'); }"); });
+        }
+        css.addKlasses = addKlasses;
+    })(css = bh.css || (bh.css = {}));
+})(bh || (bh = {}));
+var bh;
+(function (bh) {
     var _win, funcs = [], resolved = false, tries = 0, promise;
     function loaded(win) {
         _win = _win || win;
@@ -3444,10 +3530,29 @@ var bh;
     var library;
     (function (library) {
         var $ = window["jQuery"];
+        var player = null;
         function cleanImageName(value) {
             return value.trim().replace(/\W/g, "");
         }
         function init() {
+            var hud = location.search.includes("hud");
+            if (hud) {
+                window.addEventListener("message", handleOnLoadPlayer);
+            }
+            else {
+                _init();
+            }
+        }
+        library.init = init;
+        function handleOnLoadPlayer(ev) {
+            var message = ev.data || (ev.originalEvent && ev.originalEvent.data) || null;
+            if (message && message.action == "hud-to-library" && message.data) {
+                player = new bh.Player(message.data);
+                _init();
+            }
+        }
+        library.handleOnLoadPlayer = handleOnLoadPlayer;
+        function _init() {
             bh.host = "http://brains.sth.ovh";
             bh.data.init().then(render);
             $("body").on("click", "[data-action=\"show-card\"]", onShowCard);
@@ -3456,7 +3561,6 @@ var bh;
             var evoTabs = $("#card-evolution div.tab-pane"), template = evoTabs.html();
             evoTabs.html(template).toArray().forEach(function (div, i) { return $(div).find("h3").text("Evolution from " + i + " to " + (i + 1)); });
         }
-        library.init = init;
         function onSearchClear() {
             searching = null;
             $("input.library-search").val("");
@@ -3588,14 +3692,14 @@ var bh;
             }
             return tests[item.guid] || [];
         }
-        var elementLowers = [bh.ElementType.Air, bh.ElementType.Earth, bh.ElementType.Fire, bh.ElementType.Neutral, bh.ElementType.Spirit, bh.ElementType.Water].map(function (type) { return bh.ElementType[type].toLowerCase(); });
-        var rarityLowers = [bh.RarityType.Common, bh.RarityType.Uncommon, bh.RarityType.Rare, bh.RarityType.SuperRare, bh.RarityType.Legendary].map(function (type) { return bh.RarityType[type].toLowerCase(); });
+        var elementLowers = bh.ElementRepo.all.map(function (type) { return bh.ElementType[type].toLowerCase(); });
+        var rarityLowers = bh.RarityRepo.all.map(function (type) { return bh.RarityType[type].toLowerCase(); });
         var heroNameLowers = null;
         function matchTests(which, tests, word) {
-            if (!heroNameLowers)
-                heroNameLowers = bh.data.HeroRepo.all.map(function (hero) { return hero.lower; });
             if (which == "effect")
                 return matchTestsIncludes(tests, word);
+            if (!heroNameLowers)
+                heroNameLowers = bh.data.HeroRepo.all.map(function (hero) { return hero.lower; });
             return elementLowers.includes(word) || rarityLowers.includes(word) || heroNameLowers.includes(word) ? matchTestsEquals(tests, word) : matchTestsIncludes(tests, word);
         }
         function matchTestsEquals(tests, word) {
@@ -3623,45 +3727,60 @@ var bh;
             bh.EffectRepo.mapTargets(card).forEach(function (target) { return !list.includes(target) ? list.push(target) : void 0; });
             bh.EffectRepo.mapEffects(card).forEach(function (effect) { return !list.includes(effect) ? list.push(effect) : void 0; });
             bh.EffectRepo.mapPerks(card).forEach(function (perk) { return !list.includes(perk) ? list.push(perk) : void 0; });
-            return list;
+            return list.reduce(function (out, item) { return ["Self", "Single"].includes(item.name) ? out : out.concat([item]); }, []);
         }
         function mapPerksEffectsToImages(card) {
-            return mapPerksEffects(card).map(function (item) { return "<span class=\"card-effect\" title=\"" + item.name + ": " + item.description + "\" data-toggle=\"tooltip\" data-placement=\"top\">" + bh.EffectRepo.toImage(item) + "</span>"; });
+            return mapPerksEffects(card).map(function (item) { return "<div class=\"bh-hud-image img-" + item.guid + "\" title=\"" + item.name + ": " + item.description + "\" data-toggle=\"tooltip\" data-placement=\"top\"></div>"; });
         }
         function mapMatsToImages(card) {
-            return card.mats.map(function (mat) { return bh.data.ItemRepo.find(mat); }).map(function (item) { return "<span class=\"card-mat\" title=\"" + item.name + ": " + bh.RarityType[item.rarityType] + " " + bh.ElementType[item.elementType] + " " + bh.ItemType[item.itemType] + " (" + bh.utils.formatNumber(bh.ItemRepo.getValue(item.itemType, item.rarityType)) + " gold)\" data-toggle=\"tooltip\" data-placement=\"top\">" + bh.ItemRepo.toImage(item) + "</span>"; });
+            return card.mats.map(function (mat) { return bh.data.ItemRepo.find(mat); }).map(function (item) { return "<div class=\"bh-hud-image img-" + item.guid + "\" title=\"" + item.name + ": " + bh.RarityType[item.rarityType] + " " + bh.ElementType[item.elementType] + " " + bh.ItemType[item.itemType] + " (" + bh.utils.formatNumber(bh.ItemRepo.getValue(item.itemType, item.rarityType)) + " gold)\" data-toggle=\"tooltip\" data-placement=\"top\"></div>"; });
         }
         function mapHeroesToImages(card) {
             return bh.data.HeroRepo.all
                 .filter(function (hero) { return (card.elementType == bh.ElementType.Neutral || hero.elementType == card.elementType) && hero.klassType == card.klassType; })
-                .map(function (hero) { return bh.getImg("heroes", hero.name); });
+                .map(function (hero) { return "<div class=\"bh-hud-image img-" + hero.guid + "\"></div>"; });
         }
         function mapRarityToStars(rarityType) {
             return "<span class=\"stars\" title=\"" + bh.RarityType[rarityType] + "\" data-toggle=\"tooltip\" data-placement=\"top\">" + bh.utils.evoToStars(rarityType) + "</span>";
         }
         function render() {
-            renderCards();
+            bh.css.addCardTypes($);
+            bh.css.addEffects($);
+            bh.css.addElements($);
+            bh.css.addHeroes($);
+            bh.css.addItems($);
+            bh.css.addKlasses($);
             renderEffects();
             renderItems();
+            renderCards();
             $("div.row.alert-row").remove();
             $("div.row.table-row").show();
             $('[data-toggle="tooltip"]').tooltip();
         }
         function renderCards() {
+            var complete = location.search.includes("complete");
             var cards = bh.data.cards.battle.getAll();
             $("a[href=\"#card-table\"] > span.badge").text(String(cards.length));
-            var tbody = $("table.card-list > tbody");
+            var tbody = $("table.card-list > tbody").html("");
             cards.forEach(function (card) {
                 setCardTests(card);
+                var owned = player && player.battleCards.find(function (bc) { return card.guid == bc.guid; });
                 var html = "<tr id=\"" + card.guid + "\">";
-                html += "<td><span class=\"card-cardType\">" + bh.getImg20("cardtypes", card.brag ? "Brag" : "BattleCard") + "</span></td>";
+                if (player)
+                    html += "<td><span class=\"card-owned glyphicon " + (owned ? "glyphicon-ok text-success" : "glyphicon-remove text-danger") + "\"></span></td>";
+                html += "<td><div class=\"bh-hud-image img-" + (card.brag ? "Brag" : "BattleCard") + "\"></div></td>";
                 html += "<td><span class=\"card-name\"><a class=\"btn btn-link\" data-action=\"show-card\" style=\"padding:0;\">" + card.name + "</a></span></td>";
-                html += "<td>" + mapRarityToStars(card.rarityType) + "</td>";
-                html += "<td><span class=\"card-element\">" + bh.ElementRepo.toImage(card.elementType) + "</span></td>";
-                html += "<td><span class=\"hidden-xs card-klass " + bh.KlassType[card.klassType] + "\">" + bh.KlassRepo.toImage(card.klassType) + "</span></td>";
-                html += "<td class=\"hidden-xs\"><span class=\"card-heroes\">" + mapHeroesToImages(card).join("") + "</span></td>";
-                html += "<td class=\"hidden-xs\"><span class=\"card-effects\">" + mapPerksEffectsToImages(card).join("") + "</span></td>";
-                html += "<td class=\"hidden-xs\"><span class=\"card-mats\">" + mapMatsToImages(card).join("") + "</span></td>";
+                if (complete)
+                    html += "<td>" + mapRarityToStars(card.rarityType) + "</td>";
+                if (complete)
+                    html += "<td><div class=\"bh-hud-image img-" + bh.ElementType[card.elementType] + "\"></div></td>";
+                if (complete)
+                    html += "<td><div class=\"hidden-xs bh-hud-image img-" + bh.KlassType[card.klassType] + "\"></div></td>";
+                html += "<td>" + mapHeroesToImages(card).join("") + "</td>";
+                if (complete)
+                    html += "<td class=\"hidden-xs\">" + mapPerksEffectsToImages(card).join("") + "</td>";
+                if (complete)
+                    html += "<td class=\"hidden-xs\">" + mapMatsToImages(card).join("") + "</td>";
                 html += "<td class=\"hidden-xs\" style=\"width:100%;\"></td>";
                 html += "</td></tr>";
                 tbody.append(html);
@@ -3674,7 +3793,7 @@ var bh;
             effects.forEach(function (effect) {
                 setEffectTests(effect);
                 var html = "<tr id=\"" + effect.guid + "\">";
-                html += "<td><span class=\"card-icon\">" + bh.EffectRepo.toImage(effect) + "</span></td>";
+                html += "<td><div class=\"bh-hud-image img-" + effect.guid + "\"></div></td>";
                 html += "<td><span class=\"card-name\">" + effect.name + "</span><div class=\"visible-xs-block\" style=\"border-top:1px dotted #666;\">" + effect.description + "</div></td>";
                 html += "<td class=\"hidden-xs\" style=\"width:100%;\"><span class=\"card-description\">" + effect.description + "</span></td>";
                 html += "</td></tr>";
@@ -3688,7 +3807,7 @@ var bh;
             items.forEach(function (item) {
                 setItemTests(item);
                 var html = "<tr id=\"" + item.guid + "\">";
-                html += "<td><span class=\"card-icon\">" + bh.ItemRepo.toImage(item) + "</span></td>";
+                html += "<td><div class=\"bh-hud-image img-" + item.guid + "\"></div></td>";
                 html += "<td><span class=\"card-name\">" + item.name + "</span></td>";
                 html += "<td>" + mapRarityToStars(item.rarityType) + "</td>";
                 html += "<td class=\"hidden-xs\" style=\"width:100%;\"></td>";
