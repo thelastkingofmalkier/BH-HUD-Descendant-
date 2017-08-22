@@ -60,7 +60,21 @@ interface IDataEffect extends IHasGuidAndName {
 	description: string;
 	value: number;
 }
-
+interface IDataDungeon extends IHasGuidAndName {
+	dungeon: string;
+	difficulty: "Normal" | "Elite" | "Epic";
+	act: string;
+	keys: number;
+	fame: number;
+	gold: number;
+	elementTypes: bh.ElementType[];
+	crystalElementTypes: bh.ElementType[];
+	runeHeroes: string[];
+	mats: string[];
+	randomMats: number[];
+	boosterElementTypes: bh.ElementType[];
+	boosterRarities: number[];
+}
 interface IPlayerGuildMemberScoreSummary {
 	playerId: string;
 	score: number;

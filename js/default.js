@@ -1,5 +1,5 @@
 var __extends = (this && this.__extends) || (function () {
-    var extendStatics = Object.setPrototypeOf ||
+   var extendStatics = Object.setPrototypeOf ||
         ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
         function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
     return function (d, b) {
@@ -1867,6 +1867,11 @@ var bh;
                 keys.forEach(function (key, index) {
                     var value = values[index];
                     switch (key) {
+                        case "elementTypes":
+                        case "crystalElementTypes":
+                        case "boosterElementTypes":
+                            object[key] = value.split(",").filter(function (s) { return !!s; }).map(function (s) { return bh.ElementType[s]; });
+                            break;
                         case "element":
                         case "elementType":
                             object["elementType"] = bh.ElementType[value];
@@ -1888,6 +1893,10 @@ var bh;
                         case "brag":
                             object["brag"] = bh.utils.parseBoolean(value);
                             break;
+                        case "randomMats":
+                            object[key] = value.split(",").map(function (s) { return +s; });
+                            break;
+                        case "boosterRarities":
                         case "minValues":
                             object[key] = value.split("|").map(function (s) { return s.split(",").map(function (s) { return +s; }); });
                             break;
@@ -1898,11 +1907,15 @@ var bh;
                         case "types":
                             object[key] = value.split("|").filter(function (s) { return !!s; });
                             break;
+                        case "runeHeroes":
                         case "effects":
                         case "mats":
                         case "perks":
                             object[key] = value.split(",").filter(function (s) { return !!s; });
                             break;
+                        case "keys":
+                        case "fame":
+                        case "gold":
                         case "perkBase":
                         case "turns":
                             object[key] = +value;
@@ -1990,6 +2003,17 @@ var bh;
         return BoosterCardRepo;
     }(bh.Repo));
     bh.BoosterCardRepo = BoosterCardRepo;
+})(bh || (bh = {}));
+var bh;
+(function (bh) {
+    var DungeonRepo = (function (_super) {
+        __extends(DungeonRepo, _super);
+        function DungeonRepo() {
+            return _super.call(this, 451699406) || this;
+        }
+        return DungeonRepo;
+    }(bh.Repo));
+    bh.DungeonRepo = DungeonRepo;
 })(bh || (bh = {}));
 var bh;
 (function (bh) {
@@ -2327,7 +2351,7 @@ function rateCards() {
     var scores = cards.map(function (card) {
         var scores = card.types.map(function (type, typeIndex) {
             var turnMultiplier = 1 - (card.turns - 1) * 0.1, value = calcValue(card, typeIndex), valuePerTurn = value / card.turns, dotValuePerTurn = calcDotValue(card, typeIndex) / card.turns, regenTurns = card.effects.includes("Regen") && type != "Attack" ? getRegenDuration(card) : 0, regenDivisor = regenTurns || 1, score = 0;
-            return Math.round((valuePerTurn + dotValuePerTurn) / regenDivisor * turnMultiplier);
+            return Math.round((valuePerTurn + dotValuePerTurn) / regenDivisor * turnMultiplier / 888);
         });
         var score = scores.reduce(function (total, score) { return score + total; }, 0);
         return { card: card, score: score };
@@ -2450,13 +2474,13 @@ function tiered() {
     });
     return tiered;
 }
-setTimeout(rateCards, 1000);
 var bh;
 (function (bh) {
     var data;
     (function (data) {
         data.BattleCardRepo = new bh.BattleCardRepo();
         data.BoosterCardRepo = new bh.BoosterCardRepo();
+        data.DungeonRepo = new bh.DungeonRepo();
         data.EffectRepo = new bh.EffectRepo();
         data.HeroRepo = new bh.HeroRepo();
         data.ItemRepo = new bh.ItemRepo();
@@ -3116,6 +3140,9 @@ var bh;
         })(elements = images.elements || (images.elements = {}));
         var evojars;
         (function (evojars) {
+            var random;
+            (function (random) {
+            })(random = evojars.random || (evojars.random = {}));
         })(evojars = images.evojars || (images.evojars = {}));
         var heroes;
         (function (heroes) {
@@ -3876,6 +3903,7 @@ var bh;
             renderEffects();
             renderItems();
             renderCards();
+            renderDungeons();
             $("div.row.alert-row").remove();
             $("div.row.table-row").show();
             $('[data-toggle="tooltip"]').tooltip();
@@ -3933,6 +3961,32 @@ var bh;
                 html += "<td><div class=\"bh-hud-image img-" + item.guid + "\"></div></td>";
                 html += "<td><span class=\"card-name\">" + item.name + "</span></td>";
                 html += "<td>" + mapRarityToStars(item.rarityType) + "</td>";
+                html += "<td class=\"hidden-xs\" style=\"width:100%;\"></td>";
+                html += "</td></tr>";
+                tbody.append(html);
+            });
+        }
+        function renderDungeons() {
+            var dungeons = bh.data.DungeonRepo.all;
+            $("a[href=\"#dungeon-table\"] > span.badge").text(String(dungeons.length));
+            var tbody = $("table.dungeon-list > tbody");
+            dungeons.forEach(function (dungeon) {
+                var html = "<tr id=\"" + dungeon.guid + "\">";
+                html += "<td><span class=\"\">" + dungeon.name + "</span></td>";
+                html += "<td><span class=\"\">" + bh.getImg20("keys", "SilverKey") + " " + dungeon.keys + "</span></td>";
+                html += "<td><span class=\"\">" + bh.getImg20("misc", "Fame") + " " + bh.utils.formatNumber(dungeon.fame) + "</span></td>";
+                html += "<td><span class=\"\">" + bh.getImg20("keys", "RaidTicket") + "</span></td>";
+                html += "<td><span class=\"\">" + bh.getImg20("misc", "Coin") + " " + bh.utils.formatNumber(dungeon.gold) + "</span></td>";
+                try {
+                    html += "<td><span class=\"\">" + dungeon.elementTypes.map(function (elementType) { return "<div class=\"bh-hud-image img-" + bh.ElementType[elementType] + "\"></div>"; }).join("") + "</span></td>";
+                    html += "<td><span class=\"\">" + dungeon.crystalElementTypes.map(function (elementType) { return bh.getImg20("crystals", bh.ElementType[elementType]); }).join("") + "</span></td>";
+                    html += "<td><span class=\"\">" + dungeon.runeHeroes.map(function (heroName) { return "<div class=\"bh-hud-image img-" + bh.data.ItemRepo.runes.find(function (rune) { return rune.name.startsWith(heroName); }).guid + "\"></div>"; }).join("") + "</span></td>";
+                    html += "<td><span class=\"\">" + dungeon.mats.map(function (mat) { return "<div class=\"bh-hud-image img-" + bh.data.ItemRepo.evoJars.find(function (jar) { return jar.name == mat; }).guid + "\"></div>"; }).join("") + "</span></td>";
+                    html += "<td><span class=\"\">" + dungeon.randomMats.map(function (count, rarityType) { return count ? bh.getImg20("evojars", "random", bh.RarityType[rarityType] + "_Neutral_Small") : ""; }).join("") + "</span></td>";
+                }
+                catch (ex) {
+                    console.error(ex);
+                }
                 html += "<td class=\"hidden-xs\" style=\"width:100%;\"></td>";
                 html += "</td></tr>";
                 tbody.append(html);

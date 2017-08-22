@@ -98,6 +98,12 @@ namespace bh {
 					keys.forEach((key, index) => {
 						var value = values[index];
 						switch(key) {
+							case "elementTypes":
+							case "crystalElementTypes":
+							case "boosterElementTypes":
+								object[key] = value.split(",").filter(s => !!s).map(s => ElementType[<GameElement>s]);
+								break;
+
 							case "element":
 							case "elementType":
 								object["elementType"] = ElementType[<GameElement>value];
@@ -125,6 +131,11 @@ namespace bh {
 								object["brag"] = utils.parseBoolean(value);
 								break;
 
+							case "randomMats":
+								object[key] = value.split(",").map(s => +s);
+								break;
+
+							case "boosterRarities":
 							case "minValues":
 								object[key] = value.split("|").map(s => s.split(",").map(s => +s));
 								break;
@@ -138,12 +149,16 @@ namespace bh {
 								object[key] = value.split("|").filter(s => !!s);
 								break;
 
+							case "runeHeroes":
 							case "effects":
 							case "mats":
 							case "perks":
 								object[key] = value.split(",").filter(s => !!s);
 								break;
 
+							case "keys":
+							case "fame":
+							case "gold":
 							case "perkBase":
 							case "turns":
 								object[key] = +value;

@@ -76,7 +76,7 @@ function rateCards() {
 				regenDivisor = regenTurns || 1,
 				score = 0;
 // console.log(`${card.name} (${type}) valuePerTurn (${valuePerTurn}) * turnMultiplier (${turnMultiplier})`)
-			return Math.round((valuePerTurn + dotValuePerTurn) / regenDivisor * turnMultiplier);
+			return Math.round((valuePerTurn + dotValuePerTurn) / regenDivisor * turnMultiplier / 888);
 		});
 		var score = scores.reduce((total, score) => score + total, 0);
 		return { card:card, score:score };
@@ -210,4 +210,4 @@ function tiered() {
 	});
 	return tiered;
 }
-setTimeout(rateCards, 1000)
+// $(() => bh.data.init().then(() => rateCards));

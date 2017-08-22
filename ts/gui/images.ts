@@ -68,6 +68,9 @@ namespace bh {
 			export declare var Water: string;
 		}
 		export namespace evojars {
+			export namespace random {
+				export declare var Common_Air_Small: String;
+			}
 			export declare var BeetleJuice: string;
 			export declare var BlueJam: string;
 			export declare var Brains: string;

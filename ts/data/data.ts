@@ -8,6 +8,7 @@ namespace bh {
 	export namespace data {
 		export var BattleCardRepo = new bh.BattleCardRepo();
 		export var BoosterCardRepo = new bh.BoosterCardRepo();
+		export var DungeonRepo = new bh.DungeonRepo();
 		export var EffectRepo = new bh.EffectRepo();
 		export var HeroRepo = new bh.HeroRepo();
 		export var ItemRepo = new bh.ItemRepo();

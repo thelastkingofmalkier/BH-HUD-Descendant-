@@ -273,6 +273,7 @@ namespace bh {
 			renderEffects();
 			renderItems();
 			renderCards();
+			renderDungeons();
 
 			$("div.row.alert-row").remove();
 			$("div.row.table-row").show();
@@ -328,6 +329,35 @@ namespace bh {
 				html += `<td><span class="card-name">${item.name}</span></td>`;
 				html += `<td>${mapRarityToStars(item.rarityType)}</td>`;
 				// html += `<td><span class="card-name"><a class="btn btn-link" data-action="show-effect" style="padding:0;">${mat}</a></span></td>`;
+				html += `<td class="hidden-xs" style="width:100%;"></td>`;
+				html += "</td></tr>";
+				tbody.append(html);
+			});
+		}
+		function renderDungeons() {
+			var dungeons = data.DungeonRepo.all;
+			$(`a[href="#dungeon-table"] > span.badge`).text(String(dungeons.length));
+			var tbody = $("table.dungeon-list > tbody");
+			dungeons.forEach(dungeon => {
+				// setItemTests(item);
+				var html = `<tr id="${dungeon.guid}">`;
+				// html += `<td><div class="bh-hud-image img-${item.guid}"></div></td>`;
+				html += `<td><span class="">${dungeon.name}</span></td>`;
+				html += `<td><span class="">${getImg20("keys", "SilverKey")} ${dungeon.keys}</span></td>`;
+				html += `<td><span class="">${getImg20("misc", "Fame")} ${utils.formatNumber(dungeon.fame)}</span></td>`;
+				html += `<td><span class="">${getImg20("keys", "RaidTicket")}</span></td>`;
+				html += `<td><span class="">${getImg20("misc", "Coin")} ${utils.formatNumber(dungeon.gold)}</span></td>`;
+				try {
+					html += `<td><span class="">${dungeon.elementTypes.map(elementType => `<div class="bh-hud-image img-${ElementType[elementType]}"></div>`).join("")}</span></td>`;
+					html += `<td><span class="">${dungeon.crystalElementTypes.map(elementType => getImg20("crystals", ElementType[elementType])).join("")}</span></td>`;
+					html += `<td><span class="">${dungeon.runeHeroes.map(heroName => `<div class="bh-hud-image img-${data.ItemRepo.runes.find(rune => rune.name.startsWith(heroName)).guid}"></div>`).join("")}</span></td>`;
+					html += `<td><span class="">${dungeon.mats.map(mat => `<div class="bh-hud-image img-${data.ItemRepo.evoJars.find(jar => jar.name == mat).guid}"></div>`).join("")}</span></td>`;
+					html += `<td><span class="">${dungeon.randomMats.map((count, rarityType) => count ? getImg20("evojars", "random", `${RarityType[rarityType]}_Neutral_Small`) : "").join("")}</span></td>`;
+					// html += `<td>${mapRarityToStars(item.rarityType)}</td>`;
+					// html += `<td><span class="card-name"><a class="btn btn-link" data-action="show-effect" style="padding:0;">${mat}</a></span></td>`;
+				}catch(ex) {
+					console.error(ex);
+				}
 				html += `<td class="hidden-xs" style="width:100%;"></td>`;
 				html += "</td></tr>";
 				tbody.append(html);
