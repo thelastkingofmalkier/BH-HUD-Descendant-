@@ -58,6 +58,7 @@ interface IDataEffect extends IHasGuidAndName {
 	effectType: GameEffectType;
 	alt?: string;
 	description: string;
+	value: number;
 }
 
 interface IPlayerGuildMemberScoreSummary {

@@ -26,7 +26,7 @@ namespace bh {
 
 		public constructor(card: PlayerBattleCard) {
 			var evo = card.evo,
-				max = data.cards.battle.getMaxEvo(card.rarityType);
+				max = data.getMaxEvo(card.rarityType);
 			for (var i = evo; i < max; i++) {
 				this.reports.push(new EvoReport(card, i));
 			}

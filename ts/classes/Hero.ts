@@ -30,7 +30,7 @@ namespace bh {
 		}
 
 		public get allBattleCards(): IDataBattleCard[] {
-			return Hero.filterCardsByHero(this, data.cards.battle.getAll());
+			return Hero.filterCardsByHero(this, data.BattleCardRepo.all);
 		}
 
 		public getHitPoints(level: number) {

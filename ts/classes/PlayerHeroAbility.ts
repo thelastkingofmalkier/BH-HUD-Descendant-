@@ -138,15 +138,15 @@ namespace bh {
 		public get isLocked() { return !this.level; }
 		public get isCapped() { return this.level == this.levelCap; }
 		public get isMaxed() { return this.level == this.levelMax; }
-		public get levelCap() { return getAbilityLevelCap(this); }
-		public get levelMax() { return getAbilityLevelMax(this); }
+		public get levelCap() { return HeroRepo.getAbilityLevelCap(this); }
+		public get levelMax() { return HeroRepo.getAbilityLevelMax(this); }
 
 		public get nextMaterialCount() {
 			return getMaterialCountFor(this._type, this.level + 1);
 		}
 		public get maxMaterialCount() {
 			var type = this._type,
-				max = getAbilityMaxLevel(this.hero, this.heroAbility.type);
+				max = HeroRepo.getAbilityMaxLevel(this.hero, this.heroAbility.type);
 			return getMaterialCountForRange(type, this.level, max);
 		}
 		public get nextGoldCost() {
@@ -154,7 +154,7 @@ namespace bh {
 		}
 		public get maxGoldCost() {
 			var type = this._type,
-				max = getAbilityMaxLevel(this.hero, this.heroAbility.type);
+				max = HeroRepo.getAbilityMaxLevel(this.hero, this.heroAbility.type);
 			return getGoldCostForRange(this._type, this.level, max);
 		}
 
@@ -176,7 +176,7 @@ namespace bh {
 			return `<div>${getImg("misc", "Coin")} Gold <span class="badge pull-right ${color}">${utils.formatNumber(gold)} / ${utils.formatNumber(this.maxGoldCost || 0)}</span></div>`;
 		}
 		public get powerRating() {
-			return PowerRating.ratePlayerHeroAbility(this) * (this.level / getAbilityMaxLevel(this.hero, this.type));
+			return PowerRating.ratePlayerHeroAbility(this) * (this.level / HeroRepo.getAbilityMaxLevel(this.hero, this.type));
 		}
 
 		public toRowHtml(): string;

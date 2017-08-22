@@ -53,7 +53,7 @@ namespace bh {
 
 		public constructor(playerCard: IPlayer.PlayerCard) {
 			this.playerCard = playerCard;
-			this._bc = data.cards.battle.find(playerCard.configId);
+			this._bc = data.BattleCardRepo.find(playerCard.configId);
 			if (!this._bc) { utils.logMissingCard(this); }
 		}
 
@@ -111,7 +111,7 @@ namespace bh {
 		public get rowHtml() { return this._rowHtml();  }
 		public get scoutHtml() { return `${this.rarityEvoLevel} ${this.name} ${this.count > 1 ? `x${this.count}` : ``}`; }
 		public get typeImage() { return this.types.length ? getImg12("cardtypes", this.types[0]) : ``; }
-		public get value() { return this.playerCard && data.cards.battle.calculateValue(this.playerCard) || 0; };
+		public get value() { return this.playerCard && bh.BattleCardRepo.calculateValue(this.playerCard) || 0; };
 
 		public matches(other: PlayerBattleCard): boolean { return this._bc && other._bc && this._bc.guid == other._bc.guid && this.evoLevel == other.evoLevel; }
 		public matchesElement(element: GameElement) { return !element || this.elementType === ElementType[element]; }

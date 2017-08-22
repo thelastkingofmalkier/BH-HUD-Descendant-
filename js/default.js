@@ -1,5 +1,5 @@
 var __extends = (this && this.__extends) || (function () {
-   var extendStatics = Object.setPrototypeOf ||
+    var extendStatics = Object.setPrototypeOf ||
         ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
         function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
     return function (d, b) {
@@ -26,287 +26,6 @@ var bh;
         return Cacheable;
     }());
     bh.Cacheable = Cacheable;
-})(bh || (bh = {}));
-var bh;
-(function (bh) {
-    var Repo = (function () {
-        function Repo(idOrGid, gidOrCacheable, cacheable) {
-            Repo.AllRepos.push(this);
-            this.id = typeof (gidOrCacheable) == "number" ? idOrGid : null,
-                this.gid = typeof (gidOrCacheable) == "number" ? gidOrCacheable : idOrGid;
-            this.cacheable = gidOrCacheable === true || cacheable === true;
-        }
-        Repo.prototype.init = function () {
-            var _this = this;
-            if (!this._init) {
-                this._init = new Promise(function (resolvefn) {
-                    var tsv = (bh.TSV || {})[String(_this.gid || _this.id)];
-                    if (!tsv && _this.cacheable) {
-                        try {
-                            var cache = JSON.parse(localStorage.getItem(_this.id + "-" + _this.gid) || null);
-                            if (cache && cache.date && (new Date().getTime() < cache.date + 1000 * 60 * 60 * 24)) {
-                                tsv = cache.tsv || null;
-                            }
-                        }
-                        catch (ex) { }
-                    }
-                    if (tsv) {
-                        _this.resolveTsv(tsv, resolvefn);
-                    }
-                    else if (typeof (_this.gid) == "number") {
-                        Repo.fetchTsv(_this.id, _this.gid).then(function (tsv) { return _this.resolveTsv(tsv, resolvefn); }, function () { return _this.unresolveTsv(); });
-                    }
-                    else {
-                        resolvefn(_this.data = []);
-                    }
-                });
-            }
-            return this._init;
-        };
-        Repo.prototype.resolveTsv = function (tsv, resolvefn) {
-            var _this = this;
-            if (this.cacheable) {
-                try {
-                    localStorage.setItem(this.id + "-" + this.gid, JSON.stringify({ tsv: tsv, date: new Date().getTime() }));
-                }
-                catch (ex) { }
-            }
-            var parsed = this.parseTsv(tsv);
-            if (parsed instanceof Promise) {
-                parsed.then(function (data) { return resolvefn(data); }, function () { return _this.unresolveTsv(); });
-            }
-            else {
-                resolvefn(parsed);
-            }
-        };
-        Repo.prototype.unresolveTsv = function () {
-            this.data = [];
-        };
-        Repo.prototype.parseTsv = function (tsv) {
-            return this.data = Repo.mapTsv(tsv);
-        };
-        Object.defineProperty(Repo.prototype, "all", {
-            get: function () {
-                return this.data.slice();
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(Repo.prototype, "length", {
-            get: function () {
-                return this.data.length;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Repo.prototype.find = function (value) {
-            var lower = value.toLowerCase();
-            return this.data.find(function (t) { return t.guid == value || t.name == value || t.lower == lower; });
-        };
-        Repo.prototype.put = function (value) {
-            var index = this.data.findIndex(function (t) { return t.guid == value.guid; });
-            if (-1 < index) {
-                this.data[index] = value;
-            }
-            else {
-                this.data.push(value);
-            }
-        };
-        Repo.fetchTsv = function (idOrGid, gidOrUndefined) {
-            var id = typeof (gidOrUndefined) == "number" ? idOrGid : null, gid = typeof (gidOrUndefined) == "number" ? gidOrUndefined : idOrGid;
-            if ((bh.TSV || {})[String(gid)]) {
-                return Promise.resolve(bh.TSV[String(gid)]);
-            }
-            return XmlHttpRequest.get(bh.host + "/tsv.php?gid=" + gid + (id ? "&id=" + id : ""));
-        };
-        Repo.mapTsv = function (raw) {
-            var lines = raw.split(/\n/), keys = lines.shift().split(/\t/).map(function (s) { return s.trim(); });
-            return lines
-                .filter(function (line) { return !!line.trim().length; })
-                .map(function (line) {
-                var values = line.split(/\t/).map(function (s) { return s.trim(); }), object = {};
-                keys.forEach(function (key, index) {
-                    var value = values[index];
-                    switch (key) {
-                        case "element":
-                        case "elementType":
-                            object["elementType"] = bh.ElementType[value];
-                            break;
-                        case "rarity":
-                        case "rarityType":
-                            object["rarityType"] = bh.RarityType[value.replace(/ /g, "")];
-                            break;
-                        case "klass":
-                        case "klassType":
-                            object["klassType"] = bh.KlassType[value];
-                            break;
-                        case "itemType":
-                            object["itemType"] = bh.ItemType[value.replace(/ /g, "")];
-                            break;
-                        case "abilityType":
-                            object["abilityType"] = bh.AbilityType[value];
-                            break;
-                        case "brag":
-                            object["brag"] = bh.utils.parseBoolean(value);
-                            break;
-                        case "minValues":
-                            object[key] = value.split("|").map(function (s) { return s.split(",").map(function (s) { return +s; }); });
-                            break;
-                        case "maxValues":
-                            object[key] = value.split("|").map(function (s) { return +s; });
-                            break;
-                        case "targets":
-                        case "types":
-                            object[key] = value.split("|").filter(function (s) { return !!s; });
-                            break;
-                        case "effects":
-                        case "mats":
-                        case "perks":
-                            object[key] = value.split(",").filter(function (s) { return !!s; });
-                            break;
-                        case "turns":
-                            object[key] = +value;
-                            break;
-                        case "name":
-                            object["lower"] = value.toLowerCase();
-                        default:
-                            object[key] = (value || "").trim();
-                            break;
-                    }
-                });
-                return object;
-            });
-        };
-        Repo.init = function () {
-            return Repo.AllRepos.map(function (repo) { return repo.init(); });
-        };
-        Repo.AllRepos = [];
-        return Repo;
-    }());
-    bh.Repo = Repo;
-    var ElementRepo = (function () {
-        function ElementRepo() {
-        }
-        Object.defineProperty(ElementRepo, "all", {
-            get: function () { return [0, 1, 2, 3, 4, 5]; },
-            enumerable: true,
-            configurable: true
-        });
-        ElementRepo.toImage = function (elementType, fn) {
-            if (fn === void 0) { fn = bh.getImg20; }
-            return elementType == bh.ElementType.Neutral ? "" : fn("elements", bh.ElementType[elementType]);
-        };
-        ElementRepo.toImageSrc = function (elementType) {
-            return bh.getSrc("elements", bh.ElementType[elementType]);
-        };
-        return ElementRepo;
-    }());
-    bh.ElementRepo = ElementRepo;
-    var KlassRepo = (function () {
-        function KlassRepo() {
-        }
-        Object.defineProperty(KlassRepo, "all", {
-            get: function () { return [0, 1, 2]; },
-            enumerable: true,
-            configurable: true
-        });
-        KlassRepo.toImage = function (klassType, fn) {
-            if (fn === void 0) { fn = bh.getImg20; }
-            return fn("classes", bh.KlassType[klassType]);
-        };
-        KlassRepo.toImageSrc = function (klassType) {
-            return bh.getSrc("classes", bh.KlassType[klassType]);
-        };
-        return KlassRepo;
-    }());
-    bh.KlassRepo = KlassRepo;
-    var RarityRepo = (function () {
-        function RarityRepo() {
-        }
-        Object.defineProperty(RarityRepo, "all", {
-            get: function () { return [0, 1, 2, 3, 4]; },
-            enumerable: true,
-            configurable: true
-        });
-        return RarityRepo;
-    }());
-    bh.RarityRepo = RarityRepo;
-})(bh || (bh = {}));
-var bh;
-(function (bh) {
-    var EffectRepo = (function (_super) {
-        __extends(EffectRepo, _super);
-        function EffectRepo() {
-            return _super.call(this, 901337848, true) || this;
-        }
-        EffectRepo.prototype.parseTsv = function (tsv) {
-            this.data = bh.Repo.mapTsv(tsv);
-            this.data.forEach(function (effect) { return effect.guid = effect.lower.replace(/\W/g, "-"); });
-            return this.data;
-        };
-        EffectRepo.prototype.find = function (value) {
-            var lower = value.toLowerCase();
-            return this.data.find(function (t) { return t.lower == lower || (t.alt || "").toLowerCase() == lower; });
-        };
-        EffectRepo.mapEffects = function (card) {
-            var effects = [];
-            card.effects.forEach(function (effect) {
-                mapTargetOrEffectOrPerk(effect).forEach(function (item) {
-                    if (!effects.includes(item))
-                        effects.push(item);
-                });
-            });
-            return effects;
-        };
-        EffectRepo.mapPerks = function (card) {
-            var perks = [];
-            card.perks.forEach(function (perk) {
-                mapTargetOrEffectOrPerk(perk).forEach(function (item) {
-                    if (!perks.includes(item))
-                        perks.push(item);
-                });
-            });
-            return perks;
-        };
-        EffectRepo.mapTargets = function (card) {
-            var targets = [];
-            card.targets.forEach(function (target, index) {
-                mapTargetOrEffectOrPerk(target, card.types[index]).forEach(function (item) {
-                    if (!targets.includes(item))
-                        targets.push(item);
-                });
-            });
-            return targets;
-        };
-        EffectRepo.toImage = function (effect, fn) {
-            if (fn === void 0) { fn = bh.getImg20; }
-            return ["Self", "Single"].includes(effect.name) ? "" : fn("effects", effect.name.replace(/\W/g, ""));
-        };
-        EffectRepo.toImageSrc = function (effect) {
-            return ["Self", "Single"].includes(effect.name) ? "" : bh.getSrc("effects", effect.name.replace(/\W/g, ""));
-        };
-        return EffectRepo;
-    }(bh.Repo));
-    bh.EffectRepo = EffectRepo;
-    function mapTargetOrEffectOrPerk(item, type) {
-        if (type === void 0) { type = null; }
-        var items = [];
-        if (item.includes("Multi")) {
-            items.push(type == "Attack" ? "Multi-Target (Enemy)" : "Multi-Target (Ally)");
-        }
-        if (item.includes("Flurry")) {
-            items.push("Flurry");
-        }
-        if (!item.includes("Multi") && !item.includes("Flurry")) {
-            items.push(item);
-        }
-        return items.map(function (i) {
-            var effect = i ? bh.data.EffectRepo.find(i) : null;
-            if (!effect)
-                console.log(item);
-            return effect;
-        }).filter(function (i) { return !!i; });
-    }
 })(bh || (bh = {}));
 var bh;
 (function (bh) {
@@ -368,7 +87,7 @@ var bh;
     var EvoReportCard = (function () {
         function EvoReportCard(card) {
             this.reports = [];
-            var evo = card.evo, max = bh.data.cards.battle.getMaxEvo(card.rarityType);
+            var evo = card.evo, max = bh.data.getMaxEvo(card.rarityType);
             for (var i = evo; i < max; i++) {
                 this.reports.push(new EvoReport(card, i));
             }
@@ -431,7 +150,7 @@ var bh;
         });
         Object.defineProperty(Hero.prototype, "allBattleCards", {
             get: function () {
-                return Hero.filterCardsByHero(this, bh.data.cards.battle.getAll());
+                return Hero.filterCardsByHero(this, bh.data.BattleCardRepo.all);
             },
             enumerable: true,
             configurable: true
@@ -479,108 +198,6 @@ var bh;
         return Hero;
     }());
     bh.Hero = Hero;
-})(bh || (bh = {}));
-var bh;
-(function (bh) {
-    var HeroRepo = (function (_super) {
-        __extends(HeroRepo, _super);
-        function HeroRepo() {
-            return _super.call(this, 411895816, true) || this;
-        }
-        HeroRepo.prototype.parseTsv = function (tsv) {
-            var _this = this;
-            return new Promise(function (resolvefn) {
-                var mapped = bh.Repo.mapTsv(tsv), heroes = [];
-                while (mapped.length) {
-                    heroes.push(new bh.Hero([mapped.shift(), mapped.shift(), mapped.shift()]));
-                }
-                resolvefn(_this.data = heroes);
-            });
-        };
-        HeroRepo.prototype.filterByElement = function (elementOrElementType) {
-            return this.data.filter(function (hero) { return hero.elementType === elementOrElementType || bh.ElementType[hero.elementType] === elementOrElementType; });
-        };
-        Object.defineProperty(HeroRepo.prototype, "sorted", {
-            get: function () {
-                if (!this._sorted) {
-                    this._sorted = this.data.slice().sort(bh.utils.sort.byElementThenKlass);
-                }
-                return this._sorted;
-            },
-            enumerable: true,
-            configurable: true
-        });
-        HeroRepo.prototype.sortBy = function (sort) {
-            if (!sort) {
-                return this.sorted;
-            }
-            return this.data.slice().sort(sort);
-        };
-        HeroRepo.toImageSrc = function (hero) {
-            return bh.getSrc("heroes", hero.name);
-        };
-        return HeroRepo;
-    }(bh.Repo));
-    bh.HeroRepo = HeroRepo;
-})(bh || (bh = {}));
-var bh;
-(function (bh) {
-    var ItemRepo = (function (_super) {
-        __extends(ItemRepo, _super);
-        function ItemRepo() {
-            return _super.call(this, 879699541, true) || this;
-        }
-        Object.defineProperty(ItemRepo.prototype, "evoJars", {
-            get: function () {
-                return this.data.filter(function (item) { return item.itemType === bh.ItemType.EvoJar; });
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(ItemRepo.prototype, "crystals", {
-            get: function () {
-                return this.data.filter(function (item) { return item.itemType === bh.ItemType.Crystal; });
-            },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(ItemRepo.prototype, "runes", {
-            get: function () {
-                return this.data.filter(function (item) { return item.itemType === bh.ItemType.Rune; });
-            },
-            enumerable: true,
-            configurable: true
-        });
-        ItemRepo.getValue = function (itemType, rarityType) {
-            if (itemType == bh.ItemType.Crystal)
-                return 1000;
-            if (itemType == bh.ItemType.Rune)
-                return 2000;
-            return [300, 800, 1500, 3000][rarityType];
-        };
-        Object.defineProperty(ItemRepo, "sandsOfTime", {
-            get: function () {
-                return bh.data.ItemRepo.find("Sands of Time");
-            },
-            enumerable: true,
-            configurable: true
-        });
-        ItemRepo.toImage = function (item, fn) {
-            if (fn === void 0) { fn = bh.getImg20; }
-            var folder = bh.ItemType[item.itemType].toLowerCase() + "s", name = item.itemType == bh.ItemType.EvoJar ? item.name.replace(/\W/g, "")
-                : item.itemType == bh.ItemType.Crystal ? item.name.split(/ /)[0]
-                    : bh.data.HeroRepo.find(item.name.split("'")[0]).abilities[0].name.replace(/\W/g, "");
-            return fn(folder, name);
-        };
-        ItemRepo.toImageSrc = function (item) {
-            var folder = bh.ItemType[item.itemType].toLowerCase() + "s", name = item.itemType == bh.ItemType.EvoJar ? item.name.replace(/\W/g, "")
-                : item.itemType == bh.ItemType.Crystal ? item.name.split(/ /)[0]
-                    : bh.data.HeroRepo.find(item.name.split("'")[0]).abilities[0].name.replace(/\W/g, "");
-            return bh.getSrc(folder, name);
-        };
-        return ItemRepo;
-    }(bh.Repo));
-    bh.ItemRepo = ItemRepo;
 })(bh || (bh = {}));
 var bh;
 (function (bh) {
@@ -915,13 +532,13 @@ var bh;
                 args[_i] = arguments[_i];
             }
             var element, rarity, name, hero;
-            args.forEach(function (arg) { return bh.isElement(arg) ? element = arg : bh.isRarity(arg) ? rarity = arg : name = arg; });
+            args.forEach(function (arg) { return bh.ElementRepo.isElement(arg) ? element = arg : bh.RarityRepo.isRarity(arg) ? rarity = arg : name = arg; });
             if (name)
                 hero = bh.data.HeroRepo.find(name);
             return this.activeBattleCards.filter(function (battleCard) { return battleCard.matchesElement(element) && battleCard.matchesRarity(rarity) && battleCard.matchesHero(hero); });
         };
         Player.prototype.filterHeroes = function (elementOrName) {
-            var element = bh.isElement(elementOrName) ? elementOrName : null, name = !element ? elementOrName : null;
+            var element = bh.ElementRepo.isElement(elementOrName) ? elementOrName : null, name = !element ? elementOrName : null;
             return this.heroes.filter(function (playerHero) { return playerHero && ((element && bh.ElementType[playerHero.elementType] == element) || (name && playerHero.name == name)); });
         };
         Player.prototype.findPlayerCard = function (guid) {
@@ -969,7 +586,7 @@ var bh;
         function PlayerBattleCard(playerCard) {
             this.count = 1;
             this.playerCard = playerCard;
-            this._bc = bh.data.cards.battle.find(playerCard.configId);
+            this._bc = bh.data.BattleCardRepo.find(playerCard.configId);
             if (!this._bc) {
                 bh.utils.logMissingCard(this);
             }
@@ -1198,7 +815,7 @@ var bh;
             configurable: true
         });
         Object.defineProperty(PlayerBattleCard.prototype, "value", {
-            get: function () { return this.playerCard && bh.data.cards.battle.calculateValue(this.playerCard) || 0; },
+            get: function () { return this.playerCard && bh.BattleCardRepo.calculateValue(this.playerCard) || 0; },
             enumerable: true,
             configurable: true
         });
@@ -1358,7 +975,7 @@ var bh;
             configurable: true
         });
         Object.defineProperty(PlayerHero.prototype, "isActiveCapped", {
-            get: function () { return this.active.level == bh.getMaxActive(this.hero, this.level); },
+            get: function () { return this.active.level == bh.HeroRepo.getMaxActive(this.hero, this.level); },
             enumerable: true,
             configurable: true
         });
@@ -1368,7 +985,7 @@ var bh;
             configurable: true
         });
         Object.defineProperty(PlayerHero.prototype, "isMeat", {
-            get: function () { return this.level == bh.MaxLevel && this.isCapped; },
+            get: function () { return this.level == bh.HeroRepo.MaxLevel && this.isCapped; },
             enumerable: true,
             configurable: true
         });
@@ -1378,12 +995,12 @@ var bh;
             configurable: true
         });
         Object.defineProperty(PlayerHero.prototype, "isPassiveCapped", {
-            get: function () { return this.passive.level == bh.getMaxPassive(this.hero, this.level); },
+            get: function () { return this.passive.level == bh.HeroRepo.getMaxPassive(this.hero, this.level); },
             enumerable: true,
             configurable: true
         });
         Object.defineProperty(PlayerHero.prototype, "isTraitCapped", {
-            get: function () { return this.trait.level == bh.getMaxTrait(this.level); },
+            get: function () { return this.trait.level == bh.HeroRepo.getMaxTrait(this.level); },
             enumerable: true,
             configurable: true
         });
@@ -1644,12 +1261,12 @@ var bh;
             configurable: true
         });
         Object.defineProperty(PlayerHeroAbility.prototype, "levelCap", {
-            get: function () { return bh.getAbilityLevelCap(this); },
+            get: function () { return bh.HeroRepo.getAbilityLevelCap(this); },
             enumerable: true,
             configurable: true
         });
         Object.defineProperty(PlayerHeroAbility.prototype, "levelMax", {
-            get: function () { return bh.getAbilityLevelMax(this); },
+            get: function () { return bh.HeroRepo.getAbilityLevelMax(this); },
             enumerable: true,
             configurable: true
         });
@@ -1662,7 +1279,7 @@ var bh;
         });
         Object.defineProperty(PlayerHeroAbility.prototype, "maxMaterialCount", {
             get: function () {
-                var type = this._type, max = bh.getAbilityMaxLevel(this.hero, this.heroAbility.type);
+                var type = this._type, max = bh.HeroRepo.getAbilityMaxLevel(this.hero, this.heroAbility.type);
                 return getMaterialCountForRange(type, this.level, max);
             },
             enumerable: true,
@@ -1677,7 +1294,7 @@ var bh;
         });
         Object.defineProperty(PlayerHeroAbility.prototype, "maxGoldCost", {
             get: function () {
-                var type = this._type, max = bh.getAbilityMaxLevel(this.hero, this.heroAbility.type);
+                var type = this._type, max = bh.HeroRepo.getAbilityMaxLevel(this.hero, this.heroAbility.type);
                 return getGoldCostForRange(this._type, this.level, max);
             },
             enumerable: true,
@@ -1710,7 +1327,7 @@ var bh;
         });
         Object.defineProperty(PlayerHeroAbility.prototype, "powerRating", {
             get: function () {
-                return bh.PowerRating.ratePlayerHeroAbility(this) * (this.level / bh.getAbilityMaxLevel(this.hero, this.type));
+                return bh.PowerRating.ratePlayerHeroAbility(this) * (this.level / bh.HeroRepo.getAbilityMaxLevel(this.hero, this.type));
             },
             enumerable: true,
             configurable: true
@@ -1998,7 +1615,7 @@ var bh;
             return hp + trait + active + passive + deck;
         };
         PowerRating.rateMaxedDeck = function (hero) {
-            var heroCards = bh.Hero.filterCardsByHero(hero, bh.data.cards.battle.getAll()), ratedCards = heroCards.map(function (card) { return { card: card, score: PowerRating.rateMaxedBattleCard(card) }; })
+            var heroCards = bh.Hero.filterCardsByHero(hero, bh.data.BattleCardRepo.all), ratedCards = heroCards.map(function (card) { return { card: card, score: PowerRating.rateMaxedBattleCard(card) }; })
                 .sort(function (a, b) { return a.score == b.score ? 0 : a.score < b.score ? 1 : -1; }), topCards = ratedCards.slice(0, 4), score = topCards.reduce(function (score, card) { return score + card.score * 2; }, 0);
             return score;
         };
@@ -2007,14 +1624,14 @@ var bh;
             return PowerRating.ratePlayerCard({ configId: battleCard.guid, evolutionLevel: evo, level: level - 1 });
         };
         PowerRating.ratePlayerCard = function (playerCard) {
-            var card = bh.data.cards.battle.find(playerCard.configId), multiplier = PowerRating.tierToMultiplier(card && card.tier || ""), score = calculateCardScore(card && card.rarityType || bh.RarityType.Common, playerCard.evolutionLevel, playerCard.level + 1, multiplier);
+            var card = bh.data.BattleCardRepo.find(playerCard.configId), multiplier = PowerRating.tierToMultiplier(card && card.tier || ""), score = calculateCardScore(card && card.rarityType || bh.RarityType.Common, playerCard.evolutionLevel, playerCard.level + 1, multiplier);
             return score;
         };
         PowerRating.ratePlayerHeroAbility = function (playerHeroAbility) {
             return calculateHeroAbilityScore(playerHeroAbility.hero, bh.AbilityType[playerHeroAbility.type]);
         };
         PowerRating.ratePlayerHeroHitPoints = function (playerHero) {
-            return calculateHeroAbilityScore(playerHero.hero, "HP") * playerHero.level / bh.MaxLevel;
+            return calculateHeroAbilityScore(playerHero.hero, "HP") * playerHero.level / bh.HeroRepo.MaxLevel;
         };
         PowerRating.tierToMultiplier = function (tier) {
             return tier == "OP" ? 1.2 : tier == "S" ? 1 : tier == "A" ? 0.8 : tier == "B" ? 0.6 : tier == "C" ? 0.4 : tier == "D" ? 0.2 : 0.5;
@@ -2151,98 +1768,504 @@ var bh;
 })(bh || (bh = {}));
 var bh;
 (function (bh) {
-    var data;
-    (function (data) {
-        var cards;
-        (function (cards_1) {
-            var battle;
-            (function (battle) {
-                var gid = 1325382981;
-                var _cards = [];
-                function getAll() {
-                    return _cards.slice();
-                }
-                battle.getAll = getAll;
-                function getBrag() {
-                    return _cards.filter(function (card) { return card.brag; });
-                }
-                battle.getBrag = getBrag;
-                function find(guid) {
-                    return _cards.find(function (card) { return card.guid == guid; });
-                }
-                battle.find = find;
-                function findByName(name, rarityType) {
-                    var lower = name.toLowerCase();
-                    if (rarityType === undefined) {
-                        return _cards.find(function (card) { return card.lower == lower; });
-                    }
-                    return _cards.find(function (card) { return card.rarityType === rarityType && card.lower == lower; });
-                }
-                battle.findByName = findByName;
-                function getMaxEvo(rarityType) {
-                    return rarityType + 1;
-                }
-                battle.getMaxEvo = getMaxEvo;
-                function isMaxLevel(rarity, level) {
-                    return level == levelsPerRarity(bh.RarityType[(rarity || "").replace(/ /, "")]);
-                }
-                battle.isMaxLevel = isMaxLevel;
-                function truncDecimal(value, places) {
-                    if (places === void 0) { places = 0; }
-                    var s = String(value), parts = s.split(".");
-                    if (parts.length == 1 || places < 1)
-                        return +parts[0];
-                    return +(parts[0] + "." + parts[1].slice(0, places));
-                }
-                battle.truncDecimal = truncDecimal;
-                function calcDelta(min, max, rarityType) {
-                    return (max - min) / (levelsPerRarity(rarityType) - 1);
-                }
-                battle.calcDelta = calcDelta;
-                function levelsPerRarity(rarityType) {
-                    return [10, 20, 35, 50, 50][rarityType];
-                }
-                battle.levelsPerRarity = levelsPerRarity;
-                function evoMultiplier(fromEvo) {
-                    return [0.80, 0.85, 0.88, 0.90, 1.0][fromEvo];
-                }
-                battle.evoMultiplier = evoMultiplier;
-                function calculateValue(playerCard, typeIndex) {
-                    if (typeIndex === void 0) { typeIndex = 0; }
-                    var card = find(playerCard.configId);
-                    if (!card)
-                        return 0;
-                    var min = card.minValues[typeIndex][playerCard.evolutionLevel], delta = calcDelta(card.minValues[typeIndex].slice().pop(), card.maxValues[typeIndex], card.rarityType);
-                    return Math.floor(min + delta * playerCard.level);
-                }
-                battle.calculateValue = calculateValue;
-                var _init;
-                function init() {
-                    if (!_init) {
-                        _init = new Promise(function (resolvefn) {
-                            var tsv = (bh.TSV || {})[String(gid)];
-                            if (tsv) {
-                                resolvefn(parseTSV(tsv));
+    var Repo = (function () {
+        function Repo(idOrGid, gidOrCacheable, cacheable) {
+            Repo.AllRepos.push(this);
+            this.id = typeof (gidOrCacheable) == "number" ? idOrGid : null,
+                this.gid = typeof (gidOrCacheable) == "number" ? gidOrCacheable : idOrGid;
+            this.cacheable = gidOrCacheable === true || cacheable === true;
+        }
+        Repo.prototype.init = function () {
+            var _this = this;
+            if (!this._init) {
+                this._init = new Promise(function (resolvefn) {
+                    var tsv = (bh.TSV || {})[String(_this.gid || _this.id)];
+                    if (!tsv && _this.cacheable) {
+                        try {
+                            var cache = JSON.parse(localStorage.getItem(_this.id + "-" + _this.gid) || null);
+                            if (cache && cache.date && (new Date().getTime() < cache.date + 1000 * 60 * 60 * 24)) {
+                                tsv = cache.tsv || null;
                             }
-                            else {
-                                bh.Repo.fetchTsv(null, gid).then(function (tsv) { return resolvefn(parseTSV(tsv)); }, function () { return resolvefn(_cards); });
-                            }
-                        });
+                        }
+                        catch (ex) { }
                     }
-                    return _init;
+                    if (tsv) {
+                        _this.resolveTsv(tsv, resolvefn);
+                    }
+                    else if (typeof (_this.gid) == "number") {
+                        Repo.fetchTsv(_this.id, _this.gid).then(function (tsv) { return _this.resolveTsv(tsv, resolvefn); }, function () { return _this.unresolveTsv(); });
+                    }
+                    else {
+                        resolvefn(_this.data = []);
+                    }
+                });
+            }
+            return this._init;
+        };
+        Repo.prototype.resolveTsv = function (tsv, resolvefn) {
+            var _this = this;
+            if (this.cacheable) {
+                try {
+                    localStorage.setItem(this.id + "-" + this.gid, JSON.stringify({ tsv: tsv, date: new Date().getTime() }));
                 }
-                battle.init = init;
-                function parseTSV(tsv) {
-                    return _cards = bh.Repo.mapTsv(tsv);
+                catch (ex) { }
+            }
+            var parsed = this.parseTsv(tsv);
+            if (parsed instanceof Promise) {
+                parsed.then(function (data) { return resolvefn(data); }, function () { return _this.unresolveTsv(); });
+            }
+            else {
+                resolvefn(parsed);
+            }
+        };
+        Repo.prototype.unresolveTsv = function () {
+            this.data = [];
+        };
+        Repo.prototype.parseTsv = function (tsv) {
+            return this.data = Repo.mapTsv(tsv);
+        };
+        Object.defineProperty(Repo.prototype, "all", {
+            get: function () {
+                return this.data.slice();
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Repo.prototype, "length", {
+            get: function () {
+                return this.data.length;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Repo.prototype.find = function (value) {
+            var lower = value.toLowerCase();
+            return this.data.find(function (t) { return t.guid == value || t.name == value || t.lower == lower; });
+        };
+        Repo.prototype.put = function (value) {
+            var index = this.data.findIndex(function (t) { return t.guid == value.guid; });
+            if (-1 < index) {
+                this.data[index] = value;
+            }
+            else {
+                this.data.push(value);
+            }
+        };
+        Repo.fetchTsv = function (idOrGid, gidOrUndefined) {
+            var id = typeof (gidOrUndefined) == "number" ? idOrGid : null, gid = typeof (gidOrUndefined) == "number" ? gidOrUndefined : idOrGid;
+            if ((bh.TSV || {})[String(gid)]) {
+                return Promise.resolve(bh.TSV[String(gid)]);
+            }
+            return XmlHttpRequest.get(bh.host + "/tsv.php?gid=" + gid + (id ? "&id=" + id : ""));
+        };
+        Repo.mapTsv = function (raw) {
+            var lines = raw.split(/\n/), keys = lines.shift().split(/\t/).map(function (s) { return s.trim(); });
+            return lines
+                .filter(function (line) { return !!line.trim().length; })
+                .map(function (line) {
+                var values = line.split(/\t/).map(function (s) { return s.trim(); }), object = {};
+                keys.forEach(function (key, index) {
+                    var value = values[index];
+                    switch (key) {
+                        case "element":
+                        case "elementType":
+                            object["elementType"] = bh.ElementType[value];
+                            break;
+                        case "rarity":
+                        case "rarityType":
+                            object["rarityType"] = bh.RarityType[value.replace(/ /g, "")];
+                            break;
+                        case "klass":
+                        case "klassType":
+                            object["klassType"] = bh.KlassType[value];
+                            break;
+                        case "itemType":
+                            object["itemType"] = bh.ItemType[value.replace(/ /g, "")];
+                            break;
+                        case "abilityType":
+                            object["abilityType"] = bh.AbilityType[value];
+                            break;
+                        case "brag":
+                            object["brag"] = bh.utils.parseBoolean(value);
+                            break;
+                        case "minValues":
+                            object[key] = value.split("|").map(function (s) { return s.split(",").map(function (s) { return +s; }); });
+                            break;
+                        case "maxValues":
+                            object[key] = value.split("|").map(function (s) { return +s; });
+                            break;
+                        case "targets":
+                        case "types":
+                            object[key] = value.split("|").filter(function (s) { return !!s; });
+                            break;
+                        case "effects":
+                        case "mats":
+                        case "perks":
+                            object[key] = value.split(",").filter(function (s) { return !!s; });
+                            break;
+                        case "perkBase":
+                        case "turns":
+                            object[key] = +value;
+                            break;
+                        case "name":
+                            object["lower"] = value.toLowerCase();
+                        default:
+                            object[key] = (value || "").trim();
+                            break;
+                    }
+                });
+                return object;
+            });
+        };
+        Repo.init = function () {
+            return Repo.AllRepos.map(function (repo) { return repo.init(); });
+        };
+        Repo.AllRepos = [];
+        return Repo;
+    }());
+    bh.Repo = Repo;
+})(bh || (bh = {}));
+var bh;
+(function (bh) {
+    var BattleCardRepo = (function (_super) {
+        __extends(BattleCardRepo, _super);
+        function BattleCardRepo() {
+            return _super.call(this, 1325382981, false) || this;
+        }
+        BattleCardRepo.calculateValue = function (playerCard, typeIndex) {
+            if (typeIndex === void 0) { typeIndex = 0; }
+            var card = bh.data.BattleCardRepo.find(playerCard.configId);
+            if (!card)
+                return 0;
+            var min = card.minValues[typeIndex][playerCard.evolutionLevel], deltaMin = card.minValues[typeIndex].slice().pop(), deltaMax = card.maxValues[typeIndex], delta = (deltaMax - deltaMin) / (bh.BattleCardRepo.getLevelsForRarity(card.rarityType) - 1);
+            return Math.floor(min + delta * playerCard.level);
+        };
+        BattleCardRepo.getLevelsForRarity = function (rarityType) {
+            return [10, 20, 35, 50, 50][rarityType];
+        };
+        BattleCardRepo.isMaxLevel = function (rarity, level) {
+            return level == BattleCardRepo.getLevelsForRarity(bh.RarityType[(rarity || "").replace(/ /, "")]);
+        };
+        BattleCardRepo.getXpDeltaFromLevel = function (level) {
+            return level ? (level - 1) * 36 + 100 : 0;
+        };
+        BattleCardRepo.getXpForLevel = function (level) {
+            var xp = 0;
+            for (var i = 1; i < level; i++)
+                xp += BattleCardRepo.getXpDeltaFromLevel(i);
+            return xp;
+        };
+        BattleCardRepo.getXpValue = function (card) {
+            switch (card.rarityType) {
+                case bh.RarityType.Common: return 400;
+                case bh.RarityType.Uncommon: return 700;
+                case bh.RarityType.Rare: return 1200;
+                case bh.RarityType.SuperRare: return 0;
+                case bh.RarityType.Legendary: return 0;
+                default: return 0;
+            }
+        };
+        return BattleCardRepo;
+    }(bh.Repo));
+    bh.BattleCardRepo = BattleCardRepo;
+})(bh || (bh = {}));
+var bh;
+(function (bh) {
+    var BoosterCardRepo = (function (_super) {
+        __extends(BoosterCardRepo, _super);
+        function BoosterCardRepo() {
+            return _super.call(this, 1709781959, true) || this;
+        }
+        BoosterCardRepo.getXpValue = function (card, match) {
+            if (match === void 0) { match = false; }
+            var multiplier = match ? 1.5 : 1;
+            switch (card.rarityType) {
+                case bh.RarityType.Common: return 120 * multiplier;
+                case bh.RarityType.Uncommon: return 220 * multiplier;
+                case bh.RarityType.Rare: return 350 * multiplier;
+                case bh.RarityType.SuperRare: return 700 * multiplier;
+                default: return 0;
+            }
+        };
+        return BoosterCardRepo;
+    }(bh.Repo));
+    bh.BoosterCardRepo = BoosterCardRepo;
+})(bh || (bh = {}));
+var bh;
+(function (bh) {
+    var EffectRepo = (function (_super) {
+        __extends(EffectRepo, _super);
+        function EffectRepo() {
+            return _super.call(this, 901337848, true) || this;
+        }
+        EffectRepo.prototype.parseTsv = function (tsv) {
+            this.data = bh.Repo.mapTsv(tsv);
+            this.data.forEach(function (effect) { return effect.guid = effect.lower.replace(/\W/g, "-"); });
+            return this.data;
+        };
+        EffectRepo.prototype.find = function (value) {
+            var lower = value.toLowerCase();
+            return this.data.find(function (t) { return t.lower == lower || (t.alt || "").toLowerCase() == lower; });
+        };
+        EffectRepo.mapEffects = function (card) {
+            var effects = [];
+            card.effects.forEach(function (effect) {
+                mapTargetOrEffectOrPerk(effect).forEach(function (item) {
+                    if (!effects.includes(item))
+                        effects.push(item);
+                });
+            });
+            return effects;
+        };
+        EffectRepo.mapPerks = function (card) {
+            var perks = [];
+            card.perks.forEach(function (perk) {
+                mapTargetOrEffectOrPerk(perk).forEach(function (item) {
+                    if (!perks.includes(item))
+                        perks.push(item);
+                });
+            });
+            return perks;
+        };
+        EffectRepo.mapTargets = function (card) {
+            var targets = [];
+            card.targets.forEach(function (target, index) {
+                mapTargetOrEffectOrPerk(target, card.types[index]).forEach(function (item) {
+                    if (!targets.includes(item))
+                        targets.push(item);
+                });
+            });
+            return targets;
+        };
+        EffectRepo.toImage = function (effect, fn) {
+            if (fn === void 0) { fn = bh.getImg20; }
+            return ["Self", "Single"].includes(effect.name) ? "" : fn("effects", effect.name.replace(/\W/g, ""));
+        };
+        EffectRepo.toImageSrc = function (effect) {
+            return ["Self", "Single"].includes(effect.name) ? "" : bh.getSrc("effects", effect.name.replace(/\W/g, ""));
+        };
+        return EffectRepo;
+    }(bh.Repo));
+    bh.EffectRepo = EffectRepo;
+    function mapTargetOrEffectOrPerk(item, type) {
+        if (type === void 0) { type = null; }
+        var items = [];
+        if (item.includes("Multi")) {
+            items.push(type == "Attack" ? "Multi-Target (Enemy)" : "Multi-Target (Ally)");
+        }
+        if (item.includes("Flurry")) {
+            items.push("Flurry");
+        }
+        if (!item.includes("Multi") && !item.includes("Flurry")) {
+            items.push(item);
+        }
+        return items.map(function (i) {
+            var effect = i ? bh.data.EffectRepo.find(i) : null;
+            if (!effect)
+                console.log(item);
+            return effect;
+        }).filter(function (i) { return !!i; });
+    }
+})(bh || (bh = {}));
+var bh;
+(function (bh) {
+    var ElementRepo = (function () {
+        function ElementRepo() {
+        }
+        Object.defineProperty(ElementRepo, "all", {
+            get: function () { return [0, 1, 2, 3, 4, 5]; },
+            enumerable: true,
+            configurable: true
+        });
+        ElementRepo.toImage = function (elementType, fn) {
+            if (fn === void 0) { fn = bh.getImg20; }
+            return elementType == bh.ElementType.Neutral ? "" : fn("elements", bh.ElementType[elementType]);
+        };
+        ElementRepo.toImageSrc = function (elementType) {
+            return bh.getSrc("elements", bh.ElementType[elementType]);
+        };
+        ElementRepo.isElement = function (element) { return String(element) in bh.ElementType; };
+        return ElementRepo;
+    }());
+    bh.ElementRepo = ElementRepo;
+})(bh || (bh = {}));
+var bh;
+(function (bh) {
+    var HeroRepo = (function (_super) {
+        __extends(HeroRepo, _super);
+        function HeroRepo() {
+            return _super.call(this, 411895816, true) || this;
+        }
+        HeroRepo.prototype.parseTsv = function (tsv) {
+            var _this = this;
+            return new Promise(function (resolvefn) {
+                var mapped = bh.Repo.mapTsv(tsv), heroes = [];
+                while (mapped.length) {
+                    heroes.push(new bh.Hero([mapped.shift(), mapped.shift(), mapped.shift()]));
                 }
-            })(battle = cards_1.battle || (cards_1.battle = {}));
-        })(cards = data.cards || (data.cards = {}));
-    })(data = bh.data || (bh.data = {}));
+                resolvefn(_this.data = heroes);
+            });
+        };
+        HeroRepo.prototype.filterByElement = function (elementOrElementType) {
+            return this.data.filter(function (hero) { return hero.elementType === elementOrElementType || bh.ElementType[hero.elementType] === elementOrElementType; });
+        };
+        Object.defineProperty(HeroRepo.prototype, "sorted", {
+            get: function () {
+                if (!this._sorted) {
+                    this._sorted = this.data.slice().sort(bh.utils.sort.byElementThenKlass);
+                }
+                return this._sorted;
+            },
+            enumerable: true,
+            configurable: true
+        });
+        HeroRepo.prototype.sortBy = function (sort) {
+            if (!sort) {
+                return this.sorted;
+            }
+            return this.data.slice().sort(sort);
+        };
+        HeroRepo.toImageSrc = function (hero) {
+            return bh.getSrc("heroes", hero.name);
+        };
+        HeroRepo.getMaxLevel = function (fame) { return fame * 2; };
+        HeroRepo.getMaxTrait = function (level) { return Math.max(level - 1, 0); };
+        HeroRepo.getMaxActive = function (hero, level) { return hero.name == "Jinx" ? Math.max(level - 29, 0) : Math.max(level - 14, 0); };
+        HeroRepo.getMaxPassive = function (hero, level) { return hero.name == "Jinx" ? Math.max(level - 14, 0) : Math.max(level - 29, 0); };
+        HeroRepo.getAbilityLevelCap = function (playerHeroAbility) {
+            switch (playerHeroAbility.type) {
+                case bh.AbilityType.Active: return HeroRepo.getMaxActive(playerHeroAbility.hero, playerHeroAbility.level);
+                case bh.AbilityType.Passive: return HeroRepo.getMaxPassive(playerHeroAbility.hero, playerHeroAbility.level);
+                case bh.AbilityType.Trait: return HeroRepo.getMaxTrait(playerHeroAbility.level);
+            }
+        };
+        HeroRepo.getAbilityLevelMax = function (playerHeroAbility) {
+            switch (playerHeroAbility.type) {
+                case bh.AbilityType.Active: return HeroRepo.getMaxActive(playerHeroAbility.hero, HeroRepo.MaxLevel);
+                case bh.AbilityType.Passive: return HeroRepo.getMaxPassive(playerHeroAbility.hero, HeroRepo.MaxLevel);
+                case bh.AbilityType.Trait: return HeroRepo.getMaxTrait(HeroRepo.MaxLevel);
+            }
+        };
+        Object.defineProperty(HeroRepo, "MaxFame", {
+            get: function () { return 45; },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(HeroRepo, "MaxLevel", {
+            get: function () { return HeroRepo.getMaxLevel(HeroRepo.MaxFame); },
+            enumerable: true,
+            configurable: true
+        });
+        HeroRepo.getAbilityMaxLevel = function (hero, abilityType) {
+            switch (abilityType) {
+                case bh.AbilityType.Active: return HeroRepo.getMaxActive(hero, HeroRepo.MaxLevel);
+                case bh.AbilityType.Passive: return HeroRepo.getMaxPassive(hero, HeroRepo.MaxLevel);
+                case bh.AbilityType.Trait: return HeroRepo.getMaxTrait(HeroRepo.MaxLevel);
+            }
+        };
+        return HeroRepo;
+    }(bh.Repo));
+    bh.HeroRepo = HeroRepo;
+})(bh || (bh = {}));
+var bh;
+(function (bh) {
+    var ItemRepo = (function (_super) {
+        __extends(ItemRepo, _super);
+        function ItemRepo() {
+            return _super.call(this, 879699541, true) || this;
+        }
+        Object.defineProperty(ItemRepo.prototype, "evoJars", {
+            get: function () {
+                return this.data.filter(function (item) { return item.itemType === bh.ItemType.EvoJar; });
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(ItemRepo.prototype, "crystals", {
+            get: function () {
+                return this.data.filter(function (item) { return item.itemType === bh.ItemType.Crystal; });
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(ItemRepo.prototype, "runes", {
+            get: function () {
+                return this.data.filter(function (item) { return item.itemType === bh.ItemType.Rune; });
+            },
+            enumerable: true,
+            configurable: true
+        });
+        ItemRepo.getValue = function (itemType, rarityType) {
+            if (itemType == bh.ItemType.Crystal)
+                return 1000;
+            if (itemType == bh.ItemType.Rune)
+                return 2000;
+            return [300, 800, 1500, 3000][rarityType];
+        };
+        Object.defineProperty(ItemRepo, "sandsOfTime", {
+            get: function () {
+                return bh.data.ItemRepo.find("Sands of Time");
+            },
+            enumerable: true,
+            configurable: true
+        });
+        ItemRepo.toImage = function (item, fn) {
+            if (fn === void 0) { fn = bh.getImg20; }
+            var folder = bh.ItemType[item.itemType].toLowerCase() + "s", name = item.itemType == bh.ItemType.EvoJar ? item.name.replace(/\W/g, "")
+                : item.itemType == bh.ItemType.Crystal ? item.name.split(/ /)[0]
+                    : bh.data.HeroRepo.find(item.name.split("'")[0]).abilities[0].name.replace(/\W/g, "");
+            return fn(folder, name);
+        };
+        ItemRepo.toImageSrc = function (item) {
+            var folder = bh.ItemType[item.itemType].toLowerCase() + "s", name = item.itemType == bh.ItemType.EvoJar ? item.name.replace(/\W/g, "")
+                : item.itemType == bh.ItemType.Crystal ? item.name.split(/ /)[0]
+                    : bh.data.HeroRepo.find(item.name.split("'")[0]).abilities[0].name.replace(/\W/g, "");
+            return bh.getSrc(folder, name);
+        };
+        return ItemRepo;
+    }(bh.Repo));
+    bh.ItemRepo = ItemRepo;
+})(bh || (bh = {}));
+var bh;
+(function (bh) {
+    var KlassRepo = (function () {
+        function KlassRepo() {
+        }
+        Object.defineProperty(KlassRepo, "all", {
+            get: function () { return [0, 1, 2]; },
+            enumerable: true,
+            configurable: true
+        });
+        KlassRepo.toImage = function (klassType, fn) {
+            if (fn === void 0) { fn = bh.getImg20; }
+            return fn("classes", bh.KlassType[klassType]);
+        };
+        KlassRepo.toImageSrc = function (klassType) {
+            return bh.getSrc("classes", bh.KlassType[klassType]);
+        };
+        return KlassRepo;
+    }());
+    bh.KlassRepo = KlassRepo;
+})(bh || (bh = {}));
+var bh;
+(function (bh) {
+    var RarityRepo = (function () {
+        function RarityRepo() {
+        }
+        Object.defineProperty(RarityRepo, "all", {
+            get: function () { return [0, 1, 2, 3, 4]; },
+            enumerable: true,
+            configurable: true
+        });
+        RarityRepo.isRarity = function (rarity) { return String(rarity).replace(/ /g, "") in bh.RarityType; };
+        return RarityRepo;
+    }());
+    bh.RarityRepo = RarityRepo;
 })(bh || (bh = {}));
 function updateCardData() {
     $.get("https://docs.google.com/spreadsheets/d/1xckeq3t9T2g4sR5zgKK52ZkXNEXQGgiUrJ8EQ5FJAPI/pub?output=tsv").then(function (raw) {
         var mapped = bh.Repo.mapTsv(raw), cards = mapped.map(function (card) {
-            var guid = card["Id"], existing = bh.data.cards.battle.find(guid), multiValues = card["Effect Type"].includes("/"), minValuesArray = multiValues ? [0, 1] : [0];
+            var guid = card["Id"], existing = bh.data.BattleCardRepo.find(guid), multiValues = card["Effect Type"].includes("/"), minValuesArray = multiValues ? [0, 1] : [0];
             var created = {
                 guid: guid,
                 name: existing && existing.name || card["Name"],
@@ -2259,7 +2282,7 @@ function updateCardData() {
                 mats: [1, 2, 3, 4].map(function (i) { return card[i + "* Evo Jar"]; }).filter(function (s) { return !!s; }),
                 perkBase: +card["Perk %"],
                 perks: [1, 2, 3, 4].map(function (i) { return card["Perk #" + i]; }).filter(function (s) { return !!s; }),
-                effects: [1, 2, 3].map(function (i) { return card["Effect #" + i]; }).filter(function (s) { return !!s; })
+                effects: [1, 2, 3].map(function (i) { return card["Effect #" + i]; }).filter(function (s) { return !!s && s != "Splash"; })
             };
             if (!existing)
                 console.log(card["Name"]);
@@ -2299,49 +2322,141 @@ function updateCardData() {
         }
     }
 }
+function rateCards() {
+    var cards = bh.data.BattleCardRepo.all;
+    var scores = cards.map(function (card) {
+        var scores = card.types.map(function (type, typeIndex) {
+            var turnMultiplier = 1 - (card.turns - 1) * 0.1, value = calcValue(card, typeIndex), valuePerTurn = value / card.turns, dotValuePerTurn = calcDotValue(card, typeIndex) / card.turns, regenTurns = card.effects.includes("Regen") && type != "Attack" ? getRegenDuration(card) : 0, regenDivisor = regenTurns || 1, score = 0;
+            return Math.round((valuePerTurn + dotValuePerTurn) / regenDivisor * turnMultiplier);
+        });
+        var score = scores.reduce(function (total, score) { return score + total; }, 0);
+        return { card: card, score: score };
+    });
+    scores.sort(function (a, b) { return a.score < b.score ? 1 : a.score == b.score ? 0 : -1; });
+    $("#data-output").val(scores.map(function (score) { return score.score + " > " + score.card.name; }).join("\n"));
+    function calcDotValue(card, typeIndex) {
+        if (card.effects.includes("Drown"))
+            return calcValue(card, typeIndex);
+        var dots = ["Burn", "Bleed", "Shock", "Poison"], count = 0;
+        card.effects.forEach(function (effect) { return dots.includes(effect) ? count++ : void 0; });
+        return count ? calcValue(card, typeIndex) * 0.6 * count : 0;
+    }
+    function calcValue(card, typeIndex) {
+        var maxValue = card.maxValues[typeIndex], maxPerkPercent = (card.perkBase + 10 * (1 + card.rarityType)) / 100, critMultiplier = card.perks.includes("Critical") ? 1.5 * maxPerkPercent : 1, target = card.targets[typeIndex], targetMultiplier = target.includes("Multi") ? 2 : target.includes("Splash") ? 1.5 : card.types[typeIndex] != "Attack" && !target.includes("Self") ? 1.25 : 1, flurryCount = getFlurryCount(card), flurryHitPercent = 1 - getFlurryMiss(card);
+        return Math.round(maxValue * critMultiplier * targetMultiplier * flurryHitPercent / flurryCount);
+    }
+    function getRegenDuration(card) {
+        switch (card.name) {
+            case "Mutton Chops": return 2;
+            case "Fairy Shield": return 3;
+            case "Odd Seeds": return 3;
+            case "Peace Pipe": return 3;
+            case "Rooster Arrow": return 3;
+            case "Sword of Justice": return 3;
+            case "The Equalizer": return 3;
+            case "Turkey Arrow": return 3;
+            case "Turkey Sagitta": return 3;
+            case "Warped Seeds": return 3;
+            case "Weird Seeds": return 3;
+            case "Candy Cauldron": return 5;
+            case "Night Cap": return 5;
+            case "Smelling Salts": return card.rarityType == bh.RarityType.SuperRare ? 5 : 5;
+            case "Tides Control": return 5;
+            case "Caribbean Cocktail": return 6;
+            case "Fairy Bottle": return 6;
+            case "Regen": return 6;
+            case "Tropical Juice": return 6;
+            case "Meditation": return 10;
+            default:
+                console.log(card.name);
+                return 0;
+        }
+    }
+    function getEffectDuration(card, effect) {
+        if (effect == "Poison" && card.name == "Box of Frogs")
+            return card.rarityType == bh.RarityType.SuperRare ? 5 : 4;
+        if (["Bleed", "Burn"].includes(effect) && card.name == "Rain Of Fire")
+            return 4;
+        if (effect == "Bleed" && card.name == "Fiery Stars")
+            return 3;
+        if (effect == "Regen") {
+            return getRegenDuration(card);
+        }
+        return 1;
+    }
+    function getFlurryCount(card) {
+        switch (card.name) {
+            case "Flaming Stars": return 4;
+            case "Annoying Elves": return 6;
+            case "Blazing Stars": return 6;
+            case "Box of Frogs": return 6;
+            case "Cornholio": return 6;
+            case "Easter Eggs": return 6;
+            case "Pumpkin Field": return 6;
+            case "Snowballs Squall": return 6;
+            case "Vampiric Bats": return 6;
+            case "Vampiric Lord": return 6;
+            case "Fiery Stars": return 8;
+            case "Sweet Corn": return 8;
+            case "Rain Of Fire": return 10;
+            case "Uber Cornholio": return 12;
+            default: return 1;
+        }
+    }
+    function getFlurryMiss(card) {
+        switch (card.name) {
+            case "Box of Frogs": if (card.rarityType == bh.RarityType.Legendary)
+                return 0.15;
+            case "Annoying Elves":
+            case "Blazing Stars":
+            case "Cornholio":
+            case "Easter Eggs":
+            case "Fiery Stars":
+            case "Flaming Stars":
+            case "Pumpkin Field":
+            case "Snowballs Squall":
+            case "Sweet Corn":
+            case "Vampiric Bats": ;
+            case "Vampiric Lord": return 0.25;
+            case "Rain Of Fire": return 0.5;
+            case "Uber Cornholio": return 0.5;
+            default: return 0;
+        }
+    }
+    function getPerkMultiplier(perk, percent) {
+        return getMultiplier(perk) * percent;
+    }
+    function getMultiplier(value, card) {
+        if (card === void 0) { card = null; }
+        if (value.startsWith("Immunity to") || value.startsWith("Immune To"))
+            return 0.2;
+        var turns = card && card.turns || 1;
+        var targets = card && card;
+        switch (value) {
+            case "Interrupt": return 1;
+            case "Haste": return 1;
+            default: return 0;
+        }
+    }
+}
+function tiered() {
+    var tiered = {};
+    bh.data.BattleCardRepo.all.forEach(function (card) {
+        if (!card.tier)
+            return;
+        if (!tiered[card.tier])
+            tiered[card.tier] = [];
+        tiered[card.tier].push(card);
+    });
+    return tiered;
+}
+setTimeout(rateCards, 1000);
 var bh;
 (function (bh) {
-    function getMaxLevel(fame) { return fame * 2; }
-    bh.getMaxLevel = getMaxLevel;
-    function getMaxTrait(level) { return Math.max(level - 1, 0); }
-    bh.getMaxTrait = getMaxTrait;
-    function getMaxActive(hero, level) { return hero.name == "Jinx" ? Math.max(level - 29, 0) : Math.max(level - 14, 0); }
-    bh.getMaxActive = getMaxActive;
-    function getMaxPassive(hero, level) { return hero.name == "Jinx" ? Math.max(level - 14, 0) : Math.max(level - 29, 0); }
-    bh.getMaxPassive = getMaxPassive;
-    function getAbilityLevelCap(playerHeroAbility) {
-        switch (playerHeroAbility.type) {
-            case bh.AbilityType.Active: return getMaxActive(playerHeroAbility.hero, playerHeroAbility.level);
-            case bh.AbilityType.Passive: return getMaxPassive(playerHeroAbility.hero, playerHeroAbility.level);
-            case bh.AbilityType.Trait: return getMaxTrait(playerHeroAbility.level);
-        }
-    }
-    bh.getAbilityLevelCap = getAbilityLevelCap;
-    function getAbilityLevelMax(playerHeroAbility) {
-        switch (playerHeroAbility.type) {
-            case bh.AbilityType.Active: return getMaxActive(playerHeroAbility.hero, bh.MaxLevel);
-            case bh.AbilityType.Passive: return getMaxPassive(playerHeroAbility.hero, bh.MaxLevel);
-            case bh.AbilityType.Trait: return getMaxTrait(bh.MaxLevel);
-        }
-    }
-    bh.getAbilityLevelMax = getAbilityLevelMax;
-    bh.MaxFame = 45;
-    bh.MaxLevel = getMaxLevel(bh.MaxFame);
-    function getAbilityMaxLevel(hero, abilityType) {
-        switch (abilityType) {
-            case bh.AbilityType.Active: return getMaxActive(hero, bh.MaxLevel);
-            case bh.AbilityType.Passive: return getMaxPassive(hero, bh.MaxLevel);
-            case bh.AbilityType.Trait: return getMaxTrait(bh.MaxLevel);
-        }
-    }
-    bh.getAbilityMaxLevel = getAbilityMaxLevel;
-    function isElement(element) { return String(element) in bh.ElementType; }
-    bh.isElement = isElement;
-    function isRarity(rarity) { return String(rarity).replace(/ /g, "") in bh.RarityType; }
-    bh.isRarity = isRarity;
     var data;
     (function (data) {
-        data.BoosterCardRepo = new bh.Repo(1709781959, true);
+        data.BattleCardRepo = new bh.BattleCardRepo();
+        data.BoosterCardRepo = new bh.BoosterCardRepo();
         data.EffectRepo = new bh.EffectRepo();
         data.HeroRepo = new bh.HeroRepo();
         data.ItemRepo = new bh.ItemRepo();
@@ -2388,7 +2503,7 @@ var bh;
         var _init;
         function init() {
             if (!_init) {
-                _init = Promise.all([data.cards.battle.init(), data.guilds.init()].concat(bh.Repo.init()));
+                _init = Promise.all([data.guilds.init()].concat(bh.Repo.init()));
             }
             return _init;
         }
@@ -2399,6 +2514,14 @@ var bh;
 (function (bh) {
     var data;
     (function (data) {
+        function getMaxEvo(rarityType) {
+            return rarityType + 1;
+        }
+        data.getMaxEvo = getMaxEvo;
+        function evoMultiplier(fromEvo) {
+            return [0.80, 0.85, 0.88, 0.90, 1.0][fromEvo];
+        }
+        data.evoMultiplier = evoMultiplier;
         function wildsForEvo(rarityType, currentEvoLevel) {
             return [[1], [1, 2], [1, 2, 4], [1, 2, 4, 5], [1, 2, 3, 4, 5]][rarityType || 0][currentEvoLevel || 0];
         }
@@ -2408,7 +2531,7 @@ var bh;
         }
         data.getNextWildCardsNeeded = getNextWildCardsNeeded;
         function getMaxWildCardsNeeded(playerCard) {
-            var max = data.cards.battle.getMaxEvo(playerCard.rarityType), needed = 0;
+            var max = getMaxEvo(playerCard.rarityType), needed = 0;
             for (var evo = playerCard.evo; evo < max; evo++) {
                 needed += wildsForEvo(playerCard.rarityType, evo);
             }
@@ -2430,7 +2553,7 @@ var bh;
         }
         data.getMaxGoldNeeded = getMaxGoldNeeded;
         function calcMaxGoldNeeded(playerCard, evoAndLevel) {
-            var needed = 0, rarityType = (data.cards.battle.find(playerCard.configId) || {}).rarityType || 0, evoCap = bh.data.cards.battle.getMaxEvo(rarityType);
+            var needed = 0, rarityType = (data.BattleCardRepo.find(playerCard.configId) || {}).rarityType || 0, evoCap = getMaxEvo(rarityType);
             for (var i = +evoAndLevel.split(/\./)[0]; i < evoCap; i++) {
                 needed += getMaxGoldNeeded(rarityType, i);
             }
@@ -2446,7 +2569,7 @@ var bh;
         }
         data.getMaxSotNeeded = getMaxSotNeeded;
         function calcMaxSotNeeded(playerCard, evoAndLevel) {
-            var needed = 0, rarityType = (data.cards.battle.find(playerCard.configId) || {}).rarityType || 0, evoCap = bh.data.cards.battle.getMaxEvo(rarityType);
+            var needed = 0, rarityType = (data.BattleCardRepo.find(playerCard.configId) || {}).rarityType || 0, evoCap = getMaxEvo(rarityType);
             for (var i = +evoAndLevel.split(/\./)[0]; i < evoCap; i++) {
                 needed += getMaxSotNeeded(rarityType, i);
             }
@@ -2472,7 +2595,7 @@ var bh;
         }
         data.getMaxCrystalsNeeded = getMaxCrystalsNeeded;
         function calcMaxCrystalsNeeded(playerCard, evoAndLevel) {
-            var needed = 0, rarityType = (data.cards.battle.find(playerCard.configId) || {}).rarityType || 0, evoCap = bh.data.cards.battle.getMaxEvo(rarityType);
+            var needed = 0, rarityType = (data.BattleCardRepo.find(playerCard.configId) || {}).rarityType || 0, evoCap = getMaxEvo(rarityType);
             for (var i = +evoAndLevel.split(/\./)[0]; i < evoCap; i++) {
                 needed += data.getMaxCrystalsNeeded(rarityType, i);
             }
@@ -2488,7 +2611,7 @@ var bh;
         }
         data.getMaxRunesNeeded = getMaxRunesNeeded;
         function calcMaxRunesNeeded(playerCard, evoAndLevel) {
-            var needed = 0, rarityType = (data.cards.battle.find(playerCard.configId) || {}).rarityType || 0, evoCap = bh.data.cards.battle.getMaxEvo(rarityType);
+            var needed = 0, rarityType = (data.BattleCardRepo.find(playerCard.configId) || {}).rarityType || 0, evoCap = getMaxEvo(rarityType);
             for (var i = +evoAndLevel.split(/\./)[0]; i < evoCap; i++) {
                 needed += data.getMaxRunesNeeded(rarityType, i);
             }
@@ -3495,7 +3618,7 @@ var bh;
                 if (arenaIndex === void 0) { arenaIndex = -1; }
                 var star = player.isFullMeat ? "&#9734;" : "", averagePercentText = player.powerPercent == player.averagePowerPercent ? "" : "; Avg " + player.averagePowerPercent + "%", percentText = player.isArena ? "" : " <span style=\"white-space:nowrap;\">(" + player.powerPercent + "%" + averagePercentText + ")</span>", html = "<div class=\"player-name\" data-action=\"sort-heroes\">" + star + " " + bh.utils.htmlFriendly(player.name) + " " + percentText + "</div>", playerHeroes = player.heroes.sort(bh.utils.sort.byElementThenKlass);
                 playerHeroes.forEach(function (hero) {
-                    var id = player.guid + "-" + hero.guid, icon = bh.getImg("heroes", hero.name), level = hero.level == bh.MaxLevel ? hero.isMeat ? "<span class=\"evo-star\">&#9734;</span>" : "<span class=\"star\">&#9734;</span>" : "(" + hero.level + ")", powerPercent = hero.powerPercent, progressBG = hero.isOp ? "background-color:pink;" : "", color = powerPercent < 25 ? "progress-bar-info" : powerPercent < 50 ? "progress-bar-success" : powerPercent < 75 ? "progress-bar-warning" : "progress-bar-danger", progressBar = "<div class=\"progress\" style=\"" + progressBG + "\"><div class=\"progress-bar " + color + "\" style=\"width:" + powerPercent + "%;\"><span></span></div></div>", title = "<span class=\"hero-icon\">" + icon + "</span>"
+                    var id = player.guid + "-" + hero.guid, icon = bh.getImg("heroes", hero.name), level = hero.level == bh.HeroRepo.MaxLevel ? hero.isMeat ? "<span class=\"evo-star\">&#9734;</span>" : "<span class=\"star\">&#9734;</span>" : "(" + hero.level + ")", powerPercent = hero.powerPercent, progressBG = hero.isOp ? "background-color:pink;" : "", color = powerPercent < 25 ? "progress-bar-info" : powerPercent < 50 ? "progress-bar-success" : powerPercent < 75 ? "progress-bar-warning" : "progress-bar-danger", progressBar = "<div class=\"progress\" style=\"" + progressBG + "\"><div class=\"progress-bar " + color + "\" style=\"width:" + powerPercent + "%;\"><span></span></div></div>", title = "<span class=\"hero-icon\">" + icon + "</span>"
                         + ("<span class=\"hero-name\">" + hero.name + "</span>")
                         + ("<span class=\"hero-level\">" + level + "</span>")
                         + ("<span class=\"hero-hp\">" + bh.utils.truncateNumber(hero.hitPoints) + " HP</span>")
@@ -3564,22 +3687,22 @@ var bh;
         function onSearchClear() {
             searching = null;
             $("input.library-search").val("");
-            $("a[href=\"#card-table\"] > span.badge").text(String(bh.data.cards.battle.getAll().length));
+            $("a[href=\"#card-table\"] > span.badge").text(String(bh.data.BattleCardRepo.length));
             $("a[href=\"#effect-table\"] > span.badge").text(String(bh.data.EffectRepo.length));
             $("a[href=\"#item-table\"] > span.badge").text(String(bh.data.ItemRepo.length));
             $("tbody > tr[id]").show();
         }
         function getMinValue(card, typeIndex) {
             var playerCard = { configId: card.guid, evolutionLevel: 0, level: 0 };
-            return bh.data.cards.battle.calculateValue(playerCard, typeIndex);
+            return bh.BattleCardRepo.calculateValue(playerCard, typeIndex);
         }
         function getMaxValue(card, typeIndex) {
-            var maxEvo = card.rarityType + 1, maxLevel = bh.data.cards.battle.levelsPerRarity(card.rarityType) - 1;
+            var maxEvo = card.rarityType + 1, maxLevel = bh.BattleCardRepo.getLevelsForRarity(card.rarityType) - 1;
             var playerCard = { configId: card.guid, evolutionLevel: maxEvo, level: maxLevel };
-            return bh.data.cards.battle.calculateValue(playerCard, typeIndex);
+            return bh.BattleCardRepo.calculateValue(playerCard, typeIndex);
         }
         function onShowCard(ev) {
-            var link = $(ev.target), tr = link.closest("tr"), guid = tr.attr("id"), card = bh.data.cards.battle.find(guid);
+            var link = $(ev.target), tr = link.closest("tr"), guid = tr.attr("id"), card = bh.data.BattleCardRepo.find(guid);
             $("div.modal-card").modal("show");
             $("#card-name").html(card.name + " &nbsp; " + mapHeroesToImages(card).join(" "));
             $("#card-tier").html(card.tier || "");
@@ -3648,7 +3771,7 @@ var bh;
         }
         function getAll(which) {
             switch (which) {
-                case "card": return bh.data.cards.battle.getAll();
+                case "card": return bh.data.BattleCardRepo.all;
                 case "effect": return bh.data.EffectRepo.all;
                 case "item": return bh.data.ItemRepo.all;
                 default: return [];
@@ -3759,7 +3882,7 @@ var bh;
         }
         function renderCards() {
             var complete = location.search.includes("complete");
-            var cards = bh.data.cards.battle.getAll();
+            var cards = bh.data.BattleCardRepo.all;
             $("a[href=\"#card-table\"] > span.badge").text(String(cards.length));
             var tbody = $("table.card-list > tbody").html("");
             cards.forEach(function (card) {

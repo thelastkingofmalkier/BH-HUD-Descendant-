@@ -1,89 +1,11 @@
-namespace bh {
-	export namespace data {
-		export namespace cards {
-			export namespace battle {
-				var gid = 1325382981;
 
-				var _cards: IDataBattleCard[] = [];
-
-				export function getAll(): IDataBattleCard[] {
-					return _cards.slice();
-				}
-
-				export function getBrag(): IDataBattleCard[] {
-					return _cards.filter(card => card.brag);
-				}
-
-				export function find(guid: string): IDataBattleCard {
-					return _cards.find(card => card.guid == guid);
-				}
-				export function findByName(name: string): IDataBattleCard;
-				export function findByName(name: string, rarityType: RarityType): IDataBattleCard;
-				export function findByName(name: string, rarityType?: RarityType): IDataBattleCard {
-					var lower = name.toLowerCase();
-					if (rarityType === undefined) { return _cards.find(card => card.lower == lower); }
-					return _cards.find(card => card.rarityType === rarityType && card.lower == lower);
-				}
-
-				export function getMaxEvo(rarityType: RarityType): number {
-					return rarityType + 1;
-				}
-				export function isMaxLevel(rarity: GameRarity, level: number): boolean {
-					return level == levelsPerRarity(RarityType[<GameRarity>(rarity||"").replace(/ /, "")]);
-				}
-
-				export function truncDecimal(value: number, places: number = 0) {
-					var s = String(value),
-						parts = s.split(".");
-					if (parts.length == 1 || places < 1) return +parts[0];
-					return +(parts[0] + "." + parts[1].slice(0, places));
-				}
-				export function calcDelta(min: number, max: number, rarityType: RarityType) {
-					return (max - min) / (levelsPerRarity(rarityType) - 1);
-				}
-				export function levelsPerRarity(rarityType: RarityType) {
-					return [10,20,35,50,50][rarityType];
-				}
-				export function evoMultiplier(fromEvo: number) {
-					return [0.80, 0.85, 0.88, 0.90, 1.0][fromEvo];
-				}
-				export function calculateValue(playerCard: IPlayer.PlayerCard, typeIndex = 0): number {
-					var card = find(playerCard.configId);
-					if (!card) return 0;
-					var min = card.minValues[typeIndex][playerCard.evolutionLevel],
-						delta = calcDelta(card.minValues[typeIndex].slice().pop(), card.maxValues[typeIndex], card.rarityType);
-					return Math.floor(min + delta * playerCard.level);
-				}
-
-				var _init: Promise<IDataBattleCard[]>;
-				export function init(): Promise<IDataBattleCard[]> {
-					if (!_init) {
-						_init = new Promise<IDataBattleCard[]>((resolvefn: (cards: IDataBattleCard[]) => void) => {
-							var tsv = (TSV||{})[String(gid)];
-							if (tsv) {
-								resolvefn(parseTSV(tsv));
-							}else {
-								Repo.fetchTsv(null, gid).then(tsv => resolvefn(parseTSV(tsv)), () => resolvefn(_cards));
-							}
-						});
-					}
-					return _init;
-				}
-				function parseTSV(tsv: string) {
-					return _cards = Repo.mapTsv<IDataBattleCard>(tsv);
-				}
-
-			}
-		}
-	}
-}
 interface INewCard { [key: string]: string; }
 function updateCardData() {
 	$.get("https://docs.google.com/spreadsheets/d/1xckeq3t9T2g4sR5zgKK52ZkXNEXQGgiUrJ8EQ5FJAPI/pub?output=tsv").then(raw => {
 		var mapped = bh.Repo.mapTsv<INewCard>(raw),
 			cards = mapped.map(card => {
 			var guid = card["Id"],
-				existing = bh.data.cards.battle.find(guid),
+				existing = bh.data.BattleCardRepo.find(guid),
 				multiValues = card["Effect Type"].includes("/"),
 				minValuesArray = multiValues ? [0,1] : [0];
 			var created: IDataBattleCard = {
@@ -102,7 +24,7 @@ function updateCardData() {
 				mats: [1,2,3,4].map(i => card[`${i}* Evo Jar`]).filter(s => !!s),
 				perkBase: +card["Perk %"],
 				perks: [1,2,3,4].map(i => card[`Perk #${i}`]).filter(s => !!s),
-				effects: [1,2,3].map(i => card[`Effect #${i}`]).filter(s => !!s)
+				effects: [1,2,3].map(i => card[`Effect #${i}`]).filter(s => !!s && s != "Splash")
 			};
 			if (!existing) console.log(card["Name"]);
 			else if (existing.name != card["Name"]) console.log(existing.name + " !== " + card["Name"]);
@@ -140,3 +62,152 @@ function updateCardData() {
 		}
 	}
 }
+
+interface ICardScore { card:IDataBattleCard; score:number; }
+function rateCards() {
+	var cards = bh.data.BattleCardRepo.all;
+	var scores = cards.map(card => {
+		var scores = card.types.map((type, typeIndex) => {
+			var turnMultiplier = 1 - (card.turns - 1) * 0.1,
+				value = calcValue(card, typeIndex),
+				valuePerTurn = value / card.turns,
+				dotValuePerTurn = calcDotValue(card, typeIndex) / card.turns,
+				regenTurns = card.effects.includes("Regen") && type != "Attack" ? getRegenDuration(card) : 0,
+				regenDivisor = regenTurns || 1,
+				score = 0;
+// console.log(`${card.name} (${type}) valuePerTurn (${valuePerTurn}) * turnMultiplier (${turnMultiplier})`)
+			return Math.round((valuePerTurn + dotValuePerTurn) / regenDivisor * turnMultiplier);
+		});
+		var score = scores.reduce((total, score) => score + total, 0);
+		return { card:card, score:score };
+	});
+	scores.sort((a, b) => a.score < b.score ? 1 : a.score == b.score ? 0 : -1);
+	$("#data-output").val(scores.map(score => `${score.score} > ${score.card.name}`).join("\n"));
+
+	function calcDotValue(card: IDataBattleCard, typeIndex: number) {
+		if (card.effects.includes("Drown")) return calcValue(card, typeIndex);
+		var dots = ["Burn", "Bleed", "Shock", "Poison"],
+			count = 0;
+		card.effects.forEach(effect => dots.includes(effect) ? count++ : void 0);
+		return count ? calcValue(card, typeIndex) * 0.6 * count : 0;
+	}
+	function calcValue(card: IDataBattleCard, typeIndex: number) {
+		var maxValue = card.maxValues[typeIndex],
+			maxPerkPercent = (card.perkBase + 10 * (1 + card.rarityType)) / 100,
+			critMultiplier = card.perks.includes("Critical") ? 1.5 * maxPerkPercent : 1,
+
+			target = card.targets[typeIndex],
+			targetMultiplier = target.includes("Multi") ? 2 : target.includes("Splash") ? 1.5 : card.types[typeIndex] != "Attack" && !target.includes("Self") ? 1.25 : 1,
+
+			flurryCount = getFlurryCount(card),
+			flurryHitPercent = 1 - getFlurryMiss(card);
+
+		return Math.round(maxValue * critMultiplier * targetMultiplier * flurryHitPercent / flurryCount);
+	}
+	function getRegenDuration(card: IDataBattleCard) {
+		switch (card.name) {
+			case "Mutton Chops": return 2;
+
+			case "Fairy Shield": return 3;
+			case "Odd Seeds": return 3;
+			case "Peace Pipe": return 3;
+			case "Rooster Arrow": return 3;
+			case "Sword of Justice": return 3;
+			case "The Equalizer": return 3;
+			case "Turkey Arrow": return 3;
+			case "Turkey Sagitta": return 3;
+			case "Warped Seeds": return 3;
+			case "Weird Seeds": return 3;
+
+			case "Candy Cauldron": return 5;
+			case "Night Cap": return 5;
+			case "Smelling Salts": return card.rarityType == bh.RarityType.SuperRare ? 5 : 5;
+			case "Tides Control": return 5;
+
+			case "Caribbean Cocktail": return 6;
+			case "Fairy Bottle": return 6;
+			case "Regen": return 6;
+			case "Tropical Juice": return 6;
+
+			case "Meditation": return 10;
+
+			default: console.log(card.name); return 0;
+		}
+	}
+	function getEffectDuration(card: IDataBattleCard, effect: string) {
+		if (effect == "Poison" && card.name == "Box of Frogs") return card.rarityType == bh.RarityType.SuperRare ? 5 : 4;
+		if (["Bleed","Burn"].includes(effect) && card.name == "Rain Of Fire") return 4;
+		if (effect == "Bleed" && card.name == "Fiery Stars") return 3;
+		if (effect == "Regen") { return getRegenDuration(card); }
+		return 1;
+	}
+	function getFlurryCount(card: IDataBattleCard) {
+		switch (card.name) {
+			case "Flaming Stars": return 4;
+
+			case "Annoying Elves": return 6;
+			case "Blazing Stars": return 6;
+			case "Box of Frogs": return 6;
+			case "Cornholio": return 6;
+			case "Easter Eggs": return 6;
+			case "Pumpkin Field": return 6;
+			case "Snowballs Squall": return 6;
+			case "Vampiric Bats": return 6;
+			case "Vampiric Lord": return 6;
+
+			case "Fiery Stars": return 8;
+			case "Sweet Corn": return 8;
+
+			case "Rain Of Fire": return 10;
+
+			case "Uber Cornholio": return 12;
+
+			default: return 1;
+		}
+	}
+	function getFlurryMiss(card: IDataBattleCard) {
+		switch (card.name) {
+			case "Box of Frogs": if (card.rarityType == bh.RarityType.Legendary) return 0.15;
+			case "Annoying Elves":
+			case "Blazing Stars":
+			case "Cornholio":
+			case "Easter Eggs":
+			case "Fiery Stars":
+			case "Flaming Stars":
+			case "Pumpkin Field":
+			case "Snowballs Squall":
+			case "Sweet Corn":
+			case "Vampiric Bats":;
+			case "Vampiric Lord": return 0.25;
+
+			case "Rain Of Fire": return 0.5;
+			case "Uber Cornholio": return 0.5;
+
+			default: return 0;
+		}
+	}
+	function getPerkMultiplier(perk: string, percent: number) {
+		return getMultiplier(perk) * percent;
+	}
+	function getMultiplier(value: string, card: IDataBattleCard = null) {
+		if (value.startsWith("Immunity to") || value.startsWith("Immune To")) return 0.2;
+		var turns = card && card.turns || 1;
+		var targets = card && card
+		switch (value) {
+			case "Interrupt": return 1;
+			case "Haste": return 1; // * target count
+
+			default: return 0;
+		}
+	}
+}
+function tiered() {
+	var tiered: { [tier: string]:IDataBattleCard[]; } = { };
+	bh.data.BattleCardRepo.all.forEach(card => {
+		if (!card.tier) return;
+		if (!tiered[card.tier]) tiered[card.tier] = [];
+		tiered[card.tier].push(card);
+	});
+	return tiered;
+}
+setTimeout(rateCards, 1000)

@@ -33,12 +33,12 @@ namespace bh {
 		public get deckPowerRating() { return this.deck.reduce((score, pbc) => score + PowerRating.ratePlayerCard(pbc.playerCard) * pbc.count, 0); }
 		public get hitPoints() { return this.hero.getHitPoints(this.level); }
 		public get hitPointsPowerRating() { return PowerRating.ratePlayerHeroHitPoints(this); }
-		public get isActiveCapped() { return this.active.level == getMaxActive(this.hero, this.level); }
+		public get isActiveCapped() { return this.active.level == HeroRepo.getMaxActive(this.hero, this.level); }
 		public get isCapped() { return this.isActiveCapped && this.isPassiveCapped && this.isTraitCapped; }
-		public get isMeat() { return this.level == MaxLevel && this.isCapped; }
+		public get isMeat() { return this.level == HeroRepo.MaxLevel && this.isCapped; }
 		public get isOp() { return !!this.deck.find(pbc => pbc.tier == "OP"); }
-		public get isPassiveCapped() { return this.passive.level == getMaxPassive(this.hero, this.level); }
-		public get isTraitCapped() { return this.trait.level == getMaxTrait(this.level); }
+		public get isPassiveCapped() { return this.passive.level == HeroRepo.getMaxPassive(this.hero, this.level); }
+		public get isTraitCapped() { return this.trait.level == HeroRepo.getMaxTrait(this.level); }
 		public get level() { return this.archetype.level + 1; }
 		public get passivePowerRating() { return this.passive.powerRating; }
 		public get playerHeroAbilities() { return [this.trait, this.active, this.passive]; }

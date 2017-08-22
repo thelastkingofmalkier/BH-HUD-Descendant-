@@ -1,44 +1,13 @@
-/// <reference path="../classes/EffectRepo.ts"/>
-/// <reference path="../classes/HeroRepo.ts"/>
-/// <reference path="../classes/ItemRepo.ts"/>
+/// <reference path="../classes/repos/BattleCardRepo.ts"/>
+/// <reference path="../classes/repos/BoosterCardRepo.ts"/>
+/// <reference path="../classes/repos/EffectRepo.ts"/>
+/// <reference path="../classes/repos/HeroRepo.ts"/>
+/// <reference path="../classes/repos/ItemRepo.ts"/>
 
 namespace bh {
-	export function getMaxLevel(fame: number) { return fame * 2; }
-	export function getMaxTrait(level: number) { return Math.max(level - 1, 0); }
-	export function getMaxActive(hero: Hero, level: number) { return hero.name == "Jinx" ? Math.max(level - 29, 0) : Math.max(level - 14, 0); }
-	export function getMaxPassive(hero: Hero, level: number) { return hero.name == "Jinx" ? Math.max(level - 14, 0) : Math.max(level - 29, 0); }
-	export function getAbilityLevelCap(playerHeroAbility: PlayerHeroAbility) {
-		switch (playerHeroAbility.type) {
-			case AbilityType.Active: return getMaxActive(playerHeroAbility.hero, playerHeroAbility.level);
-			case AbilityType.Passive: return getMaxPassive(playerHeroAbility.hero, playerHeroAbility.level);
-			case AbilityType.Trait: return getMaxTrait(playerHeroAbility.level);
-		}
-	}
-	export function getAbilityLevelMax(playerHeroAbility: PlayerHeroAbility) {
-		switch (playerHeroAbility.type) {
-			case AbilityType.Active: return getMaxActive(playerHeroAbility.hero, MaxLevel);
-			case AbilityType.Passive: return getMaxPassive(playerHeroAbility.hero, MaxLevel);
-			case AbilityType.Trait: return getMaxTrait(MaxLevel);
-		}
-	}
-
-	export var MaxFame = 45;
-	export var MaxLevel = getMaxLevel(MaxFame);
-
-	export function getAbilityMaxLevel(hero: Hero, abilityType: AbilityType) {
-		switch(abilityType) {
-			case AbilityType.Active: return getMaxActive(hero, MaxLevel);
-			case AbilityType.Passive: return getMaxPassive(hero, MaxLevel);
-			case AbilityType.Trait: return getMaxTrait(MaxLevel);
-		}
-	}
-
-	export function isElement(element: string) { return String(element) in ElementType; }
-
-	export function isRarity(rarity: string) { return String(rarity).replace(/ /g, "") in RarityType; }
-
 	export namespace data {
-		export var BoosterCardRepo = new Repo<IDataBoosterCard>(1709781959, true);
+		export var BattleCardRepo = new bh.BattleCardRepo();
+		export var BoosterCardRepo = new bh.BoosterCardRepo();
 		export var EffectRepo = new bh.EffectRepo();
 		export var HeroRepo = new bh.HeroRepo();
 		export var ItemRepo = new bh.ItemRepo();
@@ -84,7 +53,7 @@ namespace bh {
 		var _init: Promise<any>;
 		export function init(): Promise<any> {
 			if (!_init) {
-				_init = Promise.all<any>([cards.battle.init(), guilds.init()].concat(Repo.init()));
+				_init = Promise.all<any>([guilds.init()].concat(Repo.init()));
 			}
 			return _init;
 		}

@@ -42,7 +42,7 @@ namespace bh {
 			return hp + trait + active + passive + deck;
 		}
 		public static rateMaxedDeck(hero: Hero) {
-			var heroCards = Hero.filterCardsByHero(hero, data.cards.battle.getAll()),
+			var heroCards = Hero.filterCardsByHero(hero, data.BattleCardRepo.all),
 				ratedCards = heroCards.map(card => { return { card:card, score:PowerRating.rateMaxedBattleCard(card) }; })
 								.sort((a, b) => a.score == b.score ? 0 : a.score < b.score ? 1 : -1),
 				topCards = ratedCards.slice(0, 4),
@@ -56,7 +56,7 @@ namespace bh {
 			return PowerRating.ratePlayerCard(<any>{ configId:battleCard.guid, evolutionLevel:evo, level:level-1 });
 		}
 		public static ratePlayerCard(playerCard: IPlayer.PlayerCard) {
-			var card = data.cards.battle.find(playerCard.configId),
+			var card = data.BattleCardRepo.find(playerCard.configId),
 				multiplier = PowerRating.tierToMultiplier(card && card.tier || ""),
 				score = calculateCardScore(card && card.rarityType || RarityType.Common, playerCard.evolutionLevel, playerCard.level + 1, multiplier);
 			return score;
@@ -65,7 +65,7 @@ namespace bh {
 			return calculateHeroAbilityScore(playerHeroAbility.hero, <any>AbilityType[playerHeroAbility.type]);
 		}
 		public static ratePlayerHeroHitPoints(playerHero: PlayerHero) {
-			return calculateHeroAbilityScore(playerHero.hero, "HP") * playerHero.level / MaxLevel;
+			return calculateHeroAbilityScore(playerHero.hero, "HP") * playerHero.level / HeroRepo.MaxLevel;
 		}
 		public static tierToMultiplier(tier: string) {
 			return tier == "OP" ? 1.2 : tier == "S" ? 1 : tier == "A" ? 0.8 : tier == "B" ? 0.6 : tier == "C" ? 0.4 : tier == "D" ? 0.2 : 0.5;

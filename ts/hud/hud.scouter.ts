@@ -30,7 +30,7 @@ namespace bh {
 				playerHeroes.forEach(hero => {
 					var id = `${player.guid}-${hero.guid}`,
 						icon = getImg("heroes", hero.name),
-						level = hero.level == MaxLevel ? hero.isMeat ? `<span class="evo-star">&#9734;</span>` : `<span class="star">&#9734;</span>` : `(${hero.level})`,
+						level = hero.level == HeroRepo.MaxLevel ? hero.isMeat ? `<span class="evo-star">&#9734;</span>` : `<span class="star">&#9734;</span>` : `(${hero.level})`,
 						powerPercent = hero.powerPercent,
 						progressBG = hero.isOp ? "background-color:pink;" : "",
 						color = powerPercent < 25 ? "progress-bar-info" : powerPercent < 50 ? "progress-bar-success" : powerPercent < 75 ? "progress-bar-warning" : "progress-bar-danger",

@@ -87,12 +87,12 @@ namespace bh {
 		}
 		public filterActiveBattleCards(...args: string[]) {
 			var element: GameElement, rarity: GameRarity, name: string, hero: Hero;
-			args.forEach(arg => isElement(arg) ? element = <GameElement>arg : isRarity(arg) ? rarity = <GameRarity>arg : name = arg);
+			args.forEach(arg => ElementRepo.isElement(arg) ? element = <GameElement>arg : RarityRepo.isRarity(arg) ? rarity = <GameRarity>arg : name = arg);
 			if (name) hero = data.HeroRepo.find(name);
 			return this.activeBattleCards.filter(battleCard => battleCard.matchesElement(element) && battleCard.matchesRarity(rarity) && battleCard.matchesHero(hero));
 		}
 		public filterHeroes(elementOrName: string) {
-			var element = isElement(elementOrName) ? <GameElement>elementOrName : null,
+			var element = ElementRepo.isElement(elementOrName) ? <GameElement>elementOrName : null,
 				name = !element ? elementOrName : null;
 			return this.heroes.filter(playerHero => playerHero && ((element && ElementType[playerHero.elementType] == element) || (name && playerHero.name == name)));
 		}

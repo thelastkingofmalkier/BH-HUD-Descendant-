@@ -36,7 +36,7 @@ namespace bh {
 		function onSearchClear() {
 			searching = null;
 			$("input.library-search").val("");
-			$(`a[href="#card-table"] > span.badge`).text(String(data.cards.battle.getAll().length));
+			$(`a[href="#card-table"] > span.badge`).text(String(data.BattleCardRepo.length));
 			$(`a[href="#effect-table"] > span.badge`).text(String(data.EffectRepo.length));
 			$(`a[href="#item-table"] > span.badge`).text(String(data.ItemRepo.length));
 			$("tbody > tr[id]").show();
@@ -44,20 +44,20 @@ namespace bh {
 
 		function getMinValue(card: IDataBattleCard, typeIndex: number) {
 			var playerCard = { configId:card.guid, evolutionLevel:0, level:0 };
-			return data.cards.battle.calculateValue(<any>playerCard, typeIndex);
+			return bh.BattleCardRepo.calculateValue(<any>playerCard, typeIndex);
 		}
 		function getMaxValue(card: IDataBattleCard, typeIndex: number) {
 			var maxEvo = card.rarityType + 1,
-				maxLevel = data.cards.battle.levelsPerRarity(card.rarityType) - 1;
+				maxLevel = bh.BattleCardRepo.getLevelsForRarity(card.rarityType) - 1;
 			var playerCard = { configId:card.guid, evolutionLevel:maxEvo, level:maxLevel };
-			return data.cards.battle.calculateValue(<any>playerCard, typeIndex);
+			return bh.BattleCardRepo.calculateValue(<any>playerCard, typeIndex);
 		}
 
 		function onShowCard(ev: JQueryEventObject) {
 			var link = $(ev.target),
 				tr = link.closest("tr"),
 				guid = tr.attr("id"),
-				card = data.cards.battle.find(guid);
+				card = data.BattleCardRepo.find(guid);
 			$("div.modal-card").modal("show");
 
 			// $(`#card-name`).html(card.name);
@@ -158,7 +158,7 @@ namespace bh {
 		}
 		function getAll(which: FilterType): IHasGuid[] {
 			switch (which) {
-				case "card": return data.cards.battle.getAll();
+				case "card": return data.BattleCardRepo.all;
 				case "effect": return data.EffectRepo.all;
 				case "item": return data.ItemRepo.all;
 				default: return [];
@@ -280,7 +280,7 @@ namespace bh {
 		}
 		function renderCards() {
 			var complete = location.search.includes("complete");
-			var cards = data.cards.battle.getAll();
+			var cards = data.BattleCardRepo.all;
 			$(`a[href="#card-table"] > span.badge`).text(String(cards.length));
 			var tbody = $("table.card-list > tbody").html("");
 			cards.forEach(card => {
