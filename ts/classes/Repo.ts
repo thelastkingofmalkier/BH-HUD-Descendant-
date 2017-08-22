@@ -144,6 +144,7 @@ namespace bh {
 								object[key] = value.split(",").filter(s => !!s);
 								break;
 
+							case "perkBase":
 							case "turns":
 								object[key] = +value;
 								break;
