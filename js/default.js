@@ -2011,6 +2011,11 @@ var bh;
         function DungeonRepo() {
             return _super.call(this, 451699406) || this;
         }
+        DungeonRepo.prototype.parseTsv = function (tsv) {
+            this.data = bh.Repo.mapTsv(tsv);
+            this.data.forEach(function (effect) { return effect.guid = effect.lower.replace(/\W/g, "-"); });
+            return this.data;
+        };
         return DungeonRepo;
     }(bh.Repo));
     bh.DungeonRepo = DungeonRepo;
@@ -3787,20 +3792,21 @@ var bh;
         function evoRow(image, name, min, max) {
             return "<tr><td class=\"icon\">" + image + "</td><td class=\"name\">" + name + "</td><td class=\"min\">" + bh.utils.formatNumber(min) + "</td><td class=\"max\">" + bh.utils.formatNumber(max) + "</td></tr>";
         }
-        var filtered = { card: {}, effect: {}, item: {} };
+        var filtered = { card: {}, effect: {}, item: {}, dungeon: {} };
         var searching;
         function onSearch(ev) {
             var el = $(ev.target), value = el.val(), lower = value.trim().toLowerCase();
             if (!lower)
                 return onSearchClear();
             searching = lower;
-            ["card", "effect", "item"].forEach(function (which) { return setTimeout(function (lower) { matchAndToggle(which, lower); }, 0, lower); });
+            ["card", "effect", "item", "dungeon"].forEach(function (which) { return setTimeout(function (lower) { matchAndToggle(which, lower); }, 0, lower); });
         }
         function getAll(which) {
             switch (which) {
                 case "card": return bh.data.BattleCardRepo.all;
                 case "effect": return bh.data.EffectRepo.all;
                 case "item": return bh.data.ItemRepo.all;
+                case "dungeon": return bh.data.DungeonRepo.all;
                 default: return [];
             }
         }
@@ -3842,6 +3848,15 @@ var bh;
             }
             return tests[item.guid] || [];
         }
+        function setDungeonTests(dungeon) {
+            if (!tests[dungeon.guid]) {
+                var list = tests[dungeon.guid] = [];
+                list.push(dungeon.lower);
+                dungeon.mats.forEach(function (s) { return list.push(s.toLowerCase()); });
+                dungeon.runeHeroes.forEach(function (s) { return list.push(s.toLowerCase()); });
+            }
+            return tests[dungeon.guid] || [];
+        }
         var elementLowers = bh.ElementRepo.all.map(function (type) { return bh.ElementType[type].toLowerCase(); });
         var rarityLowers = bh.RarityRepo.all.map(function (type) { return bh.RarityType[type].toLowerCase(); });
         var heroNameLowers = null;
@@ -3882,8 +3897,8 @@ var bh;
         function mapPerksEffectsToImages(card) {
             return mapPerksEffects(card).map(function (item) { return "<div class=\"bh-hud-image img-" + item.guid + "\" title=\"" + item.name + ": " + item.description + "\" data-toggle=\"tooltip\" data-placement=\"top\"></div>"; });
         }
-        function mapMatsToImages(card) {
-            return card.mats.map(function (mat) { return bh.data.ItemRepo.find(mat); }).map(function (item) { return "<div class=\"bh-hud-image img-" + item.guid + "\" title=\"" + item.name + ": " + bh.RarityType[item.rarityType] + " " + bh.ElementType[item.elementType] + " " + bh.ItemType[item.itemType] + " (" + bh.utils.formatNumber(bh.ItemRepo.getValue(item.itemType, item.rarityType)) + " gold)\" data-toggle=\"tooltip\" data-placement=\"top\"></div>"; });
+        function mapMatsToImages(mats) {
+            return mats.map(function (mat) { return bh.data.ItemRepo.find(mat); }).map(function (item) { return "<div class=\"bh-hud-image img-" + item.guid + "\" title=\"" + item.name + ": " + bh.RarityType[item.rarityType] + " " + bh.ElementType[item.elementType] + " " + bh.ItemType[item.itemType] + " (" + bh.utils.formatNumber(bh.ItemRepo.getValue(item.itemType, item.rarityType)) + " gold)\" data-toggle=\"tooltip\" data-placement=\"top\"></div>"; });
         }
         function mapHeroesToImages(card) {
             return bh.data.HeroRepo.all
@@ -3931,7 +3946,7 @@ var bh;
                 if (complete)
                     html += "<td class=\"hidden-xs\">" + mapPerksEffectsToImages(card).join("") + "</td>";
                 if (complete)
-                    html += "<td class=\"hidden-xs\">" + mapMatsToImages(card).join("") + "</td>";
+                    html += "<td class=\"hidden-xs\">" + mapMatsToImages(card.mats).join("") + "</td>";
                 html += "<td class=\"hidden-xs\" style=\"width:100%;\"></td>";
                 html += "</td></tr>";
                 tbody.append(html);
@@ -3971,17 +3986,18 @@ var bh;
             $("a[href=\"#dungeon-table\"] > span.badge").text(String(dungeons.length));
             var tbody = $("table.dungeon-list > tbody");
             dungeons.forEach(function (dungeon) {
+                setDungeonTests(dungeon);
                 var html = "<tr id=\"" + dungeon.guid + "\">";
                 html += "<td><span class=\"\">" + dungeon.name + "</span></td>";
                 html += "<td><span class=\"\">" + bh.getImg20("keys", "SilverKey") + " " + dungeon.keys + "</span></td>";
                 html += "<td><span class=\"\">" + bh.getImg20("misc", "Fame") + " " + bh.utils.formatNumber(dungeon.fame) + "</span></td>";
                 html += "<td><span class=\"\">" + bh.getImg20("keys", "RaidTicket") + "</span></td>";
-                html += "<td><span class=\"\">" + bh.getImg20("misc", "Coin") + " " + bh.utils.formatNumber(dungeon.gold) + "</span></td>";
+                html += "<td><span class=\"\">" + bh.getImg20("misc", "Coin") + " " + bh.utils.formatNumber(dungeon.gold) + " <small>(" + bh.utils.formatNumber(Math.round(dungeon.gold / dungeon.keys)) + " / key)</small></span></td>";
                 try {
                     html += "<td><span class=\"\">" + dungeon.elementTypes.map(function (elementType) { return "<div class=\"bh-hud-image img-" + bh.ElementType[elementType] + "\"></div>"; }).join("") + "</span></td>";
                     html += "<td><span class=\"\">" + dungeon.crystalElementTypes.map(function (elementType) { return bh.getImg20("crystals", bh.ElementType[elementType]); }).join("") + "</span></td>";
                     html += "<td><span class=\"\">" + dungeon.runeHeroes.map(function (heroName) { return "<div class=\"bh-hud-image img-" + bh.data.ItemRepo.runes.find(function (rune) { return rune.name.startsWith(heroName); }).guid + "\"></div>"; }).join("") + "</span></td>";
-                    html += "<td><span class=\"\">" + dungeon.mats.map(function (mat) { return "<div class=\"bh-hud-image img-" + bh.data.ItemRepo.evoJars.find(function (jar) { return jar.name == mat; }).guid + "\"></div>"; }).join("") + "</span></td>";
+                    html += "<td><span>" + mapMatsToImages(dungeon.mats).join("") + "</span></td>";
                     html += "<td><span class=\"\">" + dungeon.randomMats.map(function (count, rarityType) { return count ? bh.getImg20("evojars", "random", bh.RarityType[rarityType] + "_Neutral_Small") : ""; }).join("") + "</span></td>";
                 }
                 catch (ex) {

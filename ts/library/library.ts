@@ -140,8 +140,8 @@ namespace bh {
 			return `<tr><td class="icon">${image}</td><td class="name">${name}</td><td class="min">${utils.formatNumber(min)}</td><td class="max">${utils.formatNumber(max)}</td></tr>`;
 		}
 
-		type FilterType = "card" | "effect" | "item";
-		var filtered: { [which: string]: { [search: string]: string[]; } } = { card:{}, effect:{}, item:{} };
+		type FilterType = "card" | "effect" | "item" | "dungeon";
+		var filtered: { [which: string]: { [search: string]: string[]; } } = { card:{}, effect:{}, item:{}, dungeon:{} };
 
 		// var filteredCards: { [search: string]: string[] } = { };
 		// var filteredEffects: { [search: string]: string[] } = { };
@@ -154,13 +154,14 @@ namespace bh {
 				lower = value.trim().toLowerCase();
 			if (!lower) return onSearchClear();
 			searching = lower;
-			["card", "effect", "item"].forEach((which: FilterType) => setTimeout((lower: string) => { matchAndToggle(which, lower); }, 0, lower));
+			["card", "effect", "item", "dungeon"].forEach((which: FilterType) => setTimeout((lower: string) => { matchAndToggle(which, lower); }, 0, lower));
 		}
 		function getAll(which: FilterType): IHasGuid[] {
 			switch (which) {
 				case "card": return data.BattleCardRepo.all;
 				case "effect": return data.EffectRepo.all;
 				case "item": return data.ItemRepo.all;
+				case "dungeon": return data.DungeonRepo.all;
 				default: return [];
 			}
 		}
@@ -201,6 +202,15 @@ namespace bh {
 				list.push(RarityType[item.rarityType].toLowerCase());
 			}
 			return tests[item.guid] || [];
+		}
+		function setDungeonTests(dungeon: IDataDungeon) {
+			if (!tests[dungeon.guid]) {
+				var list: string[] = tests[dungeon.guid] = [];
+				list.push(dungeon.lower);
+				dungeon.mats.forEach(s => list.push(s.toLowerCase()));
+				dungeon.runeHeroes.forEach(s => list.push(s.toLowerCase()));
+			}
+			return tests[dungeon.guid] || [];
 		}
 
 		var elementLowers = ElementRepo.all.map(type => ElementType[type].toLowerCase());
@@ -248,8 +258,8 @@ namespace bh {
 			return mapPerksEffects(card).map(item => `<div class="bh-hud-image img-${item.guid}" title="${item.name}: ${item.description}" data-toggle="tooltip" data-placement="top"></div>`);
 		}
 
-		function mapMatsToImages(card: IDataBattleCard) {
-			return card.mats.map(mat => data.ItemRepo.find(mat)).map(item => `<div class="bh-hud-image img-${item.guid}" title="${item.name}: ${RarityType[item.rarityType]} ${ElementType[item.elementType]} ${ItemType[item.itemType]} (${utils.formatNumber(ItemRepo.getValue(item.itemType, item.rarityType))} gold)" data-toggle="tooltip" data-placement="top"></div>`)
+		function mapMatsToImages(mats: string[]) {
+			return mats.map(mat => data.ItemRepo.find(mat)).map(item => `<div class="bh-hud-image img-${item.guid}" title="${item.name}: ${RarityType[item.rarityType]} ${ElementType[item.elementType]} ${ItemType[item.itemType]} (${utils.formatNumber(ItemRepo.getValue(item.itemType, item.rarityType))} gold)" data-toggle="tooltip" data-placement="top"></div>`)
 		}
 
 		function mapHeroesToImages(card: IDataBattleCard) {
@@ -296,7 +306,7 @@ namespace bh {
 					if (complete) html += `<td><div class="hidden-xs bh-hud-image img-${KlassType[card.klassType]}"></div></td>`;
 					html += `<td>${mapHeroesToImages(card).join("")}</td>`;
 					if (complete) html += `<td class="hidden-xs">${mapPerksEffectsToImages(card).join("")}</td>`;
-					if (complete) html += `<td class="hidden-xs">${mapMatsToImages(card).join("")}</td>`;
+					if (complete) html += `<td class="hidden-xs">${mapMatsToImages(card.mats).join("")}</td>`;
 					html += `<td class="hidden-xs" style="width:100%;"></td>`;
 					html += "</td></tr>";
 				tbody.append(html);
@@ -339,19 +349,19 @@ namespace bh {
 			$(`a[href="#dungeon-table"] > span.badge`).text(String(dungeons.length));
 			var tbody = $("table.dungeon-list > tbody");
 			dungeons.forEach(dungeon => {
-				// setItemTests(item);
+				setDungeonTests(dungeon);
 				var html = `<tr id="${dungeon.guid}">`;
 				// html += `<td><div class="bh-hud-image img-${item.guid}"></div></td>`;
 				html += `<td><span class="">${dungeon.name}</span></td>`;
 				html += `<td><span class="">${getImg20("keys", "SilverKey")} ${dungeon.keys}</span></td>`;
 				html += `<td><span class="">${getImg20("misc", "Fame")} ${utils.formatNumber(dungeon.fame)}</span></td>`;
 				html += `<td><span class="">${getImg20("keys", "RaidTicket")}</span></td>`;
-				html += `<td><span class="">${getImg20("misc", "Coin")} ${utils.formatNumber(dungeon.gold)}</span></td>`;
+				html += `<td><span class="">${getImg20("misc", "Coin")} ${utils.formatNumber(dungeon.gold)} <small>(${utils.formatNumber(Math.round(dungeon.gold / dungeon.keys))} / key)</small></span></td>`;
 				try {
 					html += `<td><span class="">${dungeon.elementTypes.map(elementType => `<div class="bh-hud-image img-${ElementType[elementType]}"></div>`).join("")}</span></td>`;
 					html += `<td><span class="">${dungeon.crystalElementTypes.map(elementType => getImg20("crystals", ElementType[elementType])).join("")}</span></td>`;
 					html += `<td><span class="">${dungeon.runeHeroes.map(heroName => `<div class="bh-hud-image img-${data.ItemRepo.runes.find(rune => rune.name.startsWith(heroName)).guid}"></div>`).join("")}</span></td>`;
-					html += `<td><span class="">${dungeon.mats.map(mat => `<div class="bh-hud-image img-${data.ItemRepo.evoJars.find(jar => jar.name == mat).guid}"></div>`).join("")}</span></td>`;
+					html += `<td><span>${mapMatsToImages(dungeon.mats).join("")}</span></td>`;
 					html += `<td><span class="">${dungeon.randomMats.map((count, rarityType) => count ? getImg20("evojars", "random", `${RarityType[rarityType]}_Neutral_Small`) : "").join("")}</span></td>`;
 					// html += `<td>${mapRarityToStars(item.rarityType)}</td>`;
 					// html += `<td><span class="card-name"><a class="btn btn-link" data-action="show-effect" style="padding:0;">${mat}</a></span></td>`;
