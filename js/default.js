@@ -3998,7 +3998,7 @@ var bh;
                     html += "<td><span class=\"\">" + dungeon.crystalElementTypes.map(function (elementType) { return bh.getImg20("crystals", bh.ElementType[elementType]); }).join("") + "</span></td>";
                     html += "<td><span class=\"\">" + dungeon.runeHeroes.map(function (heroName) { return "<div class=\"bh-hud-image img-" + bh.data.ItemRepo.runes.find(function (rune) { return rune.name.startsWith(heroName); }).guid + "\"></div>"; }).join("") + "</span></td>";
                     html += "<td><span>" + mapMatsToImages(dungeon.mats).join("") + "</span></td>";
-                    html += "<td><span class=\"\">" + dungeon.randomMats.map(function (count, rarityType) { return count ? bh.getImg20("evojars", "random", bh.RarityType[rarityType] + "_Neutral_Small") : ""; }).join("") + "</span></td>";
+                    html += "<td><span class=\"\">" + dungeon.randomMats.map(function (count, rarityType) { return count ? bh.getImg20("evojars", "random", bh.RarityType[rarityType] + "_Neutral_Small") + count : ""; }).join(" ") + "</span></td>";
                 }
                 catch (ex) {
                     console.error(ex);

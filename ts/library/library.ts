@@ -362,7 +362,7 @@ namespace bh {
 					html += `<td><span class="">${dungeon.crystalElementTypes.map(elementType => getImg20("crystals", ElementType[elementType])).join("")}</span></td>`;
 					html += `<td><span class="">${dungeon.runeHeroes.map(heroName => `<div class="bh-hud-image img-${data.ItemRepo.runes.find(rune => rune.name.startsWith(heroName)).guid}"></div>`).join("")}</span></td>`;
 					html += `<td><span>${mapMatsToImages(dungeon.mats).join("")}</span></td>`;
-					html += `<td><span class="">${dungeon.randomMats.map((count, rarityType) => count ? getImg20("evojars", "random", `${RarityType[rarityType]}_Neutral_Small`) : "").join("")}</span></td>`;
+					html += `<td><span class="">${dungeon.randomMats.map((count, rarityType) => count ? getImg20("evojars", "random", `${RarityType[rarityType]}_Neutral_Small`) + count : "").join(" ")}</span></td>`;
 					// html += `<td>${mapRarityToStars(item.rarityType)}</td>`;
 					// html += `<td><span class="card-name"><a class="btn btn-link" data-action="show-effect" style="padding:0;">${mat}</a></span></td>`;
 				}catch(ex) {
