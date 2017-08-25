@@ -82,7 +82,7 @@ div.brain-hud-scouter-panel-header > button[data-action] { cursor:pointer; }
 div.brain-hud-scouter-panel-header > button > span.hero-icon { display:inline-block; width:20px; text-align:center; }
 div.brain-hud-scouter-panel-header > button > span.hero-level { display:inline-block; width:30px; text-align:right; }
 div.brain-hud-scouter-panel-header > button > span.hero-name { display:inline-block; width:60px; }
-div.brain-hud-scouter-panel-header > button > span.hero-hp { display:inline-block; width:50px; text-align:center; overflow:hidden; }
+div.brain-hud-scouter-panel-header > button > span.hero-hp { display:inline-block; width:50px; text-align:center; overflow:hidden; vertical-align: bottom; }
 div.brain-hud-scouter-panel-header > button > span.hero-rating-bar { display:inline-block; width:${WidthCurrent-205}px; }
 div.brain-hud-scouter-panel-header > button > span.hero-rating { display:inline-block; width:30px; text-align:right; font-size:8pt; vertical-align:top; }
 
