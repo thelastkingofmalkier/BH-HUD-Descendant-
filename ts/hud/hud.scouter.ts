@@ -53,10 +53,10 @@ namespace bh {
 										levelText = isLocked ? "locked" : isMaxed ? "max" : isCapped ? "capped" : `${level} / ${maxLevel}`,
 										text = `${playerHeroAbility.img} ${playerHeroAbility.name} (${levelText})`,
 										children = "";
-									// if (!isMaxed) { // !isCapped
+									if (!isMaxed) { // !isCapped
 										children += playerHeroAbility.materialHtml;
 										children += playerHeroAbility.goldHtml;
-									// }
+									}
 									return renderExpandable(hero.guid + playerHeroAbility.guid, text, children);
 								}),
 							cardsHtml = hero.deck.map(card => card.rowHtml).join("");

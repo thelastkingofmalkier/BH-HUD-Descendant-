@@ -3665,8 +3665,10 @@ var bh;
                         var abilities = hero.playerHeroAbilities
                             .map(function (playerHeroAbility) {
                             var level = playerHeroAbility.level, isCapped = playerHeroAbility.isCapped, isLocked = playerHeroAbility.isLocked, isMaxed = playerHeroAbility.isMaxed, maxLevel = playerHeroAbility.levelMax, levelText = isLocked ? "locked" : isMaxed ? "max" : isCapped ? "capped" : level + " / " + maxLevel, text = playerHeroAbility.img + " " + playerHeroAbility.name + " (" + levelText + ")", children = "";
-                            children += playerHeroAbility.materialHtml;
-                            children += playerHeroAbility.goldHtml;
+                            if (!isMaxed) {
+                                children += playerHeroAbility.materialHtml;
+                                children += playerHeroAbility.goldHtml;
+                            }
                             return bh.renderExpandable(hero.guid + playerHeroAbility.guid, text, children);
                         }), cardsHtml = hero.deck.map(function (card) { return card.rowHtml; }).join("");
                         content = "" + abilities.join("") + cardsHtml;
