@@ -7,19 +7,36 @@ namespace bh {
 			return value.trim().replace(/\W/g, "");
 		}
 
+		var messenger: Messenger;
+		export function openLibraryFromHud() {
+			messenger = new Messenger(window, handleLibraryMessage, window.open(bh.host + "/cards.html?hud,complete", "bh-hud-library", "", true));
+		}
+		function postMessage(action: string, data: any = null) {
+			var message = Messenger.createMessage(action, { action:action, data:data });
+			message.playerGuid = action;
+			message.sessionKey = action;
+			messenger.postMessage(message);
+		}
+
 		export function init() {
 			var hud = location.search.includes("hud");
 			if (hud) {
-				window.addEventListener("message", handleOnLoadPlayer);
+				messenger = new Messenger(window, handleLibraryMessage, window.opener);
+				postMessage("library-requesting-player");
 			}else {
 				_init();
 			}
 		}
-		export function handleOnLoadPlayer(ev: BaseWindowMessage) {
+		export function handleLibraryMessage(ev: BaseWindowMessage) {
 			var message: IMessage = ev.data || (ev.originalEvent && ev.originalEvent.data) || null;
-			if (message && message.action == "hud-to-library" && message.data) {
-				player = new Player(message.data);
-				_init();
+			if (message) {
+				if (message.action == "hud-sending-player" && message.data) {
+					player = new Player(message.data);
+					_init();
+				}
+				if (message.action == "library-requesting-player") {
+					postMessage("hud-sending-player", (<any>Player.me)._pp);
+				}
 			}
 		}
 		function _init() {
@@ -28,6 +45,7 @@ namespace bh {
 			$(`body`).on("click", `[data-action="show-card"]`, onShowCard);
 			$("input.library-search").on("change keyup", onSearch);
 			$("button.library-search-clear").on("click", onSearchClear);
+			$("input[type='range']").on("change input", onSliderChange);
 
 			var evoTabs = $("#card-evolution div.tab-pane"),
 				template = evoTabs.html();
@@ -41,23 +59,30 @@ namespace bh {
 			$(`a[href="#item-table"] > span.badge`).text(String(data.ItemRepo.length));
 			$("tbody > tr[id]").show();
 		}
-
-		function getMinValue(card: IDataBattleCard, typeIndex: number) {
-			var playerCard = { configId:card.guid, evolutionLevel:0, level:0 };
+		function onSliderChange(ev: JQueryEventObject) {
+			var evo = $("#card-slider-evo").val(),
+				level = $("#card-slider-level").val(),
+				action = $(ev.target).closest("input[data-action]").data("action");
+			$(`#card-slider-types`).html(`<span style="padding-left:25px;">${evo}.${("0"+level).substr(-2)}</span><br/>` + activeCard.types.map((type, typeIndex) => getImg20("cardtypes", type) + ` ${type} (${utils.formatNumber(getValue(typeIndex, evo, level))})`).join("<br/>"));
+		}
+		function getValue(typeIndex: number, evolutionLevel: number, level: number) {
+			var playerCard = { configId:activeCard.guid, evolutionLevel:evolutionLevel, level:level };
 			return bh.BattleCardRepo.calculateValue(<any>playerCard, typeIndex);
 		}
-		function getMaxValue(card: IDataBattleCard, typeIndex: number) {
-			var maxEvo = card.rarityType + 1,
-				maxLevel = bh.BattleCardRepo.getLevelsForRarity(card.rarityType) - 1;
-			var playerCard = { configId:card.guid, evolutionLevel:maxEvo, level:maxLevel };
-			return bh.BattleCardRepo.calculateValue(<any>playerCard, typeIndex);
+		function getMinValue(typeIndex: number) { return getValue(typeIndex, 0, 0); }
+		function getMaxValue(typeIndex: number) {
+			var maxEvo = activeCard.rarityType + 1,
+				maxLevel = bh.BattleCardRepo.getLevelsForRarity(activeCard.rarityType) - 1;
+			return getValue(typeIndex, maxEvo, maxLevel);
 		}
 
+		var activeCard: IDataBattleCard;
 		function onShowCard(ev: JQueryEventObject) {
 			var link = $(ev.target),
 				tr = link.closest("tr"),
 				guid = tr.attr("id"),
 				card = data.BattleCardRepo.find(guid);
+			activeCard = card;
 			$("div.modal-card").modal("show");
 
 			// $(`#card-name`).html(card.name);
@@ -69,7 +94,7 @@ namespace bh {
 			$(`#card-klass`).html(KlassRepo.toImage(card.klassType) + " " + KlassType[card.klassType]);
 			$(`#card-klass`).removeClass("Magic Might Skill").addClass(KlassType[card.klassType]);
 			$(`#card-rarity`).html(utils.evoToStars(card.rarityType) + " " + RarityType[card.rarityType]);
-			$(`#card-types`).html(card.types.map((type, typeIndex) => getImg20("cardtypes", type) + ` ${type} (${utils.formatNumber(getMinValue(card, typeIndex))} - ${utils.formatNumber(getMaxValue(card, typeIndex))})`).join("<br/>"));
+			$(`#card-types`).html(card.types.map((type, typeIndex) => getImg20("cardtypes", type) + ` ${type} (${utils.formatNumber(getMinValue(typeIndex))} - ${utils.formatNumber(getMaxValue(typeIndex))})`).join("<br/>"));
 			$(`#card-turns`).html(String(card.turns));
 			$(`div.panel-card span.card-targets`).html(card.targets.join());
 			$(`div.panel-card span.card-brag`).html(String(card.brag));
@@ -135,6 +160,14 @@ namespace bh {
 			$("#card-evolution .active").removeClass("active");
 			$("#card-evolution > ul.nav > li").first().addClass("active");
 			$("#card-evolution > div.tab-content > div.tab-pane").first().addClass("active");
+
+			$("#card-slider-evo").val(<any>0).attr("max", card.rarityType + 1)
+			$("#card-slider-evo-labels-table tbody").html((new Array(card.rarityType + 2)).fill(1).map((_,evo) => `<td class="text-${evo ? evo == card.rarityType + 1 ? "right" : "center" : "left"}">${evo}</td>`).join(""));
+			var levelsForRarity = BattleCardRepo.getLevelsForRarity(card.rarityType),
+				levelSliderLevels = levelsForRarity == 10 ? [1,5,10] : levelsForRarity == 20 ? [1,5,10,15,20] : levelsForRarity == 35 ? [1,5,10,15,20,25,30, 35] : [1,10,20,30,40,50];
+			$("#card-slider-level").val(<any>1).attr("max", levelsForRarity);
+			$("#card-slider-level-labels-table tbody").html(levelSliderLevels.map((level,index) => `<td class="text-${index ? index == levelSliderLevels.length - 1 ? "right" : "center" : "left"}">${level}</td>`).join(""));
+			$(`#card-slider-types`).html(`<span style="padding-left:25px;">0.01</span><br/>` + card.types.map((type, typeIndex) => getImg20("cardtypes", type) + ` ${type} (${utils.formatNumber(getMinValue(typeIndex))})`).join("<br/>"));
 		}
 		function evoRow(image: string, name: string, min: number, max: number) {
 			return `<tr><td class="icon">${image}</td><td class="name">${name}</td><td class="min">${utils.formatNumber(min)}</td><td class="max">${utils.formatNumber(max)}</td></tr>`;
@@ -182,6 +215,7 @@ namespace bh {
 				list.push(String(card.turns));
 				card.types.forEach(s => list.push(s.toLowerCase()));
 				data.HeroRepo.all.filter(hero => hero.klassType == card.klassType && (card.elementType == ElementType.Neutral || hero.elementType == card.elementType)).forEach(hero => list.push(hero.lower));
+				if (player) list.push(player.battleCards.find(playerBattleCard => playerBattleCard.guid == card.guid) ? "have" : "need");
 			}
 			return tests[card.guid] || [];
 		}
@@ -265,7 +299,7 @@ namespace bh {
 		function mapHeroesToImages(card: IDataBattleCard) {
 			return data.HeroRepo.all
 				.filter(hero => (card.elementType == ElementType.Neutral || hero.elementType == card.elementType) && hero.klassType == card.klassType)
-				.map(hero => `<div class="bh-hud-image img-${hero.guid}"></div>`);
+				.map(hero => `<div class="bh-hud-image img-${hero.guid}" data-toggle="tooltip" data-placement="top" title="${hero.name}: ${ElementType[hero.elementType]} ${KlassType[hero.klassType]} Hero"></div>`);
 		}
 
 		function mapRarityToStars(rarityType: RarityType) {
@@ -298,12 +332,12 @@ namespace bh {
 				setCardTests(card);
 				var owned = player && player.battleCards.find(bc => card.guid == bc.guid);
 				var html = `<tr id="${card.guid}">`;
-					if (player) html += `<td><span class="card-owned glyphicon ${owned ? "glyphicon-ok text-success" : "glyphicon-remove text-danger"}"></span></td>`;
-					html += `<td><div class="bh-hud-image img-${card.brag? "Brag" : "BattleCard"}"></div></td>`;
+					if (player) html += `<td><span class="card-owned glyphicon ${owned ? "glyphicon-ok text-success" : "glyphicon-remove text-danger"}" title="${owned ? "Have" : "Need"}" data-toggle="tooltip" data-placement="top"></span></td>`;
+					html += `<td><div class="bh-hud-image img-${card.brag? "Brag" : "BattleCard"}" title="${card.brag? "Brag" : "BattleCard"}" data-toggle="tooltip" data-placement="top"></div></td>`;
 					html += `<td><span class="card-name"><a class="btn btn-link" data-action="show-card" style="padding:0;">${card.name}</a></span></td>`;
 					if (complete) html += `<td>${mapRarityToStars(card.rarityType)}</td>`;
-					if (complete) html += `<td><div class="bh-hud-image img-${ElementType[card.elementType]}"></div></td>`;
-					if (complete) html += `<td><div class="hidden-xs bh-hud-image img-${KlassType[card.klassType]}"></div></td>`;
+					if (complete) html += `<td><div class="bh-hud-image img-${ElementType[card.elementType]}" title="${ElementType[card.elementType]}" data-toggle="tooltip" data-placement="top"></div></td>`;
+					if (complete) html += `<td><div class="hidden-xs bh-hud-image img-${KlassType[card.klassType]}" title="${KlassType[card.klassType]}" data-toggle="tooltip" data-placement="top"></div></td>`;
 					html += `<td>${mapHeroesToImages(card).join("")}</td>`;
 					if (complete) html += `<td class="hidden-xs">${mapPerksEffectsToImages(card).join("")}</td>`;
 					if (complete) html += `<td class="hidden-xs">${mapMatsToImages(card.mats).join("")}</td>`;
@@ -333,11 +367,13 @@ namespace bh {
 			$(`a[href="#item-table"] > span.badge`).text(String(items.length));
 			var tbody = $("table.mat-list > tbody");
 			items.forEach(item => {
+				var owned = player && player.inventory.find(playerInventoryItem => playerInventoryItem.guid == item.guid);
 				setItemTests(item);
 				var html = `<tr id="${item.guid}">`;
 				html += `<td><div class="bh-hud-image img-${item.guid}"></div></td>`;
 				html += `<td><span class="card-name">${item.name}</span></td>`;
 				html += `<td>${mapRarityToStars(item.rarityType)}</td>`;
+				if (player) { html += `<td><span class="badge">${utils.formatNumber(owned && owned.count || 0)}</span></td>`; }
 				// html += `<td><span class="card-name"><a class="btn btn-link" data-action="show-effect" style="padding:0;">${mat}</a></span></td>`;
 				html += `<td class="hidden-xs" style="width:100%;"></td>`;
 				html += "</td></tr>";

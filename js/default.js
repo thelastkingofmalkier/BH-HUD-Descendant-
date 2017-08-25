@@ -203,10 +203,12 @@ var bh;
 (function (bh) {
     var messenger;
     var Messenger = (function () {
-        function Messenger(win, callbackfn) {
+        function Messenger(win, callbackfn, _targetWindow) {
+            if (_targetWindow === void 0) { _targetWindow = null; }
             var _this = this;
             this.win = win;
             this.callbackfn = callbackfn;
+            this._targetWindow = _targetWindow;
             window.addEventListener("message", function (ev) {
                 var message = ev.data || (ev.originalEvent && ev.originalEvent.data) || null;
                 if (Messenger.isValidMessage(message)) {
@@ -2998,6 +3000,9 @@ var bh;
         function onAction(ev) {
             var el = $(ev.target).closest("[data-action]"), action = el.data("action"), guid;
             switch (action) {
+                case "hud-to-library":
+                    bh.library.openLibraryFromHud();
+                    break;
                 case "sort-heroes":
                     sortHeroes();
                     break;
@@ -3623,7 +3628,7 @@ var bh;
             return "<button class=\"bs-btn bs-btn-default brain-hud-button\" type=\"button\" data-action=\"toggle-" + type + "\" data-" + type + "=\"" + typeValue + "\">" + bh.getImg(imgType, imgName || typeValue) + "</button>";
         }
         function renderHtml() {
-            var html = "<div class=\"brain-hud-header\">\n\t<button class=\"bs-btn bs-btn-link bs-btn-xs brain-hud-toggle pull-left\" data-action=\"toggle-hud-bigger\">[+]</button>\n\t<button class=\"bs-btn bs-btn-link bs-btn-xs brain-hud-toggle pull-right\" data-action=\"toggle-hud-smaller\">[-]</button>\n\t<span class=\"header\">The Brain BattleHand HUD</span>\n</div>\n<div class=\"brain-hud-main-container active\">\n\t<div class=\"brain-hud-scouter-player-container\">\n\t\t<button class=\"bs-btn bs-btn-link bs-btn-xs brain-hud-toggle pull-right\" data-action=\"toggle-player-scouter\">[-]</button>\n\t\t<button class=\"bs-btn bs-btn-link bs-btn-xs brain-hud-toggle pull-right\" data-action=\"refresh-player\">" + bh.getImg12("icons", "glyphicons-82-refresh") + "</button>\n\t\t<select id=\"brain-hud-scouter-player-target\" data-action=\"toggle-scouter-player\"></select>\n\t\t<div id=\"brain-hud-scouter-player-report\" class=\"brain-hud-scouter-player-report active\"></div>\n\t</div>\n\t<div id=\"brain-hud-inventory\" class=\"brain-hud-inventory\">\n\t\t<strong>Inventory</strong>\n\t\t<button class=\"bs-btn bs-btn-link bs-btn-xs brain-hud-toggle pull-right\" data-action=\"toggle-inventory\">[-]</button>\n\t\t<div class=\"brain-hud-inventory-container active\">\n\t\t\t<div class=\"text-center\">\n\t\t\t\t<div class=\"bs-btn-group bs-btn-group-xs brain-hud-inventory-buttons\" role=\"group\">\n\t\t\t\t\t" + inventoryButton("element", bh.ElementType.Air, "elements", "Air") + "\n\t\t\t\t\t" + inventoryButton("element", bh.ElementType.Earth, "elements", "Earth") + "\n\t\t\t\t\t" + inventoryButton("element", bh.ElementType.Fire, "elements", "Fire") + "\n\t\t\t\t\t" + inventoryButton("element", bh.ElementType.Spirit, "elements", "Spirit") + "\n\t\t\t\t\t" + inventoryButton("element", bh.ElementType.Water, "elements", "Water") + "\n\t\t\t\t\t" + inventoryButton("element", bh.ElementType.Neutral, "elements", "Loop") + "\n\t\t\t\t</div>\n\t\t\t\t<div class=\"bs-btn-group bs-btn-group-xs brain-hud-inventory-buttons\">\n\t\t\t\t\t" + inventoryButton("klass", bh.KlassType.Magic, "classes", "Magic") + "\n\t\t\t\t\t" + inventoryButton("klass", bh.KlassType.Might, "classes", "Might") + "\n\t\t\t\t\t" + inventoryButton("klass", bh.KlassType.Skill, "classes", "Skill") + "\n\t\t\t\t\t" + inventoryButton("klass", "Brag", "cardtypes") + "\n\t\t\t\t\t" + inventoryButton("type", bh.ItemType.Rune, "runes", "Meteor") + "\n\t\t\t\t\t" + inventoryButton("type", bh.ItemType.Crystal, "crystals", "Neutral") + "\n\t\t\t\t</div><br/>\n\t\t\t\t<div class=\"bs-btn-group bs-btn-group-xs brain-hud-inventory-buttons\">\n\t\t\t\t\t" + inventoryButton("type", "BoosterCard", "misc", "Boosters") + "\n\t\t\t\t\t" + inventoryButton("type", "WildCard", "cardtypes", "WildCard") + "\n\t\t\t\t\t" + inventoryButton("type", bh.ItemType.EvoJar, "misc", "EvoJars") + "\n\t\t\t\t</div>\n\t\t\t</div>\n\t\t\t<div id=\"brain-hud-inventory-items-container\" class=\"brain-hud-inventory-items-container\"></div>\n\t\t</div>\n\t</div>\n</div>";
+            var html = "<div class=\"brain-hud-header\">\n\t<button class=\"bs-btn bs-btn-link bs-btn-xs brain-hud-toggle pull-left\" data-action=\"toggle-hud-bigger\">[+]</button>\n\t<button class=\"bs-btn bs-btn-link bs-btn-xs brain-hud-toggle pull-right\" data-action=\"toggle-hud-smaller\">[-]</button>\n\t<span class=\"header\">The Brain BattleHand HUD</span>\n</div>\n<div class=\"brain-hud-main-container active\">\n\t<div class=\"brain-hud-scouter-player-container\">\n\t\t<button class=\"bs-btn bs-btn-link bs-btn-xs brain-hud-toggle pull-right\" data-action=\"toggle-player-scouter\">[-]</button>\n\t\t<button class=\"bs-btn bs-btn-link bs-btn-xs brain-hud-toggle pull-right\" data-action=\"refresh-player\">" + bh.getImg12("icons", "glyphicons-82-refresh") + "</button>\n\t\t<select id=\"brain-hud-scouter-player-target\" data-action=\"toggle-scouter-player\"></select>\n\t\t<div id=\"brain-hud-scouter-player-report\" class=\"brain-hud-scouter-player-report active\"></div>\n\t</div>\n\t<div id=\"brain-hud-inventory\" class=\"brain-hud-inventory\">\n\t\t<strong>Inventory</strong>\n\t\t<button class=\"bs-btn bs-btn-link bs-btn-xs\" style=\"float:center;\" data-action=\"hud-to-library\">[library]</button>\n\t\t<button class=\"bs-btn bs-btn-link bs-btn-xs brain-hud-toggle pull-right\" data-action=\"toggle-inventory\">[-]</button>\n\t\t<div class=\"brain-hud-inventory-container active\">\n\t\t\t<div class=\"text-center\">\n\t\t\t\t<div class=\"bs-btn-group bs-btn-group-xs brain-hud-inventory-buttons\" role=\"group\">\n\t\t\t\t\t" + inventoryButton("element", bh.ElementType.Air, "elements", "Air") + "\n\t\t\t\t\t" + inventoryButton("element", bh.ElementType.Earth, "elements", "Earth") + "\n\t\t\t\t\t" + inventoryButton("element", bh.ElementType.Fire, "elements", "Fire") + "\n\t\t\t\t\t" + inventoryButton("element", bh.ElementType.Spirit, "elements", "Spirit") + "\n\t\t\t\t\t" + inventoryButton("element", bh.ElementType.Water, "elements", "Water") + "\n\t\t\t\t\t" + inventoryButton("element", bh.ElementType.Neutral, "elements", "Loop") + "\n\t\t\t\t</div>\n\t\t\t\t<div class=\"bs-btn-group bs-btn-group-xs brain-hud-inventory-buttons\">\n\t\t\t\t\t" + inventoryButton("klass", bh.KlassType.Magic, "classes", "Magic") + "\n\t\t\t\t\t" + inventoryButton("klass", bh.KlassType.Might, "classes", "Might") + "\n\t\t\t\t\t" + inventoryButton("klass", bh.KlassType.Skill, "classes", "Skill") + "\n\t\t\t\t\t" + inventoryButton("klass", "Brag", "cardtypes") + "\n\t\t\t\t\t" + inventoryButton("type", bh.ItemType.Rune, "runes", "Meteor") + "\n\t\t\t\t\t" + inventoryButton("type", bh.ItemType.Crystal, "crystals", "Neutral") + "\n\t\t\t\t</div><br/>\n\t\t\t\t<div class=\"bs-btn-group bs-btn-group-xs brain-hud-inventory-buttons\">\n\t\t\t\t\t" + inventoryButton("type", "BoosterCard", "misc", "Boosters") + "\n\t\t\t\t\t" + inventoryButton("type", "WildCard", "cardtypes", "WildCard") + "\n\t\t\t\t\t" + inventoryButton("type", bh.ItemType.EvoJar, "misc", "EvoJars") + "\n\t\t\t\t</div>\n\t\t\t</div>\n\t\t\t<div id=\"brain-hud-inventory-items-container\" class=\"brain-hud-inventory-items-container\"></div>\n\t\t</div>\n\t</div>\n</div>";
             bh.$("body").append("<div id=\"brain-hud-container\" class=\"brain-hud-container\">" + html + "</div>");
         }
     })(hud = bh.hud || (bh.hud = {}));
@@ -3689,30 +3694,49 @@ var bh;
         function cleanImageName(value) {
             return value.trim().replace(/\W/g, "");
         }
+        var messenger;
+        function openLibraryFromHud() {
+            messenger = new bh.Messenger(window, handleLibraryMessage, window.open(bh.host + "/cards.html?hud,complete", "bh-hud-library", "", true));
+        }
+        library.openLibraryFromHud = openLibraryFromHud;
+        function postMessage(action, data) {
+            if (data === void 0) { data = null; }
+            var message = bh.Messenger.createMessage(action, { action: action, data: data });
+            message.playerGuid = action;
+            message.sessionKey = action;
+            messenger.postMessage(message);
+        }
         function init() {
             var hud = location.search.includes("hud");
             if (hud) {
-                window.addEventListener("message", handleOnLoadPlayer);
+                messenger = new bh.Messenger(window, handleLibraryMessage, window.opener);
+                postMessage("library-requesting-player");
             }
             else {
                 _init();
             }
         }
         library.init = init;
-        function handleOnLoadPlayer(ev) {
+        function handleLibraryMessage(ev) {
             var message = ev.data || (ev.originalEvent && ev.originalEvent.data) || null;
-            if (message && message.action == "hud-to-library" && message.data) {
-                player = new bh.Player(message.data);
-                _init();
+            if (message) {
+                if (message.action == "hud-sending-player" && message.data) {
+                    player = new bh.Player(message.data);
+                    _init();
+                }
+                if (message.action == "library-requesting-player") {
+                    postMessage("hud-sending-player", bh.Player.me._pp);
+                }
             }
         }
-        library.handleOnLoadPlayer = handleOnLoadPlayer;
+        library.handleLibraryMessage = handleLibraryMessage;
         function _init() {
             bh.host = "http://brains.sth.ovh";
             bh.data.init().then(render);
             $("body").on("click", "[data-action=\"show-card\"]", onShowCard);
             $("input.library-search").on("change keyup", onSearch);
             $("button.library-search-clear").on("click", onSearchClear);
+            $("input[type='range']").on("change input", onSliderChange);
             var evoTabs = $("#card-evolution div.tab-pane"), template = evoTabs.html();
             evoTabs.html(template).toArray().forEach(function (div, i) { return $(div).find("h3").text("Evolution from " + i + " to " + (i + 1)); });
         }
@@ -3724,17 +3748,23 @@ var bh;
             $("a[href=\"#item-table\"] > span.badge").text(String(bh.data.ItemRepo.length));
             $("tbody > tr[id]").show();
         }
-        function getMinValue(card, typeIndex) {
-            var playerCard = { configId: card.guid, evolutionLevel: 0, level: 0 };
+        function onSliderChange(ev) {
+            var evo = $("#card-slider-evo").val(), level = $("#card-slider-level").val(), action = $(ev.target).closest("input[data-action]").data("action");
+            $("#card-slider-types").html("<span style=\"padding-left:25px;\">" + evo + "." + ("0" + level).substr(-2) + "</span><br/>" + activeCard.types.map(function (type, typeIndex) { return bh.getImg20("cardtypes", type) + (" " + type + " (" + bh.utils.formatNumber(getValue(typeIndex, evo, level)) + ")"); }).join("<br/>"));
+        }
+        function getValue(typeIndex, evolutionLevel, level) {
+            var playerCard = { configId: activeCard.guid, evolutionLevel: evolutionLevel, level: level };
             return bh.BattleCardRepo.calculateValue(playerCard, typeIndex);
         }
-        function getMaxValue(card, typeIndex) {
-            var maxEvo = card.rarityType + 1, maxLevel = bh.BattleCardRepo.getLevelsForRarity(card.rarityType) - 1;
-            var playerCard = { configId: card.guid, evolutionLevel: maxEvo, level: maxLevel };
-            return bh.BattleCardRepo.calculateValue(playerCard, typeIndex);
+        function getMinValue(typeIndex) { return getValue(typeIndex, 0, 0); }
+        function getMaxValue(typeIndex) {
+            var maxEvo = activeCard.rarityType + 1, maxLevel = bh.BattleCardRepo.getLevelsForRarity(activeCard.rarityType) - 1;
+            return getValue(typeIndex, maxEvo, maxLevel);
         }
+        var activeCard;
         function onShowCard(ev) {
             var link = $(ev.target), tr = link.closest("tr"), guid = tr.attr("id"), card = bh.data.BattleCardRepo.find(guid);
+            activeCard = card;
             $("div.modal-card").modal("show");
             $("#card-name").html(card.name + " &nbsp; " + mapHeroesToImages(card).join(" "));
             $("#card-tier").html(card.tier || "");
@@ -3743,7 +3773,7 @@ var bh;
             $("#card-klass").html(bh.KlassRepo.toImage(card.klassType) + " " + bh.KlassType[card.klassType]);
             $("#card-klass").removeClass("Magic Might Skill").addClass(bh.KlassType[card.klassType]);
             $("#card-rarity").html(bh.utils.evoToStars(card.rarityType) + " " + bh.RarityType[card.rarityType]);
-            $("#card-types").html(card.types.map(function (type, typeIndex) { return bh.getImg20("cardtypes", type) + (" " + type + " (" + bh.utils.formatNumber(getMinValue(card, typeIndex)) + " - " + bh.utils.formatNumber(getMaxValue(card, typeIndex)) + ")"); }).join("<br/>"));
+            $("#card-types").html(card.types.map(function (type, typeIndex) { return bh.getImg20("cardtypes", type) + (" " + type + " (" + bh.utils.formatNumber(getMinValue(typeIndex)) + " - " + bh.utils.formatNumber(getMaxValue(typeIndex)) + ")"); }).join("<br/>"));
             $("#card-turns").html(String(card.turns));
             $("div.panel-card span.card-targets").html(card.targets.join());
             $("div.panel-card span.card-brag").html(String(card.brag));
@@ -3788,6 +3818,12 @@ var bh;
             $("#card-evolution .active").removeClass("active");
             $("#card-evolution > ul.nav > li").first().addClass("active");
             $("#card-evolution > div.tab-content > div.tab-pane").first().addClass("active");
+            $("#card-slider-evo").val(0).attr("max", card.rarityType + 1);
+            $("#card-slider-evo-labels-table tbody").html((new Array(card.rarityType + 2)).fill(1).map(function (_, evo) { return "<td class=\"text-" + (evo ? evo == card.rarityType + 1 ? "right" : "center" : "left") + "\">" + evo + "</td>"; }).join(""));
+            var levelsForRarity = bh.BattleCardRepo.getLevelsForRarity(card.rarityType), levelSliderLevels = levelsForRarity == 10 ? [1, 5, 10] : levelsForRarity == 20 ? [1, 5, 10, 15, 20] : levelsForRarity == 35 ? [1, 5, 10, 15, 20, 25, 30, 35] : [1, 10, 20, 30, 40, 50];
+            $("#card-slider-level").val(1).attr("max", levelsForRarity);
+            $("#card-slider-level-labels-table tbody").html(levelSliderLevels.map(function (level, index) { return "<td class=\"text-" + (index ? index == levelSliderLevels.length - 1 ? "right" : "center" : "left") + "\">" + level + "</td>"; }).join(""));
+            $("#card-slider-types").html("<span style=\"padding-left:25px;\">0.01</span><br/>" + card.types.map(function (type, typeIndex) { return bh.getImg20("cardtypes", type) + (" " + type + " (" + bh.utils.formatNumber(getMinValue(typeIndex)) + ")"); }).join("<br/>"));
         }
         function evoRow(image, name, min, max) {
             return "<tr><td class=\"icon\">" + image + "</td><td class=\"name\">" + name + "</td><td class=\"min\">" + bh.utils.formatNumber(min) + "</td><td class=\"max\">" + bh.utils.formatNumber(max) + "</td></tr>";
@@ -3827,6 +3863,8 @@ var bh;
                 list.push(String(card.turns));
                 card.types.forEach(function (s) { return list.push(s.toLowerCase()); });
                 bh.data.HeroRepo.all.filter(function (hero) { return hero.klassType == card.klassType && (card.elementType == bh.ElementType.Neutral || hero.elementType == card.elementType); }).forEach(function (hero) { return list.push(hero.lower); });
+                if (player)
+                    list.push(player.battleCards.find(function (playerBattleCard) { return playerBattleCard.guid == card.guid; }) ? "have" : "need");
             }
             return tests[card.guid] || [];
         }
@@ -3903,7 +3941,7 @@ var bh;
         function mapHeroesToImages(card) {
             return bh.data.HeroRepo.all
                 .filter(function (hero) { return (card.elementType == bh.ElementType.Neutral || hero.elementType == card.elementType) && hero.klassType == card.klassType; })
-                .map(function (hero) { return "<div class=\"bh-hud-image img-" + hero.guid + "\"></div>"; });
+                .map(function (hero) { return "<div class=\"bh-hud-image img-" + hero.guid + "\" data-toggle=\"tooltip\" data-placement=\"top\" title=\"" + hero.name + ": " + bh.ElementType[hero.elementType] + " " + bh.KlassType[hero.klassType] + " Hero\"></div>"; });
         }
         function mapRarityToStars(rarityType) {
             return "<span class=\"stars\" title=\"" + bh.RarityType[rarityType] + "\" data-toggle=\"tooltip\" data-placement=\"top\">" + bh.utils.evoToStars(rarityType) + "</span>";
@@ -3933,15 +3971,15 @@ var bh;
                 var owned = player && player.battleCards.find(function (bc) { return card.guid == bc.guid; });
                 var html = "<tr id=\"" + card.guid + "\">";
                 if (player)
-                    html += "<td><span class=\"card-owned glyphicon " + (owned ? "glyphicon-ok text-success" : "glyphicon-remove text-danger") + "\"></span></td>";
-                html += "<td><div class=\"bh-hud-image img-" + (card.brag ? "Brag" : "BattleCard") + "\"></div></td>";
+                    html += "<td><span class=\"card-owned glyphicon " + (owned ? "glyphicon-ok text-success" : "glyphicon-remove text-danger") + "\" title=\"" + (owned ? "Have" : "Need") + "\" data-toggle=\"tooltip\" data-placement=\"top\"></span></td>";
+                html += "<td><div class=\"bh-hud-image img-" + (card.brag ? "Brag" : "BattleCard") + "\" title=\"" + (card.brag ? "Brag" : "BattleCard") + "\" data-toggle=\"tooltip\" data-placement=\"top\"></div></td>";
                 html += "<td><span class=\"card-name\"><a class=\"btn btn-link\" data-action=\"show-card\" style=\"padding:0;\">" + card.name + "</a></span></td>";
                 if (complete)
                     html += "<td>" + mapRarityToStars(card.rarityType) + "</td>";
                 if (complete)
-                    html += "<td><div class=\"bh-hud-image img-" + bh.ElementType[card.elementType] + "\"></div></td>";
+                    html += "<td><div class=\"bh-hud-image img-" + bh.ElementType[card.elementType] + "\" title=\"" + bh.ElementType[card.elementType] + "\" data-toggle=\"tooltip\" data-placement=\"top\"></div></td>";
                 if (complete)
-                    html += "<td><div class=\"hidden-xs bh-hud-image img-" + bh.KlassType[card.klassType] + "\"></div></td>";
+                    html += "<td><div class=\"hidden-xs bh-hud-image img-" + bh.KlassType[card.klassType] + "\" title=\"" + bh.KlassType[card.klassType] + "\" data-toggle=\"tooltip\" data-placement=\"top\"></div></td>";
                 html += "<td>" + mapHeroesToImages(card).join("") + "</td>";
                 if (complete)
                     html += "<td class=\"hidden-xs\">" + mapPerksEffectsToImages(card).join("") + "</td>";
@@ -3971,11 +4009,15 @@ var bh;
             $("a[href=\"#item-table\"] > span.badge").text(String(items.length));
             var tbody = $("table.mat-list > tbody");
             items.forEach(function (item) {
+                var owned = player && player.inventory.find(function (playerInventoryItem) { return playerInventoryItem.guid == item.guid; });
                 setItemTests(item);
                 var html = "<tr id=\"" + item.guid + "\">";
                 html += "<td><div class=\"bh-hud-image img-" + item.guid + "\"></div></td>";
                 html += "<td><span class=\"card-name\">" + item.name + "</span></td>";
                 html += "<td>" + mapRarityToStars(item.rarityType) + "</td>";
+                if (player) {
+                    html += "<td><span class=\"badge\">" + bh.utils.formatNumber(owned && owned.count || 0) + "</span></td>";
+                }
                 html += "<td class=\"hidden-xs\" style=\"width:100%;\"></td>";
                 html += "</td></tr>";
                 tbody.append(html);

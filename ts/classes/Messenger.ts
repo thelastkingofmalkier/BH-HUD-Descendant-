@@ -2,7 +2,6 @@ namespace bh {
 	var messenger: Messenger;
 	export class Messenger {
 
-		private _targetWindow: Window;
 		private get targetWindow() {
 			if (!this._targetWindow) {
 				if (isHud) {
@@ -26,7 +25,7 @@ namespace bh {
 			}
 		}
 
-		private constructor(private win: Window, private callbackfn: (message: IMessage) => void) {
+		public constructor(private win: Window, private callbackfn: (message: IMessage) => void, private _targetWindow: Window = null) {
 			window.addEventListener("message", (ev: BaseWindowMessage) => {
 				var message: IMessage = ev.data || (ev.originalEvent && ev.originalEvent.data) || null;
 				if (Messenger.isValidMessage(message)) {

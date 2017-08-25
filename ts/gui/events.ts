@@ -99,6 +99,9 @@ namespace bh {
 				action = el.data("action"),
 				guid: string;
 			switch (action) {
+				case "hud-to-library":
+					library.openLibraryFromHud();
+					break;
 				case "sort-heroes":
 					sortHeroes();
 					break;

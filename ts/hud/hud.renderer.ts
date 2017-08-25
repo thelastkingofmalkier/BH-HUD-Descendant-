@@ -138,6 +138,7 @@ div.brain-hud-container [data-action="sort-heroes"] { cursor:pointer; }
 	</div>
 	<div id="brain-hud-inventory" class="brain-hud-inventory">
 		<strong>Inventory</strong>
+		<button class="bs-btn bs-btn-link bs-btn-xs" style="float:center;" data-action="hud-to-library">[library]</button>
 		<button class="bs-btn bs-btn-link bs-btn-xs brain-hud-toggle pull-right" data-action="toggle-inventory">[-]</button>
 		<div class="brain-hud-inventory-container active">
 			<div class="text-center">
