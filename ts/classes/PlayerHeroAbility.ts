@@ -163,7 +163,7 @@ namespace bh {
 		}
 		public get materialHtml() {
 			var player = this.playerHero.player,
-				item = AbilityType.Trait ? player.inventory.find(item => item.isRune && item.name.startsWith(this.name))
+				item = this.type == AbilityType.Trait ? player.inventory.find(item => item.isRune && item.name.startsWith(this.hero.name))
 					: player.inventory.find(item => item.isCrystal && item.elementType == this.playerHero.elementType),
 				owned = item.count,
 				color = owned < this.maxMaterialCount ? "bg-danger" : "bg-success",

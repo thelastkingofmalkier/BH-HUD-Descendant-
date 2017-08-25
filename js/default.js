@@ -1312,7 +1312,7 @@ var bh;
         Object.defineProperty(PlayerHeroAbility.prototype, "materialHtml", {
             get: function () {
                 var _this = this;
-                var player = this.playerHero.player, item = bh.AbilityType.Trait ? player.inventory.find(function (item) { return item.isRune && item.name.startsWith(_this.name); })
+                var player = this.playerHero.player, item = this.type == bh.AbilityType.Trait ? player.inventory.find(function (item) { return item.isRune && item.name.startsWith(_this.hero.name); })
                     : player.inventory.find(function (item) { return item.isCrystal && item.elementType == _this.playerHero.elementType; }), owned = item.count, color = owned < this.maxMaterialCount ? "bg-danger" : "bg-success", img = this.type == bh.AbilityType.Trait ? bh.getImg("runes", this.name.replace(/\W/g, "")) : bh.getImg("crystals", bh.ElementType[this.hero.elementType]);
                 return "<div>" + img + " " + item.name + " <span class=\"badge pull-right " + color + "\">" + bh.utils.formatNumber(owned) + " / " + bh.utils.formatNumber(this.maxMaterialCount || 0) + "</span></div>";
             },
@@ -3665,10 +3665,8 @@ var bh;
                         var abilities = hero.playerHeroAbilities
                             .map(function (playerHeroAbility) {
                             var level = playerHeroAbility.level, isCapped = playerHeroAbility.isCapped, isLocked = playerHeroAbility.isLocked, isMaxed = playerHeroAbility.isMaxed, maxLevel = playerHeroAbility.levelMax, levelText = isLocked ? "locked" : isMaxed ? "max" : isCapped ? "capped" : level + " / " + maxLevel, text = playerHeroAbility.img + " " + playerHeroAbility.name + " (" + levelText + ")", children = "";
-                            if (!isMaxed) {
-                                children += playerHeroAbility.materialHtml;
-                                children += playerHeroAbility.goldHtml;
-                            }
+                            children += playerHeroAbility.materialHtml;
+                            children += playerHeroAbility.goldHtml;
                             return bh.renderExpandable(hero.guid + playerHeroAbility.guid, text, children);
                         }), cardsHtml = hero.deck.map(function (card) { return card.rowHtml; }).join("");
                         content = "" + abilities.join("") + cardsHtml;
