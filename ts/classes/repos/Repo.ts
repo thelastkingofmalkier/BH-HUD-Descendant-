@@ -65,6 +65,13 @@ namespace bh {
 		public get all(): T[] {
 			return this.data.slice();
 		}
+		private sortedByName: T[];
+		public get allSortedByName(): T[] {
+			if (!this.sortedByName) {
+				this.sortedByName = this.all.sort(utils.sort.byName);
+			}
+			return this.sortedByName;
+		}
 		public get length(): number {
 			return this.data.length;
 		}

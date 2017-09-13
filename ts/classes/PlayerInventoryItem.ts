@@ -12,10 +12,10 @@ namespace bh {
 		public get rarityType() { return this.item.rarityType; }
 
 		// New to PlayerInventoryItem
-		public get isCrystal() { return this.itemType === ItemType.Crystal; }
-		public get isEvoJar() { return this.itemType === ItemType.EvoJar; }
-		public get isSandsOfTime() { return this.name === "Sands of Time"; }
-		public get isRune() { return this.itemType === ItemType.Rune; }
+		public get isCrystal() { return PlayerInventoryItem.isCrystal(this); }
+		public get isEvoJar() { return PlayerInventoryItem.isEvoJar(this); }
+		public get isSandsOfTime() { return PlayerInventoryItem.isSandsOfTime(this); }
+		public get isRune() { return PlayerInventoryItem.isRune(this); }
 		public get needed() {
 			var needed = 0;
 			if (this.isRune) {
@@ -113,9 +113,13 @@ namespace bh {
 			}
 			return `<div data-element-type="${this.elementType}" data-rarity-type="${this.rarityType}" data-item-type="${this.itemType}" data-hud="${this.isSandsOfTime}">${renderExpandable(this.guid, `${image} ${this.name} ${badge}`, children)}</div>`;
 		}
-		public static toRowHtml(item: PlayerInventoryItem, count: number, needed: number) {
+		public static isCrystal(item: IDataInventoryItem) { return item && item.itemType === ItemType.Crystal; }
+		public static isEvoJar(item: IDataInventoryItem) { return item && item.itemType === ItemType.EvoJar; }
+		public static isSandsOfTime(item: IDataInventoryItem) { return item && item.name === "Sands of Time"; }
+		public static isRune(item: IDataInventoryItem) { return item && item.itemType === ItemType.Rune; }
+		public static toRowHtml(item: IDataInventoryItem, count: number, needed: number) {
 			var folder = ItemType[item.itemType].toLowerCase() + "s",
-				name = item.isEvoJar ? item.name.replace(/\W/g, "") : item.isCrystal ? item.name.split(/ /)[0] : data.HeroRepo.find(item.name.split("'")[0]).abilities[0].name.replace(/\W/g, ""),
+				name = PlayerInventoryItem.isEvoJar(item) ? item.name.replace(/\W/g, "") : PlayerInventoryItem.isCrystal(item) ? item.name.split(/ /)[0] : data.HeroRepo.find(item.name.split("'")[0]).abilities[0].name.replace(/\W/g, ""),
 				image = getImg20(folder, name),
 				color = count < needed ? "bg-danger" : "bg-success",
 				badge = `<span class="badge pull-right ${color}">${utils.formatNumber(count)} / ${utils.formatNumber(needed)}</span>`;

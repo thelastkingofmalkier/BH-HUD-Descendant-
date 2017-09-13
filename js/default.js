@@ -505,8 +505,8 @@ var bh;
         Object.defineProperty(Player.prototype, "inventory", {
             get: function () {
                 var _this = this;
-                var mats = this._pp && this._pp.craftingMaterials, playerHeroes = this.heroes;
-                return !mats ? [] : Object.keys(mats).map(function (guid) { return new bh.PlayerInventoryItem(_this, bh.data.ItemRepo.find(guid), mats[guid]); }).sort(bh.utils.sort.byRarityThenName);
+                var mats = this._pp && this._pp.craftingMaterials;
+                return bh.data.ItemRepo.allSortedByName.map(function (item) { return new bh.PlayerInventoryItem(_this, item, mats[item.guid] || 0); });
             },
             enumerable: true,
             configurable: true
@@ -603,8 +603,8 @@ var bh;
                     html += "<div>" + bh.getImg20("misc", "Coin") + " Gold <span class=\"badge pull-right " + goldColor + "\">" + bh.utils.formatNumber(goldOwned) + " / " + bh.utils.formatNumber(goldNeeded) + "</span></div>";
                     activeRecipe.all.forEach(function (recipeItem) {
                         if (recipeItem.max) {
-                            var item = me.inventory.find(function (item) { return item.guid == recipeItem.item.guid; });
-                            html += bh.PlayerInventoryItem.toRowHtml(item, item.count, recipeItem.max * _this.count);
+                            var item = recipeItem.item, guid = item.guid, playerItem = me.inventory.find(function (item) { return item.guid == guid; }), count = playerItem && playerItem.count || 0;
+                            html += bh.PlayerInventoryItem.toRowHtml(item, count, recipeItem.max * _this.count);
                         }
                     });
                     var wcNeeded = bh.data.getMaxWildCardsNeeded(this) * this.count, wc = me.wildCards[this.rarityType], iwc = !wc && bh.data.WildCardRepo.find(bh.RarityType[this.rarityType]) || null, wcOwned = wc && me.wildCards[this.rarityType].count || 0;
@@ -1377,22 +1377,22 @@ var bh;
             configurable: true
         });
         Object.defineProperty(PlayerInventoryItem.prototype, "isCrystal", {
-            get: function () { return this.itemType === bh.ItemType.Crystal; },
+            get: function () { return PlayerInventoryItem.isCrystal(this); },
             enumerable: true,
             configurable: true
         });
         Object.defineProperty(PlayerInventoryItem.prototype, "isEvoJar", {
-            get: function () { return this.itemType === bh.ItemType.EvoJar; },
+            get: function () { return PlayerInventoryItem.isEvoJar(this); },
             enumerable: true,
             configurable: true
         });
         Object.defineProperty(PlayerInventoryItem.prototype, "isSandsOfTime", {
-            get: function () { return this.name === "Sands of Time"; },
+            get: function () { return PlayerInventoryItem.isSandsOfTime(this); },
             enumerable: true,
             configurable: true
         });
         Object.defineProperty(PlayerInventoryItem.prototype, "isRune", {
-            get: function () { return this.itemType === bh.ItemType.Rune; },
+            get: function () { return PlayerInventoryItem.isRune(this); },
             enumerable: true,
             configurable: true
         });
@@ -1491,8 +1491,12 @@ var bh;
             enumerable: true,
             configurable: true
         });
+        PlayerInventoryItem.isCrystal = function (item) { return item && item.itemType === bh.ItemType.Crystal; };
+        PlayerInventoryItem.isEvoJar = function (item) { return item && item.itemType === bh.ItemType.EvoJar; };
+        PlayerInventoryItem.isSandsOfTime = function (item) { return item && item.name === "Sands of Time"; };
+        PlayerInventoryItem.isRune = function (item) { return item && item.itemType === bh.ItemType.Rune; };
         PlayerInventoryItem.toRowHtml = function (item, count, needed) {
-            var folder = bh.ItemType[item.itemType].toLowerCase() + "s", name = item.isEvoJar ? item.name.replace(/\W/g, "") : item.isCrystal ? item.name.split(/ /)[0] : bh.data.HeroRepo.find(item.name.split("'")[0]).abilities[0].name.replace(/\W/g, ""), image = bh.getImg20(folder, name), color = count < needed ? "bg-danger" : "bg-success", badge = "<span class=\"badge pull-right " + color + "\">" + bh.utils.formatNumber(count) + " / " + bh.utils.formatNumber(needed) + "</span>";
+            var folder = bh.ItemType[item.itemType].toLowerCase() + "s", name = PlayerInventoryItem.isEvoJar(item) ? item.name.replace(/\W/g, "") : PlayerInventoryItem.isCrystal(item) ? item.name.split(/ /)[0] : bh.data.HeroRepo.find(item.name.split("'")[0]).abilities[0].name.replace(/\W/g, ""), image = bh.getImg20(folder, name), color = count < needed ? "bg-danger" : "bg-success", badge = "<span class=\"badge pull-right " + color + "\">" + bh.utils.formatNumber(count) + " / " + bh.utils.formatNumber(needed) + "</span>";
             return "<div>" + image + " " + item.name + " " + badge + "</div>";
         };
         return PlayerInventoryItem;
@@ -1829,6 +1833,16 @@ var bh;
         Object.defineProperty(Repo.prototype, "all", {
             get: function () {
                 return this.data.slice();
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Repo.prototype, "allSortedByName", {
+            get: function () {
+                if (!this.sortedByName) {
+                    this.sortedByName = this.all.sort(bh.utils.sort.byName);
+                }
+                return this.sortedByName;
             },
             enumerable: true,
             configurable: true

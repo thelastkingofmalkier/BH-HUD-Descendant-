@@ -16,8 +16,11 @@ namespace bh {
 
 					activeRecipe.all.forEach(recipeItem => {
 						if (recipeItem.max) {
-							var item = me.inventory.find(item => item.guid == recipeItem.item.guid);
-							html += PlayerInventoryItem.toRowHtml(item, item.count, recipeItem.max * this.count);
+							var item = recipeItem.item,
+								guid = item.guid,
+								playerItem = me.inventory.find(item => item.guid == guid),
+								count = playerItem && playerItem.count || 0;
+							html += PlayerInventoryItem.toRowHtml(item, count, recipeItem.max * this.count);
 						}
 					});
 
