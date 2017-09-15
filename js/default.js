@@ -3748,11 +3748,19 @@ var bh;
             bh.host = "http://brains.sth.ovh";
             bh.data.init().then(render);
             $("body").on("click", "[data-action=\"show-card\"]", onShowCard);
+            $("body").on("click", "[data-search-term]", onSearchImage);
             $("input.library-search").on("change keyup", onSearch);
             $("button.library-search-clear").on("click", onSearchClear);
             $("input[type='range']").on("change input", onSliderChange);
             var evoTabs = $("#card-evolution div.tab-pane"), template = evoTabs.html();
             evoTabs.html(template).toArray().forEach(function (div, i) { return $(div).find("h3").text("Evolution from " + i + " to " + (i + 1)); });
+        }
+        function onSearchImage(ev) {
+            var el = $(ev.target).closest("[data-search-term]"), newValue = el.attr("data-search-term"), lowerValue = newValue.toLowerCase(), input = $("input.library-search"), currentValue = input.val(), lowerValues = currentValue.trim().toLowerCase().split(/\s+/);
+            if (!lowerValues.includes(lowerValue)) {
+                input.focus().val((currentValue + " " + newValue).trim()).blur();
+                performSearch((currentValue + " " + newValue).trim().toLowerCase());
+            }
         }
         function onSearchClear() {
             searching = null;
@@ -3845,7 +3853,9 @@ var bh;
         var filtered = { card: {}, effect: {}, item: {}, dungeon: {} };
         var searching;
         function onSearch(ev) {
-            var el = $(ev.target), value = el.val(), lower = value.trim().toLowerCase();
+            performSearch($(ev.target).val().trim().toLowerCase());
+        }
+        function performSearch(lower) {
             if (!lower)
                 return onSearchClear();
             searching = lower;
@@ -3866,7 +3876,7 @@ var bh;
                 var list = tests[card.guid] = [];
                 if (card.brag)
                     list.push("brag");
-                card.effects.forEach(function (s) { return list.push(s.toLowerCase()); });
+                card.effects.forEach(function (s) { return list.push(s.toLowerCase().replace(/shield break(er)?/, "crush")); });
                 list.push(bh.ElementType[card.elementType].toLowerCase());
                 list.push(bh.KlassType[card.klassType].toLowerCase());
                 list.push(card.lower);
@@ -3946,16 +3956,22 @@ var bh;
             bh.EffectRepo.mapPerks(card).forEach(function (perk) { return !list.includes(perk) ? list.push(perk) : void 0; });
             return list.reduce(function (out, item) { return ["Self", "Single"].includes(item.name) ? out : out.concat([item]); }, []);
         }
+        function cleanPerkEffectSearchTerm(term) {
+            return term
+                .replace("Splash Damage", "Splash")
+                .replace("Multi-Target (Ally)", "Multi")
+                .replace("Multi-Target (Enemy)", "Multi");
+        }
         function mapPerksEffectsToImages(card) {
-            return mapPerksEffects(card).map(function (item) { return "<div class=\"bh-hud-image img-" + item.guid + "\" title=\"" + item.name + ": " + item.description + "\" data-toggle=\"tooltip\" data-placement=\"top\"></div>"; });
+            return mapPerksEffects(card).map(function (item) { return "<div class=\"bh-hud-image img-" + item.guid + "\" title=\"" + item.name + ": " + item.description + "\" data-toggle=\"tooltip\" data-placement=\"top\" data-search-term=\"" + cleanPerkEffectSearchTerm(item.name) + "\"></div>"; });
         }
         function mapMatsToImages(mats) {
-            return mats.map(function (mat) { return bh.data.ItemRepo.find(mat); }).map(function (item) { return "<div class=\"bh-hud-image img-" + item.guid + "\" title=\"" + item.name + ": " + bh.RarityType[item.rarityType] + " " + bh.ElementType[item.elementType] + " " + bh.ItemType[item.itemType] + " (" + bh.utils.formatNumber(bh.ItemRepo.getValue(item.itemType, item.rarityType)) + " gold)\" data-toggle=\"tooltip\" data-placement=\"top\"></div>"; });
+            return mats.map(function (mat) { return bh.data.ItemRepo.find(mat); }).map(function (item) { return "<div class=\"bh-hud-image img-" + item.guid + "\" title=\"" + item.name + ": " + bh.RarityType[item.rarityType] + " " + bh.ElementType[item.elementType] + " " + bh.ItemType[item.itemType] + " (" + bh.utils.formatNumber(bh.ItemRepo.getValue(item.itemType, item.rarityType)) + " gold)\" data-toggle=\"tooltip\" data-placement=\"top\" data-search-term=\"" + item.name + "\"></div>"; });
         }
         function mapHeroesToImages(card) {
             return bh.data.HeroRepo.all
                 .filter(function (hero) { return (card.elementType == bh.ElementType.Neutral || hero.elementType == card.elementType) && hero.klassType == card.klassType; })
-                .map(function (hero) { return "<div class=\"bh-hud-image img-" + hero.guid + "\" data-toggle=\"tooltip\" data-placement=\"top\" title=\"" + hero.name + ": " + bh.ElementType[hero.elementType] + " " + bh.KlassType[hero.klassType] + " Hero\"></div>"; });
+                .map(function (hero) { return "<div class=\"bh-hud-image img-" + hero.guid + "\" data-toggle=\"tooltip\" data-placement=\"top\" title=\"" + hero.name + ": " + bh.ElementType[hero.elementType] + " " + bh.KlassType[hero.klassType] + " Hero\" data-search-term=\"" + hero.name + "\"></div>"; });
         }
         function mapRarityToStars(rarityType) {
             return "<span class=\"stars\" title=\"" + bh.RarityType[rarityType] + "\" data-toggle=\"tooltip\" data-placement=\"top\">" + bh.utils.evoToStars(rarityType) + "</span>";
@@ -3989,11 +4005,11 @@ var bh;
                 html += "<td><div class=\"bh-hud-image img-" + (card.brag ? "Brag" : "BattleCard") + "\" title=\"" + (card.brag ? "Brag" : "BattleCard") + "\" data-toggle=\"tooltip\" data-placement=\"top\"></div></td>";
                 html += "<td><span class=\"card-name\"><a class=\"btn btn-link\" data-action=\"show-card\" style=\"padding:0;\">" + card.name + "</a></span></td>";
                 if (complete)
-                    html += "<td>" + mapRarityToStars(card.rarityType) + "</td>";
+                    html += "<td data-search-term=\"" + bh.RarityType[card.rarityType] + "\">" + mapRarityToStars(card.rarityType) + "</td>";
                 if (complete)
-                    html += "<td><div class=\"bh-hud-image img-" + bh.ElementType[card.elementType] + "\" title=\"" + bh.ElementType[card.elementType] + "\" data-toggle=\"tooltip\" data-placement=\"top\"></div></td>";
+                    html += "<td><div class=\"bh-hud-image img-" + bh.ElementType[card.elementType] + "\" title=\"" + bh.ElementType[card.elementType] + "\" data-toggle=\"tooltip\" data-placement=\"top\" data-search-term=\"" + bh.ElementType[card.elementType] + "\"></div></td>";
                 if (complete)
-                    html += "<td><div class=\"hidden-xs bh-hud-image img-" + bh.KlassType[card.klassType] + "\" title=\"" + bh.KlassType[card.klassType] + "\" data-toggle=\"tooltip\" data-placement=\"top\"></div></td>";
+                    html += "<td><div class=\"hidden-xs bh-hud-image img-" + bh.KlassType[card.klassType] + "\" title=\"" + bh.KlassType[card.klassType] + "\" data-toggle=\"tooltip\" data-placement=\"top\" data-search-term=\"" + bh.KlassType[card.klassType] + "\"></div></td>";
                 html += "<td>" + mapHeroesToImages(card).join("") + "</td>";
                 if (complete)
                     html += "<td class=\"hidden-xs\">" + mapPerksEffectsToImages(card).join("") + "</td>";
