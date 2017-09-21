@@ -636,7 +636,7 @@ var bh;
             configurable: true
         });
         Object.defineProperty(PlayerBattleCard.prototype, "elementType", {
-            get: function () { return this._bc ? this._bc.elementType : null; },
+            get: function () { return this._bc ? this._bc.elementType : bh.ElementType.Neutral; },
             enumerable: true,
             configurable: true
         });
@@ -1655,7 +1655,7 @@ var bh;
             var _this = _super.call(this) || this;
             _this.card = card;
             _this.evos = [];
-            var matItems = card.mats
+            var matItems = (card && card.mats || [])
                 .map(function (mat) { return bh.data.ItemRepo.find(mat.trim()); }).filter(function (item) { return !!item; })
                 .sort(bh.utils.sort.byRarity);
             [0, 1, 2, 3, 4]
@@ -1788,7 +1788,7 @@ var bh;
                     var tsv = (bh.TSV || {})[String(_this.gid || _this.id)];
                     if (!tsv && _this.cacheable) {
                         try {
-                            var cache = JSON.parse(localStorage.getItem(_this.id + "-" + _this.gid) || null);
+                            var cache = JSON.parse(bh.utils.getFromStorage(_this.id + "-" + _this.gid) || null);
                             if (cache && cache.date && (new Date().getTime() < cache.date + 1000 * 60 * 60 * 24)) {
                                 tsv = cache.tsv || null;
                             }
@@ -1812,7 +1812,7 @@ var bh;
             var _this = this;
             if (this.cacheable) {
                 try {
-                    localStorage.setItem(this.id + "-" + this.gid, JSON.stringify({ tsv: tsv, date: new Date().getTime() }));
+                    bh.utils.setToStorage(this.id + "-" + this.gid, JSON.stringify({ tsv: tsv, date: new Date().getTime() }));
                 }
                 catch (ex) { }
             }
@@ -3581,10 +3581,172 @@ var bh;
 })(bh || (bh = {}));
 var bh;
 (function (bh) {
+    var utils;
+    (function (utils) {
+        function getFromStorage(key) {
+            var output;
+            try {
+                output = localStorage.getItem(key);
+            }
+            catch (ex) {
+                output = null;
+            }
+            return output;
+        }
+        utils.getFromStorage = getFromStorage;
+        function setToStorage(key, data) {
+            var success = false;
+            try {
+                localStorage.setItem(key, data);
+                success = true;
+            }
+            catch (ex) { }
+            return success;
+        }
+        utils.setToStorage = setToStorage;
+        function formatString(value, args) {
+            var keyRegex = new RegExp("\\w+");
+            var keys = value.match(new RegExp("#{\\w+}", "g"));
+            for (var i = 0, l = keys.length; i < l; i++) {
+                keys[i] = keys[i].match(keyRegex)[0];
+            }
+            var result = value;
+            for (i = 0, l = keys.length; i < l; i++) {
+                var key = keys[i];
+                for (var j = 0, m = args.length; j < m; j++) {
+                    var obj = args[j];
+                    if (key in obj) {
+                        result = result.replace("#{" + key + "}", obj[key]);
+                        break;
+                    }
+                }
+            }
+            return result;
+        }
+        utils.formatString = formatString;
+        function htmlFriendly(value) {
+            return String(value).replace(/\</g, "&lt;").replace(/\>/g, "&gt;");
+        }
+        utils.htmlFriendly = htmlFriendly;
+        function unique(array) {
+            return array.reduce(function (out, curr) { return out.includes(curr) ? out : out.concat([curr]); }, []);
+        }
+        utils.unique = unique;
+        function formatNumber(value) {
+            var num = String(value).split(""), out = [], o = 0;
+            for (var i = num.length; i--;) {
+                if (out.length && o % 3 == 0)
+                    out.unshift(",");
+                out.unshift(num.pop());
+                o++;
+            }
+            return out.join("");
+        }
+        utils.formatNumber = formatNumber;
+        function round(value, places) {
+            var shifter = (10 ^ places), bigger = value * shifter, biggerRounded = Math.round(bigger), rounded = biggerRounded / shifter;
+            return rounded;
+        }
+        utils.round = round;
+        function truncateNumber(value) {
+            var out = utils.formatNumber(value), parts = out.split(",");
+            return parts.length == 1 ? out : parts[0].length == 1 ? parts[0] + "." + parts[1][0] + "k" : parts[0] + "k";
+        }
+        utils.truncateNumber = truncateNumber;
+        function parseBoolean(value) {
+            var string = String(value), char = string.substring(0, 1).toLowerCase();
+            return char === "y" || char === "t" || string === "1";
+        }
+        utils.parseBoolean = parseBoolean;
+        function evoToStars(rarityType, evoLevel) {
+            if (evoLevel === void 0) { evoLevel = String(rarityType + 1); }
+            var evo = +evoLevel.split(".")[0], stars = rarityType + 1, count = 0, value = "";
+            while (evo--) {
+                count++;
+                value += "<span class='evo-star'>&#9733;</span>";
+            }
+            while (count < stars) {
+                count++;
+                value += "<span class='star'>&#9734;</span>";
+            }
+            return value;
+        }
+        utils.evoToStars = evoToStars;
+        function getBase64Image(src) {
+            var img = document.createElement("img");
+            img.setAttribute('src', src);
+            var canvas = document.createElement("canvas");
+            canvas.width = img.width;
+            canvas.height = img.height;
+            var ctx = canvas.getContext("2d");
+            ctx.drawImage(img, 0, 0);
+            var dataURL = canvas.toDataURL("image/png");
+            return dataURL;
+        }
+        utils.getBase64Image = getBase64Image;
+        function createImagesJs() {
+            var allTypes = Object.keys(bh.images), loadedTypes = [], imageSources = bh.$("img").toArray().map(function (img) { return img.src; }).reduce(function (arr, src) { return arr.includes(src) ? arr : arr.concat(src); }, []), output = "";
+            output += "var bh;(function (bh) {var images;(function (images) {";
+            bh.$("#data-output").val("Loading, please wait ...");
+            asyncForEach(imageSources, function (imageSource) {
+                var parts = imageSource.split("/images/")[1].split(".")[0].split("/");
+                if (allTypes.includes(parts[0]) && parts.length == 2) {
+                    if (!loadedTypes.includes(parts[0])) {
+                        loadedTypes.push(parts[0]);
+                        output += "\nimages." + parts[0] + " = {};";
+                    }
+                    output += "\nimages." + parts[0] + "[\"" + parts[1] + "\"] = \"" + getBase64Image(imageSource) + "\";";
+                }
+            }).then(function () {
+                output += "\n})(images = bh.images || (bh.images = {}));})(bh || (bh = {}));";
+                bh.$("#data-output").val(output);
+            });
+        }
+        utils.createImagesJs = createImagesJs;
+        var loggedCards = {};
+        function logMissingCard(playerBattleCard) {
+            if (!loggedCards[playerBattleCard.playerCard.id]) {
+                console.log("Missing BattleCard:", playerBattleCard.name + ": " + playerBattleCard.playerCard.id + " (" + playerBattleCard.evoLevel + ")");
+                loggedCards[playerBattleCard.playerCard.id] = true;
+            }
+        }
+        utils.logMissingCard = logMissingCard;
+        function asyncForEach(array, callbackfn, thisArg) {
+            return new Promise(function (resolvefn, rejectfn) {
+                var functions = array.map(function (value, index, array) {
+                    return function (value, index, array) {
+                        setTimeout(function (thisArg, value, index, array) {
+                            try {
+                                var retVal = callbackfn.call(thisArg, value, index, array);
+                                retVal instanceof Promise ? retVal.then(process, rejectfn) : process();
+                            }
+                            catch (ex) {
+                                rejectfn(ex);
+                            }
+                        }, 0, thisArg, value, index, array);
+                    }.bind(thisArg, value, index, array);
+                });
+                var process = function () {
+                    if (functions.length) {
+                        var fn = functions.shift();
+                        fn ? fn() : process();
+                    }
+                    else {
+                        resolvefn(array);
+                    }
+                };
+                process();
+            });
+        }
+        utils.asyncForEach = asyncForEach;
+    })(utils = bh.utils || (bh.utils = {}));
+})(bh || (bh = {}));
+var bh;
+(function (bh) {
     var hud;
     (function (hud) {
         hud.WidthDefault = 275;
-        hud.WidthCurrent = +localStorage.getItem("BH-HUD-WidthCurrent") || hud.WidthDefault;
+        hud.WidthCurrent = +bh.utils.getFromStorage("BH-HUD-WidthCurrent") || hud.WidthDefault;
         hud.WidthMinimum = 200;
         hud.WidthDelta = 25;
         hud.WidthCollapsed = 25;
@@ -3611,7 +3773,7 @@ var bh;
                     hud.WidthCurrent = hud.WidthCollapsed;
                 }
             }
-            localStorage.setItem("BH-HUD-WidthCurrent", String(hud.WidthCurrent));
+            bh.utils.setToStorage("BH-HUD-WidthCurrent", String(hud.WidthCurrent));
             postResize();
         }
         hud.resize = resize;
@@ -4147,147 +4309,6 @@ var bh;
             }
             sort.byRarityThenNameThenEvoLevel = byRarityThenNameThenEvoLevel;
         })(sort = utils.sort || (utils.sort = {}));
-    })(utils = bh.utils || (bh.utils = {}));
-})(bh || (bh = {}));
-var bh;
-(function (bh) {
-    var utils;
-    (function (utils) {
-        function formatString(value, args) {
-            var keyRegex = new RegExp("\\w+");
-            var keys = value.match(new RegExp("#{\\w+}", "g"));
-            for (var i = 0, l = keys.length; i < l; i++) {
-                keys[i] = keys[i].match(keyRegex)[0];
-            }
-            var result = value;
-            for (i = 0, l = keys.length; i < l; i++) {
-                var key = keys[i];
-                for (var j = 0, m = args.length; j < m; j++) {
-                    var obj = args[j];
-                    if (key in obj) {
-                        result = result.replace("#{" + key + "}", obj[key]);
-                        break;
-                    }
-                }
-            }
-            return result;
-        }
-        utils.formatString = formatString;
-        function htmlFriendly(value) {
-            return String(value).replace(/\</g, "&lt;").replace(/\>/g, "&gt;");
-        }
-        utils.htmlFriendly = htmlFriendly;
-        function unique(array) {
-            return array.reduce(function (out, curr) { return out.includes(curr) ? out : out.concat([curr]); }, []);
-        }
-        utils.unique = unique;
-        function formatNumber(value) {
-            var num = String(value).split(""), out = [], o = 0;
-            for (var i = num.length; i--;) {
-                if (out.length && o % 3 == 0)
-                    out.unshift(",");
-                out.unshift(num.pop());
-                o++;
-            }
-            return out.join("");
-        }
-        utils.formatNumber = formatNumber;
-        function round(value, places) {
-            var shifter = (10 ^ places), bigger = value * shifter, biggerRounded = Math.round(bigger), rounded = biggerRounded / shifter;
-            return rounded;
-        }
-        utils.round = round;
-        function truncateNumber(value) {
-            var out = utils.formatNumber(value), parts = out.split(",");
-            return parts.length == 1 ? out : parts[0].length == 1 ? parts[0] + "." + parts[1][0] + "k" : parts[0] + "k";
-        }
-        utils.truncateNumber = truncateNumber;
-        function parseBoolean(value) {
-            var string = String(value), char = string.substring(0, 1).toLowerCase();
-            return char === "y" || char === "t" || string === "1";
-        }
-        utils.parseBoolean = parseBoolean;
-        function evoToStars(rarityType, evoLevel) {
-            if (evoLevel === void 0) { evoLevel = String(rarityType + 1); }
-            var evo = +evoLevel.split(".")[0], stars = rarityType + 1, count = 0, value = "";
-            while (evo--) {
-                count++;
-                value += "<span class='evo-star'>&#9733;</span>";
-            }
-            while (count < stars) {
-                count++;
-                value += "<span class='star'>&#9734;</span>";
-            }
-            return value;
-        }
-        utils.evoToStars = evoToStars;
-        function getBase64Image(src) {
-            var img = document.createElement("img");
-            img.setAttribute('src', src);
-            var canvas = document.createElement("canvas");
-            canvas.width = img.width;
-            canvas.height = img.height;
-            var ctx = canvas.getContext("2d");
-            ctx.drawImage(img, 0, 0);
-            var dataURL = canvas.toDataURL("image/png");
-            return dataURL;
-        }
-        utils.getBase64Image = getBase64Image;
-        function createImagesJs() {
-            var allTypes = Object.keys(bh.images), loadedTypes = [], imageSources = bh.$("img").toArray().map(function (img) { return img.src; }).reduce(function (arr, src) { return arr.includes(src) ? arr : arr.concat(src); }, []), output = "";
-            output += "var bh;(function (bh) {var images;(function (images) {";
-            bh.$("#data-output").val("Loading, please wait ...");
-            asyncForEach(imageSources, function (imageSource) {
-                var parts = imageSource.split("/images/")[1].split(".")[0].split("/");
-                if (allTypes.includes(parts[0]) && parts.length == 2) {
-                    if (!loadedTypes.includes(parts[0])) {
-                        loadedTypes.push(parts[0]);
-                        output += "\nimages." + parts[0] + " = {};";
-                    }
-                    output += "\nimages." + parts[0] + "[\"" + parts[1] + "\"] = \"" + getBase64Image(imageSource) + "\";";
-                }
-            }).then(function () {
-                output += "\n})(images = bh.images || (bh.images = {}));})(bh || (bh = {}));";
-                bh.$("#data-output").val(output);
-            });
-        }
-        utils.createImagesJs = createImagesJs;
-        var loggedCards = {};
-        function logMissingCard(playerBattleCard) {
-            if (!loggedCards[playerBattleCard.playerCard.id]) {
-                console.log("Missing BattleCard:", playerBattleCard.name + ": " + playerBattleCard.playerCard.id + " (" + playerBattleCard.evoLevel + ")");
-                loggedCards[playerBattleCard.playerCard.id] = true;
-            }
-        }
-        utils.logMissingCard = logMissingCard;
-        function asyncForEach(array, callbackfn, thisArg) {
-            return new Promise(function (resolvefn, rejectfn) {
-                var functions = array.map(function (value, index, array) {
-                    return function (value, index, array) {
-                        setTimeout(function (thisArg, value, index, array) {
-                            try {
-                                var retVal = callbackfn.call(thisArg, value, index, array);
-                                retVal instanceof Promise ? retVal.then(process, rejectfn) : process();
-                            }
-                            catch (ex) {
-                                rejectfn(ex);
-                            }
-                        }, 0, thisArg, value, index, array);
-                    }.bind(thisArg, value, index, array);
-                });
-                var process = function () {
-                    if (functions.length) {
-                        var fn = functions.shift();
-                        fn ? fn() : process();
-                    }
-                    else {
-                        resolvefn(array);
-                    }
-                };
-                process();
-            });
-        }
-        utils.asyncForEach = asyncForEach;
     })(utils = bh.utils || (bh.utils = {}));
 })(bh || (bh = {}));
 var XmlHttpRequest = (function () {

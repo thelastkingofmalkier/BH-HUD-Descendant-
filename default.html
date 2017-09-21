@@ -20,7 +20,7 @@
 					bh.Messenger.ActivePlayerGuid = json.id;
 					setTimeout(() => window[0].bh.hud.listener.handleReadyStateChange(xhr), 500);
 				});
-				$.getJSON("./json/brain_storm_war.json").then(json => {console.log(json)
+				$.getJSON("./json/brain_storm_war.json").then(json => {//console.log(json)
 					var xhr = {
 						requestUrl: `/v1/guildwars/get?player=${guid}&sessionKey=${sessionKey}`,
 						responseJSON: json,

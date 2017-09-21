@@ -1,7 +1,8 @@
+/// <reference path="../utils/utils.ts" />
 namespace bh {
 	export namespace hud {
 		export var WidthDefault = 275;
-		export var WidthCurrent = +localStorage.getItem("BH-HUD-WidthCurrent") || WidthDefault;
+		export var WidthCurrent = +utils.getFromStorage("BH-HUD-WidthCurrent") || WidthDefault;
 		export var WidthMinimum = 200;
 		export var WidthDelta = 25;
 		export var WidthCollapsed = 25;
@@ -26,7 +27,7 @@ namespace bh {
 					WidthCurrent = WidthCollapsed;
 				}
 			}
-			localStorage.setItem("BH-HUD-WidthCurrent", String(WidthCurrent));
+			utils.setToStorage("BH-HUD-WidthCurrent", String(WidthCurrent));
 			postResize();
 		}
 		function postResize() {

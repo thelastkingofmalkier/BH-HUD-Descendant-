@@ -63,7 +63,7 @@ namespace bh {
 		// BattleCard pass-through
 		public get brag() { return this._bc && this._bc.brag || false; }
 		public get effects() { return this._bc && this._bc.effects || []; }
-		public get elementType() { return this._bc ? this._bc.elementType : null; }
+		public get elementType() { return this._bc ? this._bc.elementType : ElementType.Neutral; }
 		public get klassType() { return this._bc ? this._bc.klassType : null; }
 		public get lower() { return this.name.toLowerCase(); }
 		public get mats() { return this._bc && this._bc.mats || null; }

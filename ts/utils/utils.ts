@@ -1,6 +1,17 @@
 namespace bh {
-
 	export namespace utils {
+		export function getFromStorage(key: string): any;
+		export function getFromStorage<T>(key: string): T;
+		export function getFromStorage(key: string): any {
+			var output: any;
+			try { output = localStorage.getItem(key); }catch(ex) { output = null; }
+			return output;
+		}
+		export function setToStorage(key: string, data: string): boolean {
+			var success = false;
+			try { localStorage.setItem(key, data); success = true; }catch(ex) { }
+			return success;
+		}
 		// Strings
 		export function formatString(value: string, args: any[]): string {
 			// Similar to String.format, except that it uses named properties of an object:

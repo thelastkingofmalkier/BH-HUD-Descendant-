@@ -25,7 +25,7 @@ namespace bh {
 					var tsv = (TSV||{})[String(this.gid||this.id)];
 					if (!tsv && this.cacheable) {
 						try {
-							var cache: { tsv:string, date:number } = JSON.parse(localStorage.getItem(`${this.id}-${this.gid}`) || null);
+							var cache: { tsv:string, date:number } = JSON.parse(utils.getFromStorage(`${this.id}-${this.gid}`) || null);
 							if (cache && cache.date && (new Date().getTime() < cache.date + 1000 * 60 * 60 * 24)) {
 								tsv = cache.tsv || null;
 							}
@@ -45,7 +45,7 @@ namespace bh {
 		private resolveTsv(tsv: string, resolvefn: (data: T[]) => void) {
 			if (this.cacheable) {
 				try {
-					localStorage.setItem(`${this.id}-${this.gid}`, JSON.stringify({ tsv:tsv, date:new Date().getTime() }));
+					utils.setToStorage(`${this.id}-${this.gid}`, JSON.stringify({ tsv:tsv, date:new Date().getTime() }));
 				}catch(ex) { }
 			}
 			var parsed = this.parseTsv(tsv);
