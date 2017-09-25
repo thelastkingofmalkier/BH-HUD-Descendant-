@@ -2348,6 +2348,12 @@ function updateCardData() {
             case "Heal": return "Heal";
             case "Shield": return "Shield";
             default:
+                if (value.startsWith("Damage"))
+                    return "Attack";
+                if (value.startsWith("Heal"))
+                    return "Heal";
+                if (value.startsWith("Shield"))
+                    return "Shield";
                 console.log("Type of \"" + value + "\"");
                 return value;
         }
