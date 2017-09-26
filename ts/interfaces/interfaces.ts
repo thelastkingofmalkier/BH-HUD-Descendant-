@@ -4,9 +4,9 @@ interface BaseWindowMessage { data: any; originalEvent?: { data?: any; } }
 interface IMessage { action: string; playerGuid: string; sessionKey: string; guildGuid: string; data: any; }
 
 type GameAbilityType = "Trait" | "Active" | "Passive";
-type GameBattleCardTarget = "Single" | "Multi" | "Single Flurry" | "Multi Flurry" | "Self Flurry" | "Self" | "Splash";
+type GameBattleCardTarget = "All Enemies" | "All Enemies Flurry" | "Single Enemy" | "Single Enemy Flurry" | "Splash Enemies" | "All Allies" | "Self" | "Self Flurry" | "Single Ally" | "Splash Allies";
 type GameBattleCardTier = "OP" | "S" | "A" | "B" | "C" | "D";
-type GameBattleCardType = "Attack" | "Heal" | "Shield";
+type GameBattleCardType = "Damage" | "Heal" | "Shield";
 type GameBoosterCardChallenge = "Halloween" | "Christmas";
 type GameElement = "Air" | "Earth" | "Fire" | "Water" | "Spirit" | "Neutral";
 type GameGuildPosition = "Member" | "Elder" | "CoLeader" | "Leader";
@@ -36,10 +36,10 @@ interface IDataBattleCard extends IHasGuid, IHasName, IHasElementType, IHasKlass
 	minValues: number[][];
 	perkBase: number;
 	perks: string[];
-	targets: GameBattleCardTarget[];
 	tier: GameBattleCardTier;
 	turns: number;
-	types: GameBattleCardType[];
+	inPacks: boolean;
+	typesTargets: string[];
 }
 interface IDataBoosterCard extends IHasGuid, IHasName, IHasElementType, IHasRarityType {
 	challenge?: GameBoosterCardChallenge;

@@ -584,6 +584,36 @@ var bh;
 })(bh || (bh = {}));
 var bh;
 (function (bh) {
+    function typesTargetsToTargets(values) {
+        return values.map(function (s) { return s.trim(); }).filter(function (s) { return !!s; }).map(function (s) {
+            var parts = s.split(" "), all = parts[1] == "All", single = parts[1] == "Single", splash = parts[1] == "Splash", self = parts[1] == "Self";
+            if (s.includes("Flurry")) {
+                if (self) {
+                    return "Self Flurry";
+                }
+                if (all) {
+                    return "Multi Flurry";
+                }
+                if (single) {
+                    return "Single Flurry";
+                }
+            }
+            if (self) {
+                return "Self";
+            }
+            if (single) {
+                return "Single";
+            }
+            if (all) {
+                return "Multi";
+            }
+            if (splash) {
+                return "Splash";
+            }
+            console.log("Target of \"" + s + "\"");
+            return s;
+        });
+    }
     var PlayerBattleCard = (function () {
         function PlayerBattleCard(playerCard) {
             this.count = 1;
@@ -640,6 +670,11 @@ var bh;
             enumerable: true,
             configurable: true
         });
+        Object.defineProperty(PlayerBattleCard.prototype, "inPacks", {
+            get: function () { return this._bc && this._bc.inPacks || false; },
+            enumerable: true,
+            configurable: true
+        });
         Object.defineProperty(PlayerBattleCard.prototype, "klassType", {
             get: function () { return this._bc ? this._bc.klassType : null; },
             enumerable: true,
@@ -686,7 +721,7 @@ var bh;
             configurable: true
         });
         Object.defineProperty(PlayerBattleCard.prototype, "targets", {
-            get: function () { return this._bc && this._bc.targets || null; },
+            get: function () { return typesTargetsToTargets(this.typesTargets); },
             enumerable: true,
             configurable: true
         });
@@ -701,7 +736,12 @@ var bh;
             configurable: true
         });
         Object.defineProperty(PlayerBattleCard.prototype, "types", {
-            get: function () { return this._bc && this._bc.types || null; },
+            get: function () { return this.typesTargets.map(function (s) { return s.split(" ")[0].replace("Damage", "Attack"); }); },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(PlayerBattleCard.prototype, "typesTargets", {
+            get: function () { return this._bc && this._bc.typesTargets || []; },
             enumerable: true,
             configurable: true
         });
@@ -1907,7 +1947,8 @@ var bh;
                             object["abilityType"] = bh.AbilityType[value];
                             break;
                         case "brag":
-                            object["brag"] = bh.utils.parseBoolean(value);
+                        case "packs":
+                            object[key] = bh.utils.parseBoolean(value);
                             break;
                         case "randomMats":
                             object[key] = value.split(",").map(function (s) { return +s; });
@@ -1919,8 +1960,7 @@ var bh;
                         case "maxValues":
                             object[key] = value.split("|").map(function (s) { return +s; });
                             break;
-                        case "targets":
-                        case "types":
+                        case "typesTargets":
                             object[key] = value.split("|").filter(function (s) { return !!s; });
                             break;
                         case "runeHeroes":
@@ -1959,7 +1999,7 @@ var bh;
     var BattleCardRepo = (function (_super) {
         __extends(BattleCardRepo, _super);
         function BattleCardRepo() {
-            return _super.call(this, 1325382981, false) || this;
+            return _super.call(this, 1134947346, false) || this;
         }
         BattleCardRepo.calculateValue = function (playerCard, typeIndex) {
             if (typeIndex === void 0) { typeIndex = 0; }
@@ -2074,8 +2114,8 @@ var bh;
         };
         EffectRepo.mapTargets = function (card) {
             var targets = [];
-            card.targets.forEach(function (target, index) {
-                mapTargetOrEffectOrPerk(target, card.types[index]).forEach(function (item) {
+            card.typesTargets.forEach(function (target) {
+                mapTargetOrEffectOrPerk(target).forEach(function (item) {
                     if (!targets.includes(item))
                         targets.push(item);
                 });
@@ -2092,24 +2132,64 @@ var bh;
         return EffectRepo;
     }(bh.Repo));
     bh.EffectRepo = EffectRepo;
-    function mapTargetOrEffectOrPerk(item, type) {
-        if (type === void 0) { type = null; }
+    function mapTargetOrEffectOrPerk(item) {
         var items = [];
-        if (item.includes("Multi")) {
-            items.push(type == "Attack" ? "Multi-Target (Enemy)" : "Multi-Target (Ally)");
+        if (["Damage", "Heal", "Shield"].includes(item.split(" ")[0])) {
+            if (item.includes("All Allies")) {
+                items.push("Multi-Target (Ally)");
+            }
+            else if (item.includes("All Enemies")) {
+                items.push("Multi-Target (Enemy)");
+            }
+            else if (item.includes("Splash")) {
+                items.push("Splash");
+            }
+            if (item.includes("Flurry")) {
+                items.push("Flurry");
+            }
+            if (!items.length) {
+                items.push(item.split(" ")[1]);
+            }
         }
-        if (item.includes("Flurry")) {
-            items.push("Flurry");
-        }
-        if (!item.includes("Multi") && !item.includes("Flurry")) {
+        else {
             items.push(item);
         }
         return items.map(function (i) {
-            var effect = i ? bh.data.EffectRepo.find(i) : null;
+            var match = i.match(/([a-zA-z]+( [a-zA-Z]+)*)(?: (\d+%))?(?: (\d+T))?/), clean = match && match[1] || i, effect = bh.data.EffectRepo.find(clean) || bh.data.EffectRepo.find(i) || bh.data.EffectRepo.find(item) || null;
             if (!effect)
-                console.log(item);
+                console.log(item, i, match, clean, effect);
             return effect;
         }).filter(function (i) { return !!i; });
+    }
+    function effectTypeToTarget(value) {
+        return value.split("/").map(function (s) { return s.trim(); }).filter(function (s) { return !!s; }).map(function (s) {
+            var parts = s.split(" "), all = parts[1] == "All", single = parts[1] == "Single", splash = parts[1] == "Splash", self = parts[1] == "Self";
+            if (s.includes("Flurry")) {
+                if (self) {
+                    return "Self Flurry";
+                }
+                if (all) {
+                    return "Multi Flurry";
+                }
+                if (single) {
+                    return "Single Flurry";
+                }
+            }
+            if (self) {
+                return "Self";
+            }
+            if (single) {
+                return "Single";
+            }
+            if (all) {
+                return "Multi";
+            }
+            if (splash) {
+                return "Splash";
+            }
+            console.log("Target of \"" + s + "\"");
+            return s;
+        });
     }
 })(bh || (bh = {}));
 var bh;
@@ -2318,70 +2398,79 @@ function updateCardData() {
                 elementType: bh.ElementType[card["Element"]],
                 rarityType: bh.RarityType[card["Rarity"].replace(/ /, "")],
                 turns: +card["Turns"],
-                types: card["Effect Type"].split(/\s*\/\s*/).map(function (s) { return effectTypeToType(s.split(/\s*\-\s*/)[0]); }),
-                targets: card["Effect Type"].split(/\s*\/\s*/).map(function (s) { return effectTypeToTarget(s.split(/\s*\-\s*/).slice(1).join("-")); }),
+                typesTargets: card["Effect Type"].trim().split(/\s*\/\s*/),
                 brag: bh.utils.parseBoolean(card["Is Brag?"]),
                 minValues: minValuesArray.map(function (index) { return [0, 1, 2, 3, 4, 5].map(function (i) { return card[i + "* Min"]; }).filter(function (s) { return !!s; }).map(function (s) { return +s.split(/\s*\/\s*/)[index]; }); }),
                 maxValues: [0, 1, 2, 3, 4, 5].map(function (i) { return card[i + "* Max"]; }).filter(function (s) { return !!s; }).pop().split(/\s*\/\s*/).map(function (s) { return +s; }),
                 tier: existing && existing.tier || "",
                 mats: [1, 2, 3, 4].map(function (i) { return card[i + "* Evo Jar"]; }).filter(function (s) { return !!s; }),
                 perkBase: +card["Perk %"],
-                perks: [1, 2, 3, 4].map(function (i) { return card["Perk #" + i]; }).filter(function (s) { return !!s; }),
-                effects: [1, 2, 3].map(function (i) { return card["Effect #" + i]; }).filter(function (s) { return !!s && s != "Splash"; })
+                perks: [1, 2].map(function (i) { return card["Perk #" + i]; }).filter(function (s) { return !!s; }),
+                effects: [1, 2, 3].map(function (i) { return card["Effect #" + i]; }).filter(function (s) { return !!s && s != "Splash"; }),
+                inPacks: bh.utils.parseBoolean(card["In Packs?"])
             };
             if (!existing)
-                console.log(card["Name"]);
+                console.log("New Card: " + card["Name"]);
             else if (existing.name != card["Name"])
                 console.log(existing.name + " !== " + card["Name"]);
             return created;
         });
-        var tsv = "guid\tname\tklassType\telementType\trarityType\tturns\ttypes\ttargets\tbrag\tminValues\tmaxValues\ttier\tmats\tperkBase\tperks\teffects";
+        var tsv = "guid\tname\tklassType\telementType\trarityType\tturns\ttypesTargets\tbrag\tminValues\tmaxValues\ttier\tmats\tperkBase\tperks\teffects\tpacks";
         cards.forEach(function (c) {
-            tsv += "\n" + c.guid + "\t" + c.name + "\t" + bh.KlassType[c.klassType] + "\t" + bh.ElementType[c.elementType] + "\t" + bh.RarityType[c.rarityType] + "\t" + c.turns + "\t" + c.types.join("|") + "\t" + c.targets.join("|") + "\t" + c.brag + "\t" + c.minValues.map(function (a) { return a.join(","); }).join("|") + "\t" + c.maxValues.join("|") + "\t" + c.tier + "\t" + c.mats.join(",") + "\t" + c.perkBase + "\t" + c.perks.join(",") + "\t" + c.effects.join(",");
+            tsv += "\n" + c.guid + "\t" + c.name + "\t" + bh.KlassType[c.klassType] + "\t" + bh.ElementType[c.elementType] + "\t" + bh.RarityType[c.rarityType] + "\t" + c.turns + "\t" + c.typesTargets.join("|") + "\t" + c.brag + "\t" + c.minValues.map(function (a) { return a.join(","); }).join("|") + "\t" + c.maxValues.join("|") + "\t" + c.tier + "\t" + c.mats.join(",") + "\t" + c.perkBase + "\t" + c.perks.join(",") + "\t" + c.effects.join(",") + "\t" + c.inPacks;
         });
         $("#data-output").val(tsv);
     });
-    function effectTypeToType(value) {
-        switch (value) {
-            case "": return null;
-            case "Damage": return "Attack";
-            case "Heal": return "Heal";
-            case "Shield": return "Shield";
-            default:
-                if (value.startsWith("Damage"))
-                    return "Attack";
-                if (value.startsWith("Heal"))
-                    return "Heal";
-                if (value.startsWith("Shield"))
-                    return "Shield";
-                console.log("Type of \"" + value + "\"");
-                return value;
-        }
-    }
+    var uniqueEffectTypes = [
+        "Damage All Enemies",
+        "Damage All Enemies Flurry (10 @ 50%)", "Damage All Enemies Flurry (6 @ 75%)", "Damage All Enemies Flurry (6 @ 85%)",
+        "Damage Single Enemy",
+        "Damage Single Enemy Flurry (12 @ 50%)", "Damage Single Enemy Flurry (4 @ 75%)", "Damage Single Enemy Flurry (6 @ 75%)", "Damage Single Enemy Flurry (8 @ 75%)",
+        "Damage Splash Enemies",
+        "Heal All Allies",
+        "Heal Self",
+        "Heal Self Flurry (8 @ 75%)",
+        "Heal Single Ally",
+        "Heal Splash Allies",
+        "Shield All Allies",
+        "Shield Self",
+        "Shield Single Ally"
+    ];
     function effectTypeToTarget(value) {
-        switch (value) {
-            case "": return "Single";
-            case "All": return "Multi";
-            case "Flurry": return "Single Flurry";
-            case "Flurry-All": return "Multi Flurry";
-            case "Flurry-Self": return "Self Flurry";
-            case "Self": return "Self";
-            case "Splash": return "Splash";
-            default:
-                console.log("Target of \"" + value + "\"");
-                return value;
-        }
+        return value.split("/").map(function (s) { return s.trim(); }).filter(function (s) { return !!s; }).map(function (s) {
+            var parts = s.split(" "), all = parts[1] == "All", single = parts[1] == "Single", splash = parts[1] == "Splash", self = parts[1] == "Self";
+            if (s.includes("Flurry")) {
+                if (self) {
+                    return "Self Flurry";
+                }
+                if (all) {
+                    return "Multi Flurry";
+                }
+                if (single) {
+                    return "Single Flurry";
+                }
+            }
+            if (self) {
+                return "Self";
+            }
+            if (single) {
+                return "Single";
+            }
+            if (all) {
+                return "Multi";
+            }
+            if (splash) {
+                return "Splash";
+            }
+            console.log("Target of \"" + s + "\"");
+            return s;
+        });
     }
 }
 function rateCards() {
     var cards = bh.data.BattleCardRepo.all;
     var scores = cards.map(function (card) {
-        var scores = card.types.map(function (type, typeIndex) {
-            var turnMultiplier = 1 - (card.turns - 1) * 0.1, value = calcValue(card, typeIndex), valuePerTurn = value / card.turns, dotValuePerTurn = calcDotValue(card, typeIndex) / card.turns, regenTurns = card.effects.includes("Regen") && type != "Attack" ? getRegenDuration(card) : 0, regenDivisor = regenTurns || 1, score = 0;
-            return Math.round((valuePerTurn + dotValuePerTurn) / regenDivisor * turnMultiplier / 888);
-        });
-        var score = scores.reduce(function (total, score) { return score + total; }, 0);
-        return { card: card, score: score };
+        return { card: card, score: 0 };
     });
     scores.sort(function (a, b) { return a.score < b.score ? 1 : a.score == b.score ? 0 : -1; });
     $("#data-output").val(scores.map(function (score) { return score.score + " > " + score.card.name; }).join("\n"));
@@ -2393,86 +2482,16 @@ function rateCards() {
         return count ? calcValue(card, typeIndex) * 0.6 * count : 0;
     }
     function calcValue(card, typeIndex) {
-        var maxValue = card.maxValues[typeIndex], maxPerkPercent = (card.perkBase + 10 * (1 + card.rarityType)) / 100, critMultiplier = card.perks.includes("Critical") ? 1.5 * maxPerkPercent : 1, target = card.targets[typeIndex], targetMultiplier = target.includes("Multi") ? 2 : target.includes("Splash") ? 1.5 : card.types[typeIndex] != "Attack" && !target.includes("Self") ? 1.25 : 1, flurryCount = getFlurryCount(card), flurryHitPercent = 1 - getFlurryMiss(card);
-        return Math.round(maxValue * critMultiplier * targetMultiplier * flurryHitPercent / flurryCount);
-    }
-    function getRegenDuration(card) {
-        switch (card.name) {
-            case "Mutton Chops": return 2;
-            case "Fairy Shield": return 3;
-            case "Odd Seeds": return 3;
-            case "Peace Pipe": return 3;
-            case "Rooster Arrow": return 3;
-            case "Sword of Justice": return 3;
-            case "The Equalizer": return 3;
-            case "Turkey Arrow": return 3;
-            case "Turkey Sagitta": return 3;
-            case "Warped Seeds": return 3;
-            case "Weird Seeds": return 3;
-            case "Candy Cauldron": return 5;
-            case "Night Cap": return 5;
-            case "Smelling Salts": return card.rarityType == bh.RarityType.SuperRare ? 5 : 5;
-            case "Tides Control": return 5;
-            case "Caribbean Cocktail": return 6;
-            case "Fairy Bottle": return 6;
-            case "Regen": return 6;
-            case "Tropical Juice": return 6;
-            case "Meditation": return 10;
-            default:
-                console.log(card.name);
-                return 0;
-        }
+        return 0;
     }
     function getEffectDuration(card, effect) {
-        if (effect == "Poison" && card.name == "Box of Frogs")
-            return card.rarityType == bh.RarityType.SuperRare ? 5 : 4;
-        if (["Bleed", "Burn"].includes(effect) && card.name == "Rain Of Fire")
-            return 4;
-        if (effect == "Bleed" && card.name == "Fiery Stars")
-            return 3;
-        if (effect == "Regen") {
-            return getRegenDuration(card);
-        }
         return 1;
     }
     function getFlurryCount(card) {
-        switch (card.name) {
-            case "Flaming Stars": return 4;
-            case "Annoying Elves": return 6;
-            case "Blazing Stars": return 6;
-            case "Box of Frogs": return 6;
-            case "Cornholio": return 6;
-            case "Easter Eggs": return 6;
-            case "Pumpkin Field": return 6;
-            case "Snowballs Squall": return 6;
-            case "Vampiric Bats": return 6;
-            case "Vampiric Lord": return 6;
-            case "Fiery Stars": return 8;
-            case "Sweet Corn": return 8;
-            case "Rain Of Fire": return 10;
-            case "Uber Cornholio": return 12;
-            default: return 1;
-        }
+        return 0;
     }
-    function getFlurryMiss(card) {
-        switch (card.name) {
-            case "Box of Frogs": if (card.rarityType == bh.RarityType.Legendary)
-                return 0.15;
-            case "Annoying Elves":
-            case "Blazing Stars":
-            case "Cornholio":
-            case "Easter Eggs":
-            case "Fiery Stars":
-            case "Flaming Stars":
-            case "Pumpkin Field":
-            case "Snowballs Squall":
-            case "Sweet Corn":
-            case "Vampiric Bats": ;
-            case "Vampiric Lord": return 0.25;
-            case "Rain Of Fire": return 0.5;
-            case "Uber Cornholio": return 0.5;
-            default: return 0;
-        }
+    function getFlurryHitPercent(card) {
+        return 0;
     }
     function getPerkMultiplier(perk, percent) {
         return getMultiplier(perk) * percent;
@@ -3940,7 +3959,7 @@ var bh;
         }
         function onSliderChange(ev) {
             var evo = $("#card-slider-evo").val(), level = $("#card-slider-level").val(), action = $(ev.target).closest("input[data-action]").data("action");
-            $("#card-slider-types").html("<span style=\"padding-left:25px;\">" + evo + "." + ("0" + level).substr(-2) + "</span><br/>" + activeCard.types.map(function (type, typeIndex) { return bh.getImg20("cardtypes", type) + (" " + type + " (" + bh.utils.formatNumber(getValue(typeIndex, evo, level)) + ")"); }).join("<br/>"));
+            $("#card-slider-types").html("<span style=\"padding-left:25px;\">" + evo + "." + ("0" + level).substr(-2) + "</span><br/>" + activeCard.typesTargets.map(function (type, typeIndex) { return bh.getImg20("cardtypes", type.split(" ")[0].replace("Damage", "Attack")) + (" " + type + " (" + bh.utils.formatNumber(getValue(typeIndex, evo, level)) + ")"); }).join("<br/>"));
         }
         function getValue(typeIndex, evolutionLevel, level) {
             var playerCard = { configId: activeCard.guid, evolutionLevel: evolutionLevel, level: level };
@@ -3963,9 +3982,9 @@ var bh;
             $("#card-klass").html(bh.KlassRepo.toImage(card.klassType) + " " + bh.KlassType[card.klassType]);
             $("#card-klass").removeClass("Magic Might Skill").addClass(bh.KlassType[card.klassType]);
             $("#card-rarity").html(bh.utils.evoToStars(card.rarityType) + " " + bh.RarityType[card.rarityType]);
-            $("#card-types").html(card.types.map(function (type, typeIndex) { return bh.getImg20("cardtypes", type) + (" " + type + " (" + bh.utils.formatNumber(getMinValue(typeIndex)) + " - " + bh.utils.formatNumber(getMaxValue(typeIndex)) + ")"); }).join("<br/>"));
+            $("#card-types").html(card.typesTargets.map(function (type, typeIndex) { return bh.getImg20("cardtypes", type.split(" ")[0]) + (" " + type + " (" + bh.utils.formatNumber(getMinValue(typeIndex)) + " - " + bh.utils.formatNumber(getMaxValue(typeIndex)) + ")"); }).join("<br/>"));
             $("#card-turns").html(String(card.turns));
-            $("div.panel-card span.card-targets").html(card.targets.join());
+            $("div.panel-card span.card-targets").html(card.typesTargets.map(function (s) { return s.split(" ").slice(1).join(" "); }).join());
             $("div.panel-card span.card-brag").html(String(card.brag));
             $("div.panel-card span.card-min").html(card.minValues.map(function (v) { return v.join(); }).join(" :: "));
             $("div.panel-card span.card-max").html(card.maxValues.join(" :: "));
@@ -4013,7 +4032,7 @@ var bh;
             var levelsForRarity = bh.BattleCardRepo.getLevelsForRarity(card.rarityType), levelSliderLevels = levelsForRarity == 10 ? [1, 5, 10] : levelsForRarity == 20 ? [1, 5, 10, 15, 20] : levelsForRarity == 35 ? [1, 5, 10, 15, 20, 25, 30, 35] : [1, 10, 20, 30, 40, 50];
             $("#card-slider-level").val(1).attr("max", levelsForRarity);
             $("#card-slider-level-labels-table tbody").html(levelSliderLevels.map(function (level, index) { return "<td class=\"text-" + (index ? index == levelSliderLevels.length - 1 ? "right" : "center" : "left") + "\">" + level + "</td>"; }).join(""));
-            $("#card-slider-types").html("<span style=\"padding-left:25px;\">0.01</span><br/>" + card.types.map(function (type, typeIndex) { return bh.getImg20("cardtypes", type) + (" " + type + " (" + bh.utils.formatNumber(getMinValue(typeIndex)) + ")"); }).join("<br/>"));
+            $("#card-slider-types").html("<span style=\"padding-left:25px;\">0.01</span><br/>" + card.typesTargets.map(function (type, typeIndex) { return bh.getImg20("cardtypes", type.split(" ")[0]) + (" " + type + " (" + bh.utils.formatNumber(getMinValue(typeIndex)) + ")"); }).join("<br/>"));
         }
         function evoRow(image, name, min, max) {
             return "<tr><td class=\"icon\">" + image + "</td><td class=\"name\">" + name + "</td><td class=\"min\">" + bh.utils.formatNumber(min) + "</td><td class=\"max\">" + bh.utils.formatNumber(max) + "</td></tr>";
@@ -4051,9 +4070,8 @@ var bh;
                 card.mats.forEach(function (s) { return list.push(s.toLowerCase()); });
                 card.perks.forEach(function (s) { return list.push(s.toLowerCase()); });
                 list.push(bh.RarityType[card.rarityType].toLowerCase());
-                card.targets.forEach(function (s) { return list.push(s.toLowerCase()); });
                 list.push(String(card.turns));
-                card.types.forEach(function (s) { return list.push(s.toLowerCase()); });
+                card.typesTargets.forEach(function (s) { return list.push(s.toLowerCase().split(" (")[0]); });
                 bh.data.HeroRepo.all.filter(function (hero) { return hero.klassType == card.klassType && (card.elementType == bh.ElementType.Neutral || hero.elementType == card.elementType); }).forEach(function (hero) { return list.push(hero.lower); });
                 if (player)
                     list.push(player.battleCards.find(function (playerBattleCard) { return playerBattleCard.guid == card.guid; }) ? "have" : "need");
@@ -4131,15 +4149,17 @@ var bh;
                 .replace("Multi-Target (Enemy)", "Multi");
         }
         function mapPerksEffectsToImages(card) {
-            return mapPerksEffects(card).map(function (item) { return "<div class=\"bh-hud-image img-" + item.guid + "\" title=\"" + item.name + ": " + item.description + "\" data-toggle=\"tooltip\" data-placement=\"top\" data-search-term=\"" + cleanPerkEffectSearchTerm(item.name) + "\"></div>"; });
+            return mapPerksEffects(card)
+                .map(function (item) { return renderIcon(item.guid, cleanPerkEffectSearchTerm(item.name), item.name + ": " + item.description); });
         }
         function mapMatsToImages(mats) {
-            return mats.map(function (mat) { return bh.data.ItemRepo.find(mat); }).map(function (item) { return "<div class=\"bh-hud-image img-" + item.guid + "\" title=\"" + item.name + ": " + bh.RarityType[item.rarityType] + " " + bh.ElementType[item.elementType] + " " + bh.ItemType[item.itemType] + " (" + bh.utils.formatNumber(bh.ItemRepo.getValue(item.itemType, item.rarityType)) + " gold)\" data-toggle=\"tooltip\" data-placement=\"top\" data-search-term=\"" + item.name + "\"></div>"; });
+            return mats.map(function (mat) { return bh.data.ItemRepo.find(mat); })
+                .map(function (item) { return renderIcon(item.guid, item.name, item.name + ": " + bh.RarityType[item.rarityType] + " " + bh.ElementType[item.elementType] + " " + bh.ItemType[item.itemType] + " (" + bh.utils.formatNumber(bh.ItemRepo.getValue(item.itemType, item.rarityType)) + " gold)"); });
         }
         function mapHeroesToImages(card) {
             return bh.data.HeroRepo.all
                 .filter(function (hero) { return (card.elementType == bh.ElementType.Neutral || hero.elementType == card.elementType) && hero.klassType == card.klassType; })
-                .map(function (hero) { return "<div class=\"bh-hud-image img-" + hero.guid + "\" data-toggle=\"tooltip\" data-placement=\"top\" title=\"" + hero.name + ": " + bh.ElementType[hero.elementType] + " " + bh.KlassType[hero.klassType] + " Hero\" data-search-term=\"" + hero.name + "\"></div>"; });
+                .map(function (hero) { return renderIcon(hero.guid, hero.name, hero.name + ": " + bh.ElementType[hero.elementType] + " " + bh.KlassType[hero.klassType] + " Hero"); });
         }
         function mapRarityToStars(rarityType) {
             return "<span class=\"stars\" title=\"" + bh.RarityType[rarityType] + "\" data-toggle=\"tooltip\" data-placement=\"top\">" + bh.utils.evoToStars(rarityType) + "</span>";
@@ -4159,6 +4179,12 @@ var bh;
             $("div.row.table-row").show();
             $('[data-toggle="tooltip"]').tooltip();
         }
+        function renderIcon(guid, term, title, hiddenXs) {
+            if (term === void 0) { term = guid; }
+            if (title === void 0) { title = term; }
+            if (hiddenXs === void 0) { hiddenXs = false; }
+            return "<div class=\"" + (hiddenXs ? "hidden-xs" : "") + " bh-hud-image img-" + guid + "\" title=\"" + title + "\" data-toggle=\"tooltip\" data-placement=\"top\" data-search-term=\"" + term + "\"></div>";
+        }
         function renderCards() {
             var complete = location.search.includes("complete");
             var cards = bh.data.BattleCardRepo.all;
@@ -4175,9 +4201,9 @@ var bh;
                 if (complete)
                     html += "<td data-search-term=\"" + bh.RarityType[card.rarityType] + "\">" + mapRarityToStars(card.rarityType) + "</td>";
                 if (complete)
-                    html += "<td><div class=\"bh-hud-image img-" + bh.ElementType[card.elementType] + "\" title=\"" + bh.ElementType[card.elementType] + "\" data-toggle=\"tooltip\" data-placement=\"top\" data-search-term=\"" + bh.ElementType[card.elementType] + "\"></div></td>";
+                    html += "<td>" + renderIcon(bh.ElementType[card.elementType]) + "</td>";
                 if (complete)
-                    html += "<td><div class=\"hidden-xs bh-hud-image img-" + bh.KlassType[card.klassType] + "\" title=\"" + bh.KlassType[card.klassType] + "\" data-toggle=\"tooltip\" data-placement=\"top\" data-search-term=\"" + bh.KlassType[card.klassType] + "\"></div></td>";
+                    html += "<td>" + renderIcon(bh.KlassType[card.klassType], undefined, undefined, true) + "</td>";
                 html += "<td>" + mapHeroesToImages(card).join("") + "</td>";
                 if (complete)
                     html += "<td class=\"hidden-xs\">" + mapPerksEffectsToImages(card).join("") + "</td>";

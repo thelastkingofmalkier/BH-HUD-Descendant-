@@ -2,7 +2,7 @@
 namespace bh {
 	export class BattleCardRepo extends Repo<IDataBattleCard> {
 		constructor() {
-			super(1325382981, false);
+			super(1134947346, false);
 		}
 
 		public static calculateValue(playerCard: IPlayer.PlayerCard, typeIndex = 0): number {

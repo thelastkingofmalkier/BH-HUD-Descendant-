@@ -135,7 +135,8 @@ namespace bh {
 								break;
 
 							case "brag":
-								object["brag"] = utils.parseBoolean(value);
+							case "packs":
+								object[key] = utils.parseBoolean(value);
 								break;
 
 							case "randomMats":
@@ -151,8 +152,7 @@ namespace bh {
 								object[key] = value.split("|").map(s => +s);
 								break;
 
-							case "targets":
-							case "types":
+							case "typesTargets":
 								object[key] = value.split("|").filter(s => !!s);
 								break;
 

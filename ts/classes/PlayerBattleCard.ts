@@ -1,4 +1,24 @@
 namespace bh {
+	function typesTargetsToTargets(values: string[]): GameBattleCardTarget[] {
+		return values.map(s => s.trim()).filter(s => !!s).map(s => {
+			var parts = s.split(" "),
+				all = parts[1] == "All",
+				single = parts[1] == "Single",
+				splash = parts[1] == "Splash",
+				self = parts[1] == "Self";
+			if (s.includes("Flurry")) {
+				if (self) { return "Self Flurry"; }
+				if (all) { return "Multi Flurry"; }
+				if (single) { return "Single Flurry"; }
+			}
+			if (self) { return "Self"; }
+			if (single) { return "Single"; }
+			if (all) { return "Multi"; }
+			if (splash) { return "Splash"; }
+			console.log(`Target of "${s}"`);
+			return <any>s;
+		});
+	}
 	export class PlayerBattleCard {
 		private _bc: IDataBattleCard;
 		public playerCard: IPlayer.PlayerCard;
@@ -64,6 +84,7 @@ namespace bh {
 		public get brag() { return this._bc && this._bc.brag || false; }
 		public get effects() { return this._bc && this._bc.effects || []; }
 		public get elementType() { return this._bc ? this._bc.elementType : ElementType.Neutral; }
+		public get inPacks() { return this._bc && this._bc.inPacks || false; }
 		public get klassType() { return this._bc ? this._bc.klassType : null; }
 		public get lower() { return this.name.toLowerCase(); }
 		public get mats() { return this._bc && this._bc.mats || null; }
@@ -73,12 +94,11 @@ namespace bh {
 		public get perks() { return this._bc && this._bc.perks || []; }
 		public get name() { return this._bc && this._bc.name || this.playerCard && this.playerCard.configId; }
 		public get rarityType() { return this._bc ? this._bc.rarityType : null; }
-		// public get target() { return this._bc && this._bc.targets[0] || null; }
-		public get targets() { return this._bc && this._bc.targets || null; }
+		public get targets() { return typesTargetsToTargets(this.typesTargets); }
 		public get tier() { return this._bc && this._bc.tier || null; }
 		public get turns() { return this._bc && this._bc.turns || 0; }
-		// public get type() { return this._bc && this._bc.types[0] || null; }
-		public get types() { return this._bc && this._bc.types || null; }
+		public get types() { return this.typesTargets.map(s => <GameBattleCardType>s.split(" ")[0].replace("Damage", "Attack")); }
+		public get typesTargets() { return this._bc && this._bc.typesTargets || []; }
 
 		// PlayerCard pass-through
 		public get evo() { return this.playerCard && this.playerCard.evolutionLevel || 0; }

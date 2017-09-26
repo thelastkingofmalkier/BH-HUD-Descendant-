@@ -36,8 +36,8 @@ namespace bh {
 		}
 		public static mapTargets(card: IDataBattleCard) {
 			var targets: IDataEffect[] = [];
-			card.targets.forEach((target, index) => {
-				mapTargetOrEffectOrPerk(target, card.types[index]).forEach(item => {
+			card.typesTargets.forEach(target => {
+				mapTargetOrEffectOrPerk(target).forEach(item => {
 					if (!targets.includes(item)) targets.push(item);
 				});
 			});
@@ -50,21 +50,51 @@ namespace bh {
 			return ["Self", "Single"].includes(effect.name) ? "" : getSrc("effects", effect.name.replace(/\W/g, ""));
 		}
 	}
-	function mapTargetOrEffectOrPerk(item: string, type: GameBattleCardType = null) {
+	function mapTargetOrEffectOrPerk(item: string) {
 		var items: string[] = [];
-		if (item.includes("Multi")) {
-			items.push(type == "Attack" ? "Multi-Target (Enemy)" : "Multi-Target (Ally)");
-		}
-		if (item.includes("Flurry")) {
-			items.push("Flurry");
-		}
-		if (!item.includes("Multi") && !item.includes("Flurry")) {
+		if (["Damage", "Heal", "Shield"].includes(item.split(" ")[0])) {
+			if (item.includes("All Allies")) {
+				items.push("Multi-Target (Ally)");
+			}else if (item.includes("All Enemies")) {
+				items.push("Multi-Target (Enemy)");
+			}else if (item.includes("Splash")) {
+				items.push("Splash");
+			}
+			if (item.includes("Flurry")) {
+				items.push("Flurry");
+			}
+			if (!items.length) {
+				items.push(item.split(" ")[1]);
+			}
+		}else {
 			items.push(item);
 		}
 		return items.map(i => {
-			var effect = i ? data.EffectRepo.find(i) : null;
-			if (!effect) console.log(item);
+			var match = i.match(/([a-zA-z]+( [a-zA-Z]+)*)(?: (\d+%))?(?: (\d+T))?/),
+				clean = match && match[1] || i,
+				effect = data.EffectRepo.find(clean) || data.EffectRepo.find(i) || data.EffectRepo.find(item) || null;
+			if (!effect) console.log(item, i, match, clean, effect);
 			return effect;
 		}).filter(i => !!i);
+	}
+	function effectTypeToTarget(value: string): GameBattleCardTarget[] {
+		return value.split("/").map(s => s.trim()).filter(s => !!s).map(s => {
+			var parts = s.split(" "),
+				all = parts[1] == "All",
+				single = parts[1] == "Single",
+				splash = parts[1] == "Splash",
+				self = parts[1] == "Self";
+			if (s.includes("Flurry")) {
+				if (self) { return "Self Flurry"; }
+				if (all) { return "Multi Flurry"; }
+				if (single) { return "Single Flurry"; }
+			}
+			if (self) { return "Self"; }
+			if (single) { return "Single"; }
+			if (all) { return "Multi"; }
+			if (splash) { return "Splash"; }
+			console.log(`Target of "${s}"`);
+			return <any>s;
+		});
 	}
 }
