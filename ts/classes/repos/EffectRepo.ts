@@ -70,7 +70,7 @@ namespace bh {
 			items.push(item);
 		}
 		return items.map(i => {
-			var match = i.match(/([a-zA-z]+( [a-zA-Z]+)*)(?: (\d+%))?(?: (\d+T))?/),
+			var match = i.match(/([a-zA-z]+(?: [a-zA-Z]+)*)(?: (\d+%))?(?: (\d+T))?/),
 				clean = match && match[1] || i,
 				effect = data.EffectRepo.find(clean) || data.EffectRepo.find(i) || data.EffectRepo.find(item) || null;
 			if (!effect) console.log(item, i, match, clean, effect);

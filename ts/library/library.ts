@@ -107,13 +107,13 @@ namespace bh {
 			$(`#card-klass`).html(KlassRepo.toImage(card.klassType) + " " + KlassType[card.klassType]);
 			$(`#card-klass`).removeClass("Magic Might Skill").addClass(KlassType[card.klassType]);
 			$(`#card-rarity`).html(utils.evoToStars(card.rarityType) + " " + RarityType[card.rarityType]);
-			$(`#card-types`).html(card.typesTargets.map((type, typeIndex) => getImg20("cardtypes", type.split(" ")[0]) + ` ${type} (${utils.formatNumber(getMinValue(typeIndex))} - ${utils.formatNumber(getMaxValue(typeIndex))})`).join("<br/>"));
+			$(`#card-types`).html(card.typesTargets.map((type, typeIndex) => getImg20("cardtypes", type.split(" ")[0].replace("Damage", "Attack")) + ` ${type.split(" ")[0].replace("Damage", "Attack")} (${utils.formatNumber(getMinValue(typeIndex))} - ${utils.formatNumber(getMaxValue(typeIndex))})`).join("<br/>"));
 			$(`#card-turns`).html(String(card.turns));
-			$(`div.panel-card span.card-targets`).html(card.typesTargets.map(s => s.split(" ").slice(1).join(" ")).join());
 			$(`div.panel-card span.card-brag`).html(String(card.brag));
 			$(`div.panel-card span.card-min`).html(card.minValues.map(v => v.join()).join(" :: "));
 			$(`div.panel-card span.card-max`).html(card.maxValues.join(" :: "));
 			$(`div.panel-card span.card-mats`).html(card.mats.join());
+			$(`#card-targets`).html(EffectRepo.mapTargets(card).map(target => EffectRepo.toImage(target) + " " + target.name + "<br/>").join(""));
 			$(`#card-effects`).html(EffectRepo.mapEffects(card).map(effect => EffectRepo.toImage(effect) + " " + effect.name + "<br/>").join(""));
 			$(`#card-perks`).html(EffectRepo.mapPerks(card).map(perk => EffectRepo.toImage(perk) + " " + perk.name).join("<br/>"));
 			$(`div.panel-card span.card-perk`).html(card.perkBase + "%");
@@ -180,7 +180,7 @@ namespace bh {
 				levelSliderLevels = levelsForRarity == 10 ? [1,5,10] : levelsForRarity == 20 ? [1,5,10,15,20] : levelsForRarity == 35 ? [1,5,10,15,20,25,30, 35] : [1,10,20,30,40,50];
 			$("#card-slider-level").val(<any>1).attr("max", levelsForRarity);
 			$("#card-slider-level-labels-table tbody").html(levelSliderLevels.map((level,index) => `<td class="text-${index ? index == levelSliderLevels.length - 1 ? "right" : "center" : "left"}">${level}</td>`).join(""));
-			$(`#card-slider-types`).html(`<span style="padding-left:25px;">0.01</span><br/>` + card.typesTargets.map((type, typeIndex) => getImg20("cardtypes", type.split(" ")[0]) + ` ${type} (${utils.formatNumber(getMinValue(typeIndex))})`).join("<br/>"));
+			$(`#card-slider-types`).html(`<span style="padding-left:25px;">0.01</span><br/>` + card.typesTargets.map((type, typeIndex) => getImg20("cardtypes", type.split(" ")[0].replace("Damage", "Attack")) + ` ${type} (${utils.formatNumber(getMinValue(typeIndex))})`).join("<br/>"));
 		}
 		function evoRow(image: string, name: string, min: number, max: number) {
 			return `<tr><td class="icon">${image}</td><td class="name">${name}</td><td class="min">${utils.formatNumber(min)}</td><td class="max">${utils.formatNumber(max)}</td></tr>`;

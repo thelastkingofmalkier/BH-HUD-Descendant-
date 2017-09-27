@@ -2155,7 +2155,7 @@ var bh;
             items.push(item);
         }
         return items.map(function (i) {
-            var match = i.match(/([a-zA-z]+( [a-zA-Z]+)*)(?: (\d+%))?(?: (\d+T))?/), clean = match && match[1] || i, effect = bh.data.EffectRepo.find(clean) || bh.data.EffectRepo.find(i) || bh.data.EffectRepo.find(item) || null;
+            var match = i.match(/([a-zA-z]+(?: [a-zA-Z]+)*)(?: (\d+%))?(?: (\d+T))?/), clean = match && match[1] || i, effect = bh.data.EffectRepo.find(clean) || bh.data.EffectRepo.find(i) || bh.data.EffectRepo.find(item) || null;
             if (!effect)
                 console.log(item, i, match, clean, effect);
             return effect;
@@ -2468,45 +2468,115 @@ function updateCardData() {
     }
 }
 function rateCards() {
+    var AddedPerkPerEvo = 20;
     var cards = bh.data.BattleCardRepo.all;
     var scores = cards.map(function (card) {
-        return { card: card, score: 0 };
+        var scoreCard = { card: card, score: 0, effectMultipliers: [] };
+        card.typesTargets.forEach(function (type, typeIndex) {
+            var turnMultiplier = (8 - card.turns) / 7, typeMultiplier = type.startsWith("Damage") ? 1.25 : type.startsWith("Shield") ? 1 : 0.75, valuePerTurn = calcValue(card, typeIndex) / card.turns, dotValuePerTurn = calcDotValue(card, typeIndex) / card.turns, regen = card.effects.find(function (s) { return !!s.match(/Regen \d+T/); }), regenTurns = regen && !type.startsWith("Damage") ? +regen.match(/(\d+)T/)[1] : 0, regenDivisor = regenTurns || 1, perkMultipliers = card.perks.map(function (perk) { return getPerkMultiplier(perk, card); }), perkMultiplier = perkMultipliers.reduce(function (out, curr) { return out + curr; }, 1), effectMultipliers = card.effects.map(function (effect) { return getMultiplier(effect, card); }), effectMultiplier = effectMultipliers.reduce(function (out, curr) { return out + curr; }, 1);
+            scoreCard.effectMultipliers[typeIndex] = effectMultiplier;
+            scoreCard.score += Math.round(((valuePerTurn + dotValuePerTurn) / regenDivisor / 888) * turnMultiplier * effectMultiplier * perkMultiplier * typeMultiplier);
+        });
+        return scoreCard;
     });
     scores.sort(function (a, b) { return a.score < b.score ? 1 : a.score == b.score ? 0 : -1; });
-    $("#data-output").val(scores.map(function (score) { return score.score + " > " + score.card.name; }).join("\n"));
+    $("textarea").val(scores.map(function (s, i) { return (i + 1) + ": " + s.card.name + (s.card.rarityType == bh.RarityType.Legendary ? " (L)" : ""); }).slice(0, 30).join(", "));
+    $("#data-output").val(scores.map(function (score) { return score.score + " > " + bh.RarityType[score.card.rarityType][0] + " " + score.card.name + " (" + score.card.typesTargets.concat(score.card.effects).concat(score.card.perks) + ")"; }).join("\n"));
     function calcDotValue(card, typeIndex) {
-        if (card.effects.includes("Drown"))
-            return calcValue(card, typeIndex);
-        var dots = ["Burn", "Bleed", "Shock", "Poison"], count = 0;
-        card.effects.forEach(function (effect) { return dots.includes(effect) ? count++ : void 0; });
-        return count ? calcValue(card, typeIndex) * 0.6 * count : 0;
+        var damageValue = calcValue(card, typeIndex), drownValue = card.effects.includes("Drown") ? damageValue : 0, dots = ["Burn", "Bleed", "Shock", "Poison"], dotValue = 0;
+        dots.forEach(function (dot) {
+            var effect = card.effects.find(function (e) { return e.startsWith(dot); }), turns = effect && +effect.split(" ").pop().split("T")[0] || 0, multiplier = turns < 3 ? 0.7 : turns == 3 ? 0.6 : 0.5;
+            dotValue += effect && turns ? damageValue * multiplier : 0;
+        });
+        return drownValue + dotValue;
     }
     function calcValue(card, typeIndex) {
-        return 0;
+        var maxValue = card.maxValues[typeIndex], maxPerkPercent = (card.perkBase + AddedPerkPerEvo * (1 + card.rarityType)) / 100, critMultiplier = card.perks.includes("Critical") ? 1.5 * maxPerkPercent : 1, target = card.typesTargets[typeIndex], offense = target.startsWith("Damage"), targetMultiplier = target.includes("All Enemies") ? 2 : target.includes("All Allies") ? 2 : target.includes("Splash") ? 1.5 : !offense && !target.includes("Self") ? 1.25 : 1, flurryMatch = target.match(/Flurry \((\d+) @ (\d+)%\)/), flurryHitPercent = flurryMatch && (+flurryMatch[2] / 100) || 1, flurryMultiplier = flurryHitPercent, value = Math.round(maxValue * critMultiplier * targetMultiplier * flurryMultiplier);
+        if (!value)
+            console.log(card);
+        return value;
     }
-    function getEffectDuration(card, effect) {
-        return 1;
-    }
-    function getFlurryCount(card) {
-        return 0;
-    }
-    function getFlurryHitPercent(card) {
-        return 0;
-    }
-    function getPerkMultiplier(perk, percent) {
-        return getMultiplier(perk) * percent;
+    function getPerkMultiplier(perk, card) {
+        if (perk == "Critical")
+            return 0;
+        return getMultiplier(perk, card);
     }
     function getMultiplier(value, card) {
-        if (card === void 0) { card = null; }
-        if (value.startsWith("Immunity to") || value.startsWith("Immune To"))
-            return 0.2;
-        var turns = card && card.turns || 1;
-        var targets = card && card;
-        switch (value) {
-            case "Interrupt": return 1;
-            case "Haste": return 1;
-            default: return 0;
-        }
+        var parts = value.match(/([a-zA-z]+(?: [a-zA-Z]+)*)(?: (\d+)%)?(?: (\d+)T)?/), cleanValue = parts && parts[1] || value, percent = parts && parts[2] && (+parts[2] / 100) || 1, turns = parts && +parts[3] || 1, offense = card.typesTargets[0].startsWith("Damage"), flurryMatch = offense && card.typesTargets[0].match(/Flurry \((\d+) @ (\d+)%\)/), flurryCount = flurryMatch && +flurryMatch[1] || 1, flurryHitPercent = flurryMatch && (+flurryMatch[2] / 100) || 1, flurryMultiplier = flurryHitPercent * flurryCount, all = card.typesTargets.find(function (t) { return t.includes("All Allies") || t.includes("All Enemies"); });
+        if (["Regen", "Poison", "Drown", "Burn", "Bleed", "Shock"].find(function (dot) { return cleanValue == dot; }))
+            return 0;
+        if (["Cure Confuse", "Cure Poison", "Cure Burn", "Cure Bleed", "Cure Shock"].find(function (dot) { return cleanValue == dot; }))
+            return 0.1;
+        if (cleanValue.startsWith("Immunity to") || cleanValue.startsWith("Immune To"))
+            return 0.1 * turns;
+        if (cleanValue.startsWith("Weaken to"))
+            return 0.1 * turns;
+        if (cleanValue == "Warped")
+            return 0.1 * turns;
+        if (cleanValue == "Awaken")
+            return 0.1 * turns;
+        if (cleanValue == "Charm")
+            return 0.1 * turns;
+        if (["Luck Up", "Luck Down"].includes(cleanValue))
+            return 0.1 * turns;
+        if (cleanValue == "Max HP Up")
+            return 0.1 * turns;
+        if (cleanValue == "Taunt")
+            return 0.1 * turns;
+        if (cleanValue == "Stun")
+            return 0.1 * turns;
+        if (cleanValue == "Sap")
+            return 0.1 * turns;
+        if (cleanValue == "Confuse")
+            return 0.1 * turns;
+        if (cleanValue == "Recoil")
+            return -0.2;
+        if (cleanValue == "Slow")
+            return (offense ? 2 : -0.1) * turns;
+        if (cleanValue == "Shield Pierce")
+            return 0.5;
+        if (cleanValue == "Regen Break")
+            return 0.5;
+        if (cleanValue == "Shield Break")
+            return 0.5;
+        if (cleanValue == "Cure All")
+            return 0.5;
+        if (cleanValue.startsWith("Extend"))
+            return 1;
+        if (cleanValue == "Interrupt")
+            return 0.75 * flurryMultiplier;
+        if (cleanValue == "Reset")
+            return 1;
+        if (cleanValue == "Leech")
+            return 1;
+        if (cleanValue == "Trait Down")
+            return 1;
+        if (cleanValue == "Shield Bind")
+            return 1;
+        if (cleanValue == "Perfect Shot")
+            return 2;
+        if (cleanValue == "Trait Up")
+            return 2;
+        if (["Mark", "Backstab"].includes(cleanValue))
+            return turns;
+        if (cleanValue == "Chill")
+            return turns;
+        if (cleanValue == "Evade")
+            return turns;
+        if (cleanValue == "Sleep")
+            return (offense ? 1 : -0.1) * turns * (all ? 2 : 1);
+        if (cleanValue == "Haste")
+            return 2 * (all ? 3 : 2);
+        if (cleanValue == "Bamboozle")
+            return 0.2 * turns * percent;
+        if (cleanValue == "Accuracy Up")
+            return 0.5 * turns * percent;
+        if (cleanValue == "Accuracy Down")
+            return 2 * flurryMultiplier;
+        if (["Attack Up", "Attack Down", "Defence Up", "Defence Down"].includes(cleanValue))
+            return 0.25;
+        console.log(value + " (" + cleanValue + ")");
+        return 0;
     }
 }
 function tiered() {
@@ -3982,13 +4052,13 @@ var bh;
             $("#card-klass").html(bh.KlassRepo.toImage(card.klassType) + " " + bh.KlassType[card.klassType]);
             $("#card-klass").removeClass("Magic Might Skill").addClass(bh.KlassType[card.klassType]);
             $("#card-rarity").html(bh.utils.evoToStars(card.rarityType) + " " + bh.RarityType[card.rarityType]);
-            $("#card-types").html(card.typesTargets.map(function (type, typeIndex) { return bh.getImg20("cardtypes", type.split(" ")[0]) + (" " + type + " (" + bh.utils.formatNumber(getMinValue(typeIndex)) + " - " + bh.utils.formatNumber(getMaxValue(typeIndex)) + ")"); }).join("<br/>"));
+            $("#card-types").html(card.typesTargets.map(function (type, typeIndex) { return bh.getImg20("cardtypes", type.split(" ")[0].replace("Damage", "Attack")) + (" " + type.split(" ")[0].replace("Damage", "Attack") + " (" + bh.utils.formatNumber(getMinValue(typeIndex)) + " - " + bh.utils.formatNumber(getMaxValue(typeIndex)) + ")"); }).join("<br/>"));
             $("#card-turns").html(String(card.turns));
-            $("div.panel-card span.card-targets").html(card.typesTargets.map(function (s) { return s.split(" ").slice(1).join(" "); }).join());
             $("div.panel-card span.card-brag").html(String(card.brag));
             $("div.panel-card span.card-min").html(card.minValues.map(function (v) { return v.join(); }).join(" :: "));
             $("div.panel-card span.card-max").html(card.maxValues.join(" :: "));
             $("div.panel-card span.card-mats").html(card.mats.join());
+            $("#card-targets").html(bh.EffectRepo.mapTargets(card).map(function (target) { return bh.EffectRepo.toImage(target) + " " + target.name + "<br/>"; }).join(""));
             $("#card-effects").html(bh.EffectRepo.mapEffects(card).map(function (effect) { return bh.EffectRepo.toImage(effect) + " " + effect.name + "<br/>"; }).join(""));
             $("#card-perks").html(bh.EffectRepo.mapPerks(card).map(function (perk) { return bh.EffectRepo.toImage(perk) + " " + perk.name; }).join("<br/>"));
             $("div.panel-card span.card-perk").html(card.perkBase + "%");
@@ -4032,7 +4102,7 @@ var bh;
             var levelsForRarity = bh.BattleCardRepo.getLevelsForRarity(card.rarityType), levelSliderLevels = levelsForRarity == 10 ? [1, 5, 10] : levelsForRarity == 20 ? [1, 5, 10, 15, 20] : levelsForRarity == 35 ? [1, 5, 10, 15, 20, 25, 30, 35] : [1, 10, 20, 30, 40, 50];
             $("#card-slider-level").val(1).attr("max", levelsForRarity);
             $("#card-slider-level-labels-table tbody").html(levelSliderLevels.map(function (level, index) { return "<td class=\"text-" + (index ? index == levelSliderLevels.length - 1 ? "right" : "center" : "left") + "\">" + level + "</td>"; }).join(""));
-            $("#card-slider-types").html("<span style=\"padding-left:25px;\">0.01</span><br/>" + card.typesTargets.map(function (type, typeIndex) { return bh.getImg20("cardtypes", type.split(" ")[0]) + (" " + type + " (" + bh.utils.formatNumber(getMinValue(typeIndex)) + ")"); }).join("<br/>"));
+            $("#card-slider-types").html("<span style=\"padding-left:25px;\">0.01</span><br/>" + card.typesTargets.map(function (type, typeIndex) { return bh.getImg20("cardtypes", type.split(" ")[0].replace("Damage", "Attack")) + (" " + type + " (" + bh.utils.formatNumber(getMinValue(typeIndex)) + ")"); }).join("<br/>"));
         }
         function evoRow(image, name, min, max) {
             return "<tr><td class=\"icon\">" + image + "</td><td class=\"name\">" + name + "</td><td class=\"min\">" + bh.utils.formatNumber(min) + "</td><td class=\"max\">" + bh.utils.formatNumber(max) + "</td></tr>";
