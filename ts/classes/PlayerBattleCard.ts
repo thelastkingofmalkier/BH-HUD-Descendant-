@@ -141,5 +141,35 @@ namespace bh {
 		public matchesHero(hero: Hero) { return !hero || (this.matchesElement(<GameElement>ElementType[hero.elementType]) && this.klassType === hero.klassType); }
 		public matchesRarity(rarity: GameRarity) { return !rarity || this.rarityType === RarityType[rarity]; }
 		public toRowHtml(needed: number, owned: number) { return this._rowHtml(needed, owned < needed ? "bg-danger" : "bg-success"); }
+
+		public static parseTarget(value: string): IDataBattleCardTarget {
+			var parts = value.split("Flurry")[0].trim().split(" "),
+				type = parts.shift(),
+				target = parts.join(" "),
+				offense = type == "Damage",
+				all = target.includes("All Allies") || target.includes("All Enemies"),
+				splash = target.includes("Splash"),
+				self = target.includes("Self"),
+				single = !all && !splash && !self,
+				flurryMatch = value.match(/Flurry \((\d+) @ (\d+)%\)/),
+				flurryCount = flurryMatch && +flurryMatch[1] || null,
+				flurryHitPercent = flurryMatch && (`${flurryMatch[2]}%`) || null,
+				flurryHitMultiplier = flurryMatch && (+flurryMatch[2] / 100) || null;
+			return {
+				type: <GameBattleCardType>type,
+				target: <GameBattleCardTarget>target,
+				offense: offense,
+				all: all,
+				splash: splash,
+				single: single,
+				self: self,
+				targetMultiplier: all ? 2 : splash ? 1.5 : single ? 1.25 : self ? 1 : 0,
+				flurry: !!flurryMatch,
+				flurryCount: flurryCount,
+				flurryHitPercent: flurryHitPercent,
+				flurryHitMultiplier: flurryHitMultiplier,
+				flurryMultiplier: flurryCount * flurryHitMultiplier
+			};
+		}
 	}
 }

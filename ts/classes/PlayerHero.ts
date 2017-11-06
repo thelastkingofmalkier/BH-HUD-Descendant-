@@ -30,7 +30,7 @@ namespace bh {
 		public get activePowerRating() { return this.active.powerRating; }
 		public get battleCards() { return Hero.filterCardsByHero(this.hero, this.player.battleCards); }
 		public get deck() { return this.player.sortAndReduceBattleCards(this.archetype.deck); }
-		public get deckPowerRating() { return this.deck.reduce((score, pbc) => score + PowerRating.ratePlayerCard(pbc.playerCard) * pbc.count, 0); }
+		public get deckPowerRating() { return PowerRating.rateDeck(this.deck); }
 		public get hitPoints() { return this.hero.getHitPoints(this.level); }
 		public get hitPointsPowerRating() { return PowerRating.ratePlayerHeroHitPoints(this); }
 		public get isActiveCapped() { return this.active.level == HeroRepo.getMaxActive(this.hero, this.level); }

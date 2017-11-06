@@ -43,12 +43,34 @@ namespace bh {
 		}
 		public static rateMaxedDeck(hero: Hero) {
 			var heroCards = Hero.filterCardsByHero(hero, data.BattleCardRepo.all),
-				ratedCards = heroCards.map(card => { return { card:card, score:PowerRating.rateMaxedBattleCard(card) }; })
+				ratedCards = heroCards
+								.map(card => { return { card:card, score:PowerRating.rateMaxedBattleCard(card) }; })
 								.sort((a, b) => a.score == b.score ? 0 : a.score < b.score ? 1 : -1),
 				topCards = ratedCards.slice(0, 4),
 				score = topCards.reduce((score, card) => score + card.score * 2, 0);
 			return score;
 		}
+		public static rateDeck(deck: PlayerBattleCard[]) {
+			var rated = deck.reduce((out, card) => { out[card.playerCard.configId] = PowerRating.ratePlayerCard(card.playerCard); return out; }, <{[key:string]:number;}>{ }),
+				cycleCards = deck.filter(card => BattleCardRepo.isCycleCard(card, card.evo)),
+				cycleCount = cycleCards.length,
+				cards = deck.filter(card => !cycleCards.includes(card))
+			return deck.reduce((score, pbc) => score + PowerRating.ratePlayerCard(pbc.playerCard) * pbc.count, 0);
+		}
+		// public static rateMaxedDeck(hero: Hero) {
+		// 	var heroCards = Hero.filterCardsByHero(hero, data.BattleCardRepo.all),
+		// 		cycleCards = heroCards.filter(card => BattleCardRepo.isCycleCard(card))
+		// 								.map(card => { return { card:card, score:PowerRating.rateMaxedBattleCard(card) }; })
+		// 								.sort((a, b) => a.score == b.score ? 0 : a.score < b.score ? 1 : -1),
+		// 		cycleCount = cycleCards.length,
+		// 		ratedCards = heroCards.filter(card => !BattleCardRepo.isCycleCard(card))
+		// 						.map(card => { return { card:card, score:PowerRating.rateMaxedBattleCard(card) }; })
+		// 						.sort((a, b) => a.score == b.score ? 0 : a.score < b.score ? 1 : -1),
+		// 		topCards = ratedCards.slice(0, cycleCount == 3 ? 1 : cycleCount == 2 ? 2 : cycleCount == 1 ? 3 : 4).concat(cycleCards.slice(0, 3)),
+		// 		score = topCards.reduce((score, card) => score + card.score * 2, 0);
+		// 	if (cycleCards.length) console.log(hero.name + " has " + cycleCards.length + " cycle cards.")
+		// 	return score;
+		// }
 		public static rateMaxedBattleCard(battleCard: IDataBattleCard) {
 			var key = RarityType[battleCard.rarityType],
 				evo = RarityEvolutions[key],

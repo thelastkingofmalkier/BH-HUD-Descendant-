@@ -128,6 +128,22 @@ var bh;
 })(bh || (bh = {}));
 var bh;
 (function (bh) {
+    var GameEffect = (function () {
+        function GameEffect(value) {
+            var parts = value.match(/([a-zA-z]+(?: [a-zA-Z]+)*)(?: (\d+)%)?(?: (\d+)T)?/), cleanValue = parts && parts[1] || value, effect = bh.data.EffectRepo.find(cleanValue);
+            this.effect = effect && effect.name || cleanValue;
+            this.percent = parts && parts[2] && (parts[2] + "%") || null;
+            this.percentMultiplier = this.percent && (+parts[2] / 100) || null;
+            this.turns = parts && +parts[3] || null;
+            this.value = effect && effect.value;
+        }
+        GameEffect.parse = function (value) { return new GameEffect(value); };
+        return GameEffect;
+    }());
+    bh.GameEffect = GameEffect;
+})(bh || (bh = {}));
+var bh;
+(function (bh) {
     function createHeroAbility(hero, heroAbility) {
         return { hero: hero, guid: heroAbility.abilityGuid, name: heroAbility.abilityName, type: heroAbility.abilityType };
     }
@@ -867,6 +883,24 @@ var bh;
         PlayerBattleCard.prototype.matchesHero = function (hero) { return !hero || (this.matchesElement(bh.ElementType[hero.elementType]) && this.klassType === hero.klassType); };
         PlayerBattleCard.prototype.matchesRarity = function (rarity) { return !rarity || this.rarityType === bh.RarityType[rarity]; };
         PlayerBattleCard.prototype.toRowHtml = function (needed, owned) { return this._rowHtml(needed, owned < needed ? "bg-danger" : "bg-success"); };
+        PlayerBattleCard.parseTarget = function (value) {
+            var parts = value.split("Flurry")[0].trim().split(" "), type = parts.shift(), target = parts.join(" "), offense = type == "Damage", all = target.includes("All Allies") || target.includes("All Enemies"), splash = target.includes("Splash"), self = target.includes("Self"), single = !all && !splash && !self, flurryMatch = value.match(/Flurry \((\d+) @ (\d+)%\)/), flurryCount = flurryMatch && +flurryMatch[1] || null, flurryHitPercent = flurryMatch && (flurryMatch[2] + "%") || null, flurryHitMultiplier = flurryMatch && (+flurryMatch[2] / 100) || null;
+            return {
+                type: type,
+                target: target,
+                offense: offense,
+                all: all,
+                splash: splash,
+                single: single,
+                self: self,
+                targetMultiplier: all ? 2 : splash ? 1.5 : single ? 1.25 : self ? 1 : 0,
+                flurry: !!flurryMatch,
+                flurryCount: flurryCount,
+                flurryHitPercent: flurryHitPercent,
+                flurryHitMultiplier: flurryHitMultiplier,
+                flurryMultiplier: flurryCount * flurryHitMultiplier
+            };
+        };
         return PlayerBattleCard;
     }());
     bh.PlayerBattleCard = PlayerBattleCard;
@@ -1002,7 +1036,7 @@ var bh;
             configurable: true
         });
         Object.defineProperty(PlayerHero.prototype, "deckPowerRating", {
-            get: function () { return this.deck.reduce(function (score, pbc) { return score + bh.PowerRating.ratePlayerCard(pbc.playerCard) * pbc.count; }, 0); },
+            get: function () { return bh.PowerRating.rateDeck(this.deck); },
             enumerable: true,
             configurable: true
         });
@@ -1661,9 +1695,14 @@ var bh;
             return hp + trait + active + passive + deck;
         };
         PowerRating.rateMaxedDeck = function (hero) {
-            var heroCards = bh.Hero.filterCardsByHero(hero, bh.data.BattleCardRepo.all), ratedCards = heroCards.map(function (card) { return { card: card, score: PowerRating.rateMaxedBattleCard(card) }; })
+            var heroCards = bh.Hero.filterCardsByHero(hero, bh.data.BattleCardRepo.all), ratedCards = heroCards
+                .map(function (card) { return { card: card, score: PowerRating.rateMaxedBattleCard(card) }; })
                 .sort(function (a, b) { return a.score == b.score ? 0 : a.score < b.score ? 1 : -1; }), topCards = ratedCards.slice(0, 4), score = topCards.reduce(function (score, card) { return score + card.score * 2; }, 0);
             return score;
+        };
+        PowerRating.rateDeck = function (deck) {
+            var rated = deck.reduce(function (out, card) { out[card.playerCard.configId] = PowerRating.ratePlayerCard(card.playerCard); return out; }, {}), cycleCards = deck.filter(function (card) { return bh.BattleCardRepo.isCycleCard(card, card.evo); }), cycleCount = cycleCards.length, cards = deck.filter(function (card) { return !cycleCards.includes(card); });
+            return deck.reduce(function (score, pbc) { return score + PowerRating.ratePlayerCard(pbc.playerCard) * pbc.count; }, 0);
         };
         PowerRating.rateMaxedBattleCard = function (battleCard) {
             var key = bh.RarityType[battleCard.rarityType], evo = RarityEvolutions[key], level = RarityLevels[key];
@@ -2001,6 +2040,22 @@ var bh;
         function BattleCardRepo() {
             return _super.call(this, 1134947346, false) || this;
         }
+        BattleCardRepo.isCycleCard = function (card, evo) {
+            if (evo === void 0) { evo = card.rarityType + 1; }
+            if (card.turns != 1)
+                return false;
+            if (card.effects.find(function (e) { return e == "Haste 1T"; }))
+                return true;
+            if (card.perks.find(function (p) { return p == "Haste 1T"; }) && BattleCardRepo.getPerk(card, evo) == 100)
+                return true;
+            return false;
+        };
+        BattleCardRepo.getPerk = function (card, evo) {
+            return Math.min(100, card.perkBase + BattleCardRepo.AddedPerkPerEvo * evo);
+        };
+        BattleCardRepo.getMaxPerk = function (card) {
+            return BattleCardRepo.getPerk(card, 1 + card.rarityType);
+        };
         BattleCardRepo.calculateValue = function (playerCard, typeIndex) {
             if (typeIndex === void 0) { typeIndex = 0; }
             var card = bh.data.BattleCardRepo.find(playerCard.configId);
@@ -2034,6 +2089,7 @@ var bh;
                 default: return 0;
             }
         };
+        BattleCardRepo.AddedPerkPerEvo = 20;
         return BattleCardRepo;
     }(bh.Repo));
     bh.BattleCardRepo = BattleCardRepo;
@@ -2081,7 +2137,7 @@ var bh;
     var EffectRepo = (function (_super) {
         __extends(EffectRepo, _super);
         function EffectRepo() {
-            return _super.call(this, 901337848, true) || this;
+            return _super.call(this, 901337848, false) || this;
         }
         EffectRepo.prototype.parseTsv = function (tsv) {
             this.data = bh.Repo.mapTsv(tsv);
@@ -2421,21 +2477,6 @@ function updateCardData() {
         });
         $("#data-output").val(tsv);
     });
-    var uniqueEffectTypes = [
-        "Damage All Enemies",
-        "Damage All Enemies Flurry (10 @ 50%)", "Damage All Enemies Flurry (6 @ 75%)", "Damage All Enemies Flurry (6 @ 85%)",
-        "Damage Single Enemy",
-        "Damage Single Enemy Flurry (12 @ 50%)", "Damage Single Enemy Flurry (4 @ 75%)", "Damage Single Enemy Flurry (6 @ 75%)", "Damage Single Enemy Flurry (8 @ 75%)",
-        "Damage Splash Enemies",
-        "Heal All Allies",
-        "Heal Self",
-        "Heal Self Flurry (8 @ 75%)",
-        "Heal Single Ally",
-        "Heal Splash Allies",
-        "Shield All Allies",
-        "Shield Self",
-        "Shield Single Ally"
-    ];
     function effectTypeToTarget(value) {
         return value.split("/").map(function (s) { return s.trim(); }).filter(function (s) { return !!s; }).map(function (s) {
             var parts = s.split(" "), all = parts[1] == "All", single = parts[1] == "Single", splash = parts[1] == "Splash", self = parts[1] == "Self";
@@ -2468,115 +2509,86 @@ function updateCardData() {
     }
 }
 function rateCards() {
-    var AddedPerkPerEvo = 20;
     var cards = bh.data.BattleCardRepo.all;
     var scores = cards.map(function (card) {
-        var scoreCard = { card: card, score: 0, effectMultipliers: [] };
+        var scoreCard = { card: card, score: 10, effectMultipliers: [] };
         card.typesTargets.forEach(function (type, typeIndex) {
-            var turnMultiplier = (8 - card.turns) / 7, typeMultiplier = type.startsWith("Damage") ? 1.25 : type.startsWith("Shield") ? 1 : 0.75, valuePerTurn = calcValue(card, typeIndex) / card.turns, dotValuePerTurn = calcDotValue(card, typeIndex) / card.turns, regen = card.effects.find(function (s) { return !!s.match(/Regen \d+T/); }), regenTurns = regen && !type.startsWith("Damage") ? +regen.match(/(\d+)T/)[1] : 0, regenDivisor = regenTurns || 1, perkMultipliers = card.perks.map(function (perk) { return getPerkMultiplier(perk, card); }), perkMultiplier = perkMultipliers.reduce(function (out, curr) { return out + curr; }, 1), effectMultipliers = card.effects.map(function (effect) { return getMultiplier(effect, card); }), effectMultiplier = effectMultipliers.reduce(function (out, curr) { return out + curr; }, 1);
-            scoreCard.effectMultipliers[typeIndex] = effectMultiplier;
-            scoreCard.score += Math.round(((valuePerTurn + dotValuePerTurn) / regenDivisor / 888) * turnMultiplier * effectMultiplier * perkMultiplier * typeMultiplier);
+            scoreCard.score += calcTestScore(card, typeIndex);
         });
         return scoreCard;
     });
     scores.sort(function (a, b) { return a.score < b.score ? 1 : a.score == b.score ? 0 : -1; });
     $("textarea").val(scores.map(function (s, i) { return (i + 1) + ": " + s.card.name + (s.card.rarityType == bh.RarityType.Legendary ? " (L)" : ""); }).slice(0, 30).join(", "));
-    $("#data-output").val(scores.map(function (score) { return score.score + " > " + bh.RarityType[score.card.rarityType][0] + " " + score.card.name + " (" + score.card.typesTargets.concat(score.card.effects).concat(score.card.perks) + ")"; }).join("\n"));
+    $("#data-output").val(scores.map(function (score) { return score.score + " > " + bh.RarityType[score.card.rarityType][0] + " " + score.card.name + " (" + score.card.turns + "; " + score.card.typesTargets.concat(score.card.effects).concat(score.card.perks.map(function (p) { return p + " (" + (score.card.perkBase + 20 * (1 + score.card.rarityType)) + "%)"; })) + ")"; }).join("\n"));
+    function calcTestScore(card, typeIndex) {
+        var target = bh.PlayerBattleCard.parseTarget(card.typesTargets[typeIndex]), targetMultiplier = target.all ? 2 : target.splash ? 1.5 : target.single ? 1.25 : 1, turns = card.turns, regen = card.effects.concat(card.perks).find(function (s) { return s.startsWith("Regen"); }), regenEffect = regen ? new bh.GameEffect(regen) : null, regenDivisor = regen && regenEffect.turns || 1, shieldDivisor = card.typesTargets[typeIndex].startsWith("Shield") ? 2 : 1, healDivisor = card.typesTargets[typeIndex].startsWith("Heal") ? 3 * regenDivisor : 1, perkMultiplier = Math.min((card.perkBase + bh.BattleCardRepo.AddedPerkPerEvo * (1 + card.rarityType)), 100) / 100, value = calcValue(card, typeIndex) / shieldDivisor / healDivisor / 888 / turns, effectPoints = 0, perkPoints = 0;
+        card.effects.forEach(function (effect) { return effectPoints += getPoints(effect); });
+        card.perks.forEach(function (perk) { return perkPoints += getPoints(perk) * perkMultiplier; });
+        return Math.round((value + effectPoints + perkPoints) * targetMultiplier - turns);
+        function getPoints(value) {
+            var gameEffect = new bh.GameEffect(value), effect = gameEffect.effect, offense = card.typesTargets[typeIndex].startsWith("Damage");
+            if (gameEffect) {
+                if (offense) {
+                    if (["Interrupt", "Burn", "Bleed", "Shock", "Poison", "Backstab"].includes(effect))
+                        return 1;
+                    if (["Sap", "Drown"].includes(effect))
+                        return 2;
+                    if (["Mark"].includes(effect))
+                        return gameEffect.turns;
+                    if (["Sleep"].includes(effect))
+                        return gameEffect.turns * target.targetMultiplier;
+                    if (effect == "Accuracy Down" && gameEffect.percentMultiplier == 1)
+                        return gameEffect.turns;
+                }
+                else {
+                    if (["Cure All"].includes(effect))
+                        return 1;
+                    if (["Haste", "Trait Up"].includes(effect))
+                        return 2 * target.targetMultiplier;
+                    if (["Evade"].includes(effect))
+                        return gameEffect.turns;
+                }
+            }
+            return 0;
+        }
+    }
     function calcDotValue(card, typeIndex) {
-        var damageValue = calcValue(card, typeIndex), drownValue = card.effects.includes("Drown") ? damageValue : 0, dots = ["Burn", "Bleed", "Shock", "Poison"], dotValue = 0;
-        dots.forEach(function (dot) {
-            var effect = card.effects.find(function (e) { return e.startsWith(dot); }), turns = effect && +effect.split(" ").pop().split("T")[0] || 0, multiplier = turns < 3 ? 0.7 : turns == 3 ? 0.6 : 0.5;
-            dotValue += effect && turns ? damageValue * multiplier : 0;
-        });
-        return drownValue + dotValue;
+        var damageValue = calcValue(card, typeIndex), maxPerkMultiplier = bh.BattleCardRepo.getMaxPerk(card) / 100, value = 0;
+        card.effects.forEach(function (effect) { return value += damageValue * calcDotMultiplier(effect); });
+        card.perks.forEach(function (perk) { return value += damageValue * calcDotMultiplier(perk) * maxPerkMultiplier; });
+        return value;
+    }
+    function calcDotMultiplier(effect) {
+        var gameEffect = new bh.GameEffect(effect), multiplier = 0;
+        if (["Burn", "Bleed", "Shock", "Poison"].includes(gameEffect.effect)) {
+            multiplier = gameEffect.turns < 3 ? 0.7 : gameEffect.turns == 3 ? 0.6 : 0.5;
+        }
+        else if (["Sap", "Drown"].includes(gameEffect.effect)) {
+            multiplier = gameEffect.turns < 2 ? 1.2 : gameEffect.turns == 3 ? 1.1 : 1.0;
+        }
+        return multiplier;
     }
     function calcValue(card, typeIndex) {
-        var maxValue = card.maxValues[typeIndex], maxPerkPercent = (card.perkBase + AddedPerkPerEvo * (1 + card.rarityType)) / 100, critMultiplier = card.perks.includes("Critical") ? 1.5 * maxPerkPercent : 1, target = card.typesTargets[typeIndex], offense = target.startsWith("Damage"), targetMultiplier = target.includes("All Enemies") ? 2 : target.includes("All Allies") ? 2 : target.includes("Splash") ? 1.5 : !offense && !target.includes("Self") ? 1.25 : 1, flurryMatch = target.match(/Flurry \((\d+) @ (\d+)%\)/), flurryHitPercent = flurryMatch && (+flurryMatch[2] / 100) || 1, flurryMultiplier = flurryHitPercent, value = Math.round(maxValue * critMultiplier * targetMultiplier * flurryMultiplier);
+        var maxValue = card.maxValues[typeIndex], maxPerkPercent = bh.BattleCardRepo.getMaxPerk(card) / 100, critMultiplier = card.perks.includes("Critical") ? 1.5 * maxPerkPercent : 1, target = bh.PlayerBattleCard.parseTarget(card.typesTargets[typeIndex]), flurryMultiplier = target.flurry ? target.flurryHitMultiplier : 1, value = Math.round(maxValue * critMultiplier * target.targetMultiplier * flurryMultiplier);
         if (!value)
-            console.log(card);
+            console.log(card.name, target);
         return value;
     }
     function getPerkMultiplier(perk, card) {
         if (perk == "Critical")
             return 0;
-        return getMultiplier(perk, card);
+        var perkMultiplier = (card.perkBase + bh.BattleCardRepo.AddedPerkPerEvo * (1 + card.rarityType)) / 100;
+        return getMultiplier(perk, card, perkMultiplier);
     }
-    function getMultiplier(value, card) {
-        var parts = value.match(/([a-zA-z]+(?: [a-zA-Z]+)*)(?: (\d+)%)?(?: (\d+)T)?/), cleanValue = parts && parts[1] || value, percent = parts && parts[2] && (+parts[2] / 100) || 1, turns = parts && +parts[3] || 1, offense = card.typesTargets[0].startsWith("Damage"), flurryMatch = offense && card.typesTargets[0].match(/Flurry \((\d+) @ (\d+)%\)/), flurryCount = flurryMatch && +flurryMatch[1] || 1, flurryHitPercent = flurryMatch && (+flurryMatch[2] / 100) || 1, flurryMultiplier = flurryHitPercent * flurryCount, all = card.typesTargets.find(function (t) { return t.includes("All Allies") || t.includes("All Enemies"); });
-        if (["Regen", "Poison", "Drown", "Burn", "Bleed", "Shock"].find(function (dot) { return cleanValue == dot; }))
-            return 0;
-        if (["Cure Confuse", "Cure Poison", "Cure Burn", "Cure Bleed", "Cure Shock"].find(function (dot) { return cleanValue == dot; }))
-            return 0.1;
-        if (cleanValue.startsWith("Immunity to") || cleanValue.startsWith("Immune To"))
-            return 0.1 * turns;
-        if (cleanValue.startsWith("Weaken to"))
-            return 0.1 * turns;
-        if (cleanValue == "Warped")
-            return 0.1 * turns;
-        if (cleanValue == "Awaken")
-            return 0.1 * turns;
-        if (cleanValue == "Charm")
-            return 0.1 * turns;
-        if (["Luck Up", "Luck Down"].includes(cleanValue))
-            return 0.1 * turns;
-        if (cleanValue == "Max HP Up")
-            return 0.1 * turns;
-        if (cleanValue == "Taunt")
-            return 0.1 * turns;
-        if (cleanValue == "Stun")
-            return 0.1 * turns;
-        if (cleanValue == "Sap")
-            return 0.1 * turns;
-        if (cleanValue == "Confuse")
-            return 0.1 * turns;
-        if (cleanValue == "Recoil")
-            return -0.2;
-        if (cleanValue == "Slow")
-            return (offense ? 2 : -0.1) * turns;
-        if (cleanValue == "Shield Pierce")
-            return 0.5;
-        if (cleanValue == "Regen Break")
-            return 0.5;
-        if (cleanValue == "Shield Break")
-            return 0.5;
-        if (cleanValue == "Cure All")
-            return 0.5;
-        if (cleanValue.startsWith("Extend"))
-            return 1;
-        if (cleanValue == "Interrupt")
-            return 0.75 * flurryMultiplier;
-        if (cleanValue == "Reset")
-            return 1;
-        if (cleanValue == "Leech")
-            return 1;
-        if (cleanValue == "Trait Down")
-            return 1;
-        if (cleanValue == "Shield Bind")
-            return 1;
-        if (cleanValue == "Perfect Shot")
-            return 2;
-        if (cleanValue == "Trait Up")
-            return 2;
-        if (["Mark", "Backstab"].includes(cleanValue))
-            return turns;
-        if (cleanValue == "Chill")
-            return turns;
-        if (cleanValue == "Evade")
-            return turns;
-        if (cleanValue == "Sleep")
-            return (offense ? 1 : -0.1) * turns * (all ? 2 : 1);
-        if (cleanValue == "Haste")
-            return 2 * (all ? 3 : 2);
-        if (cleanValue == "Bamboozle")
-            return 0.2 * turns * percent;
-        if (cleanValue == "Accuracy Up")
-            return 0.5 * turns * percent;
-        if (cleanValue == "Accuracy Down")
-            return 2 * flurryMultiplier;
-        if (["Attack Up", "Attack Down", "Defence Up", "Defence Down"].includes(cleanValue))
-            return 0.25;
-        console.log(value + " (" + cleanValue + ")");
-        return 0;
+    function getMultiplier(value, card, perkMultiplier) {
+        if (perkMultiplier === void 0) { perkMultiplier = 1; }
+        var effect = new bh.GameEffect(value), target = bh.PlayerBattleCard.parseTarget(card.typesTargets[0]), multiplier = effect.value * (effect.turns || 1) * (effect.percentMultiplier || 1) * (target.flurryHitMultiplier || 1) * perkMultiplier;
+        if (effect.effect == "Haste") {
+            if (["Hoist the Colours", "Ride of the Valkyries"].includes(card.name)) {
+                multiplier * 2;
+            }
+        }
+        return multiplier || 1;
     }
 }
 function tiered() {
@@ -3334,7 +3346,7 @@ var bh;
             }
             listener.addAction = addAction;
             function init(win, host) {
-                if (host === void 0) { host = "http://brains.sth.ovh"; }
+                if (host === void 0) { host = "http://bh.elvenintrigue.com/"; }
                 return new Promise(function (res, rej) {
                     var href = String(win && win.location && win.location.href || "").toLowerCase();
                     bh.isLocal = href.includes("battlehand-hud/default.htm") || href.includes("battlehand-hud/iframe.htm");
@@ -4002,7 +4014,7 @@ var bh;
         }
         library.handleLibraryMessage = handleLibraryMessage;
         function _init() {
-            bh.host = "http://brains.sth.ovh";
+            bh.host = "http://bh.elvenintrigue.com";
             bh.data.init().then(render);
             $("body").on("click", "[data-action=\"show-card\"]", onShowCard);
             $("body").on("click", "[data-search-term]", onSearchImage);

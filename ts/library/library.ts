@@ -40,7 +40,7 @@ namespace bh {
 			}
 		}
 		function _init() {
-			bh.host = "http://brains.sth.ovh";
+			bh.host = "http://bh.elvenintrigue.com";
 			data.init().then(render);
 			$(`body`).on("click", `[data-action="show-card"]`, onShowCard);
 			$(`body`).on("click", `[data-search-term]`, onSearchImage);

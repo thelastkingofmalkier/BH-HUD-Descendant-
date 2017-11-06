@@ -5,6 +5,19 @@ namespace bh {
 			super(1134947346, false);
 		}
 
+		public static AddedPerkPerEvo = 20;
+		public static isCycleCard(card: IDataBattleCard, evo = card.rarityType + 1) {
+			if (card.turns != 1) return false;
+			if (card.effects.find(e => e == "Haste 1T")) return true;
+			if (card.perks.find(p => p == "Haste 1T") && BattleCardRepo.getPerk(card, evo) == 100) return true;
+			return false;
+		}
+		public static getPerk(card: IDataBattleCard, evo: number) {
+			return Math.min(100, card.perkBase + BattleCardRepo.AddedPerkPerEvo * evo);
+		}
+		public static getMaxPerk(card: IDataBattleCard) {
+			return BattleCardRepo.getPerk(card, 1 + card.rarityType);
+		}
 		public static calculateValue(playerCard: IPlayer.PlayerCard, typeIndex = 0): number {
 			var card = data.BattleCardRepo.find(playerCard.configId);
 			if (!card) return 0;

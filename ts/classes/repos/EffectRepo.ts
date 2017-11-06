@@ -3,7 +3,7 @@ namespace bh {
 	export class EffectRepo extends Repo<IDataEffect> {
 
 		constructor() {
-			super(901337848, true);
+			super(901337848, false);
 		}
 		protected parseTsv(tsv: string): IDataEffect[] {
 			this.data = Repo.mapTsv<IDataEffect>(tsv);

@@ -38,7 +38,7 @@ namespace bh {
 				actionItems.push({ action:action, url:url, callbackfn:callbackfn });
 			}
 
-			export function init(win: Window, host: string = "http://brains.sth.ovh") {
+			export function init(win: Window, host: string = "http://bh.elvenintrigue.com/") {
 				return new Promise<Window>((res, rej) => {
 					var href = String(win && win.location && win.location.href || "").toLowerCase();
 					isLocal = href.includes("battlehand-hud/default.htm") || href.includes("battlehand-hud/iframe.htm");

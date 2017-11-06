@@ -41,6 +41,22 @@ interface IDataBattleCard extends IHasGuid, IHasName, IHasElementType, IHasKlass
 	inPacks: boolean;
 	typesTargets: string[];
 }
+interface IDataBattleCardTarget {
+	type: GameBattleCardType;
+	target: GameBattleCardTarget;
+	offense: boolean;
+	all: boolean;
+	splash: boolean;
+	single: boolean;
+	self: boolean;
+	targetMultiplier: number;
+	flurry: boolean;
+	flurryCount: number;
+	flurryHitPercent: string;
+	flurryHitMultiplier: number;
+	flurryMultiplier: number;
+}
+
 interface IDataBoosterCard extends IHasGuid, IHasName, IHasElementType, IHasRarityType {
 	challenge?: GameBoosterCardChallenge;
 }
