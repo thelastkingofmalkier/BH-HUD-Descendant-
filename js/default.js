@@ -2121,7 +2121,7 @@ var bh;
     var DungeonRepo = (function (_super) {
         __extends(DungeonRepo, _super);
         function DungeonRepo() {
-            return _super.call(this, 451699406) || this;
+            return _super.call(this, 1980099142) || this;
         }
         DungeonRepo.prototype.parseTsv = function (tsv) {
             this.data = bh.Repo.mapTsv(tsv);
@@ -2662,6 +2662,62 @@ var bh;
         data.init = init;
     })(data = bh.data || (bh.data = {}));
 })(bh || (bh = {}));
+function numToRoman(num) {
+    switch (+num) {
+        case 1: return "I";
+        case 2: return "II";
+        case 3: return "III";
+        case 4: return "IV";
+        case 5: return "V";
+        case 6: return "VI";
+        case 7: return "VII";
+        case 8: return "VIII";
+        case 9: return "IX";
+        case 10: return "X";
+    }
+}
+function updateDungeonData() {
+    $.get("https://docs.google.com/spreadsheets/d/e/2PACX-1vRCyjBTeKjsBri_uvkFnT-i9f-jI4RUR0YffYh32XFtQfywivXktmLcmGOuXTfOQZH1sv6VTmF9Ceee/pub?gid=1815567292&single=true&output=tsv").then(function (raw) {
+        var mapped = bh.Repo.mapTsv(raw), columns = Object.keys(mapped[0]), dungeons = mapped.map(function (d) {
+            var name = d["Dungeon"] + " " + d["Difficulty"] + " " + numToRoman(d["Level"]), dungeon = bh.data.DungeonRepo.find(name);
+            if (!dungeon) {
+                dungeon = {};
+                dungeon.guid = name.replace(/\W/g, "-");
+                dungeon.name = name;
+                dungeon.dungeon = d["Dungeon"];
+                dungeon.difficulty = d["Difficulty"];
+                dungeon.act = numToRoman(d["Level"]);
+                dungeon.keys = -1;
+                dungeon.fame = -1;
+                dungeon.gold = -1;
+                dungeon.elementTypes = [];
+                dungeon.crystals = [];
+                dungeon.runes = [];
+                dungeon.mats = [];
+                dungeon.randomMats = [];
+                dungeon.boosterElementTypes = [];
+                dungeon.boosterRarities = [];
+            }
+            dungeon.keys = +d["Keys"];
+            dungeon.crystals = bh.data.ItemRepo.crystals
+                .filter(function (c) { return !!d[c.name]; })
+                .map(function (c) { return c.name.split(/\W/)[0] + "|" + d[c.name].replace(/\s+/g, "").replace(",", "|"); });
+            dungeon.mats = bh.data.ItemRepo.evoJars
+                .filter(function (item) { return !!d[item.name]; })
+                .map(function (item) { return item.name + "|" + d[item.name].replace(/\s+/g, "").replace(",", "|"); });
+            dungeon.runes = bh.data.ItemRepo.runes
+                .filter(function (r) { return !!d[r.name.startsWith("Hawk") ? "Hawkeye Air Rune" : r.name]; })
+                .map(function (r) { return r.name.split(/\W/)[0] + "|" + d[r.name.startsWith("Hawk") ? "Hawkeye Air Rune" : r.name].replace(/\s+/g, "").replace(",", "|"); });
+            return dungeon;
+        });
+        bh.data.ItemRepo.all.filter(function (item) { return !columns.includes(item.name); }).forEach(function (item) { return console.log(item.name); });
+        var tsv = "guid\tname\tdungeon\tdifficulty\tact\tkeys\tfame\tgold\telementTypes\tcrystals\trunes\tmats\trandomMats\tboosterElementTypes\tboosterRarities";
+        dungeons.forEach(function (d) {
+            tsv += "\n" + d.guid + "\t" + d.name + "\t" + d.dungeon + "\t" + d.difficulty + "\t" + d.act + "\t" + d.keys + "\t" + d.fame + "\t" + d.gold + "\t" + d.elementTypes + "\t" + d.crystals + "\t" + d.runes + "\t" + d.mats + "\t" + d.randomMats + "\t" + d.boosterElementTypes + "\t" + d.boosterRarities;
+        });
+        $("#data-output").val(tsv);
+    });
+}
 var bh;
 (function (bh) {
     var data;
@@ -4183,7 +4239,6 @@ var bh;
                 var list = tests[dungeon.guid] = [];
                 list.push(dungeon.lower);
                 dungeon.mats.forEach(function (s) { return list.push(s.toLowerCase()); });
-                dungeon.runeHeroes.forEach(function (s) { return list.push(s.toLowerCase()); });
             }
             return tests[dungeon.guid] || [];
         }
@@ -4343,8 +4398,8 @@ var bh;
                 html += "<td><span class=\"\">" + bh.getImg20("misc", "Coin") + " " + bh.utils.formatNumber(dungeon.gold) + " <small>(" + bh.utils.formatNumber(Math.round(dungeon.gold / dungeon.keys)) + " / key)</small></span></td>";
                 try {
                     html += "<td><span class=\"\">" + dungeon.elementTypes.map(function (elementType) { return "<div class=\"bh-hud-image img-" + bh.ElementType[elementType] + "\"></div>"; }).join("") + "</span></td>";
-                    html += "<td><span class=\"\">" + dungeon.crystalElementTypes.map(function (elementType) { return bh.getImg20("crystals", bh.ElementType[elementType]); }).join("") + "</span></td>";
-                    html += "<td><span class=\"\">" + dungeon.runeHeroes.map(function (heroName) { return "<div class=\"bh-hud-image img-" + bh.data.ItemRepo.runes.find(function (rune) { return rune.name.startsWith(heroName); }).guid + "\"></div>"; }).join("") + "</span></td>";
+                    html += "<td/>";
+                    html += "<td/>";
                     html += "<td><span>" + mapMatsToImages(dungeon.mats).join("") + "</span></td>";
                     html += "<td><span class=\"\">" + dungeon.randomMats.map(function (count, rarityType) { return count ? bh.getImg20("evojars", "random", bh.RarityType[rarityType] + "_Neutral_Small") + count : ""; }).join(" ") + "</span></td>";
                 }

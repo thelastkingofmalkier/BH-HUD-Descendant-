@@ -84,8 +84,8 @@ interface IDataDungeon extends IHasGuidAndName {
 	fame: number;
 	gold: number;
 	elementTypes: bh.ElementType[];
-	crystalElementTypes: bh.ElementType[];
-	runeHeroes: string[];
+	crystals: string[];
+	runes: string[];
 	mats: string[];
 	randomMats: number[];
 	boosterElementTypes: bh.ElementType[];

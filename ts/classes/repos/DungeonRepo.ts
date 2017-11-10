@@ -2,7 +2,7 @@
 namespace bh {
 	export class DungeonRepo extends Repo<IDataDungeon> {
 		constructor() {
-			super(451699406);
+			super(1980099142);
 		}
 		protected parseTsv(tsv: string): IDataDungeon[] {
 			this.data = Repo.mapTsv<IDataDungeon>(tsv);
