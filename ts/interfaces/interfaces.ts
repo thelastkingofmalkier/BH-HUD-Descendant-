@@ -54,7 +54,7 @@ interface IDataBattleCardTarget {
 	flurryCount: number;
 	flurryHitPercent: string;
 	flurryHitMultiplier: number;
-	flurryMultiplier: number;
+	// flurryMultiplier: number;
 }
 
 interface IDataBoosterCard extends IHasGuid, IHasName, IHasElementType, IHasRarityType {

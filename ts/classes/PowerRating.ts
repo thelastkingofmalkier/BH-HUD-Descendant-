@@ -77,6 +77,11 @@ namespace bh {
 				level = RarityLevels[key];
 			return PowerRating.ratePlayerCard(<any>{ configId:battleCard.guid, evolutionLevel:evo, level:level-1 });
 		}
+		public static rateAndSort(cards: IDataBattleCard[]): {card:IDataBattleCard,powerRating:number}[] {
+			var rated = cards.map(card => { return { card:card, powerRating:PowerRating.rateMaxedBattleCard(card) }; });
+			rated.sort((a, b) => { return b.powerRating - a.powerRating; });
+			return rated;
+		}
 		public static ratePlayerCard(playerCard: IPlayer.PlayerCard) {
 			var card = data.BattleCardRepo.find(playerCard.configId),
 				multiplier = PowerRating.tierToMultiplier(card && card.tier || ""),

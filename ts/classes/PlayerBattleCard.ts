@@ -163,12 +163,12 @@ namespace bh {
 				splash: splash,
 				single: single,
 				self: self,
-				targetMultiplier: all ? 2 : splash ? 1.5 : single ? 1.25 : self ? 1 : 0,
+				targetMultiplier: all ? offense? 3 : 2 : splash ? offense ? 2 : 1.5 : single ? offense ? 1 : 1.25 : self ? 1 : 0,
 				flurry: !!flurryMatch,
 				flurryCount: flurryCount,
 				flurryHitPercent: flurryHitPercent,
-				flurryHitMultiplier: flurryHitMultiplier,
-				flurryMultiplier: flurryCount * flurryHitMultiplier
+				flurryHitMultiplier: flurryHitMultiplier //,
+				// flurryMultiplier: flurryCount * flurryHitMultiplier
 			};
 		}
 	}

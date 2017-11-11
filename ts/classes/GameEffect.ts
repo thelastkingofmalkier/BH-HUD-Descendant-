@@ -15,6 +15,9 @@ namespace bh {
 			this.turns = parts && +parts[3] || null;
 			this.value = effect && effect.value;
 		}
-		public static parse(value: string) { return new GameEffect(value); }
+		public static parse(value: string) {
+			var gameEffect = new GameEffect(value);
+			return gameEffect.effect && gameEffect || null;
+		}
 	}
 }

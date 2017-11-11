@@ -137,7 +137,10 @@ var bh;
             this.turns = parts && +parts[3] || null;
             this.value = effect && effect.value;
         }
-        GameEffect.parse = function (value) { return new GameEffect(value); };
+        GameEffect.parse = function (value) {
+            var gameEffect = new GameEffect(value);
+            return gameEffect.effect && gameEffect || null;
+        };
         return GameEffect;
     }());
     bh.GameEffect = GameEffect;
@@ -893,12 +896,11 @@ var bh;
                 splash: splash,
                 single: single,
                 self: self,
-                targetMultiplier: all ? 2 : splash ? 1.5 : single ? 1.25 : self ? 1 : 0,
+                targetMultiplier: all ? offense ? 3 : 2 : splash ? offense ? 2 : 1.5 : single ? offense ? 1 : 1.25 : self ? 1 : 0,
                 flurry: !!flurryMatch,
                 flurryCount: flurryCount,
                 flurryHitPercent: flurryHitPercent,
-                flurryHitMultiplier: flurryHitMultiplier,
-                flurryMultiplier: flurryCount * flurryHitMultiplier
+                flurryHitMultiplier: flurryHitMultiplier
             };
         };
         return PlayerBattleCard;
@@ -1708,6 +1710,11 @@ var bh;
             var key = bh.RarityType[battleCard.rarityType], evo = RarityEvolutions[key], level = RarityLevels[key];
             return PowerRating.ratePlayerCard({ configId: battleCard.guid, evolutionLevel: evo, level: level - 1 });
         };
+        PowerRating.rateAndSort = function (cards) {
+            var rated = cards.map(function (card) { return { card: card, powerRating: PowerRating.rateMaxedBattleCard(card) }; });
+            rated.sort(function (a, b) { return b.powerRating - a.powerRating; });
+            return rated;
+        };
         PowerRating.ratePlayerCard = function (playerCard) {
             var card = bh.data.BattleCardRepo.find(playerCard.configId), multiplier = PowerRating.tierToMultiplier(card && card.tier || ""), score = calculateCardScore(card && card.rarityType || bh.RarityType.Common, playerCard.evolutionLevel, playerCard.level + 1, multiplier);
             return score;
@@ -2508,87 +2515,64 @@ function updateCardData() {
         });
     }
 }
-function rateCards() {
+function rateCards(max) {
+    if (max === void 0) { max = true; }
     var cards = bh.data.BattleCardRepo.all;
     var scores = cards.map(function (card) {
         var scoreCard = { card: card, score: 10, effectMultipliers: [] };
         card.typesTargets.forEach(function (type, typeIndex) {
-            scoreCard.score += calcTestScore(card, typeIndex);
+            scoreCard.score += calcTestScore(card, typeIndex, max);
         });
         return scoreCard;
     });
-    scores.sort(function (a, b) { return a.score < b.score ? 1 : a.score == b.score ? 0 : -1; });
-    $("textarea").val(scores.map(function (s, i) { return (i + 1) + ": " + s.card.name + (s.card.rarityType == bh.RarityType.Legendary ? " (L)" : ""); }).slice(0, 30).join(", "));
+    scores.sort(function (a, b) { return b.score - a.score; });
+    $("textarea").val(scores.map(function (s, i) { return (i + 1) + ": " + s.card.name + (s.card.rarityType == bh.RarityType.Legendary ? " (L)" : ""); }).slice(0, 30).join("\n"));
     $("#data-output").val(scores.map(function (score) { return score.score + " > " + bh.RarityType[score.card.rarityType][0] + " " + score.card.name + " (" + score.card.turns + "; " + score.card.typesTargets.concat(score.card.effects).concat(score.card.perks.map(function (p) { return p + " (" + (score.card.perkBase + 20 * (1 + score.card.rarityType)) + "%)"; })) + ")"; }).join("\n"));
-    function calcTestScore(card, typeIndex) {
-        var target = bh.PlayerBattleCard.parseTarget(card.typesTargets[typeIndex]), targetMultiplier = target.all ? 2 : target.splash ? 1.5 : target.single ? 1.25 : 1, turns = card.turns, regen = card.effects.concat(card.perks).find(function (s) { return s.startsWith("Regen"); }), regenEffect = regen ? new bh.GameEffect(regen) : null, regenDivisor = regen && regenEffect.turns || 1, shieldDivisor = card.typesTargets[typeIndex].startsWith("Shield") ? 2 : 1, healDivisor = card.typesTargets[typeIndex].startsWith("Heal") ? 3 * regenDivisor : 1, perkMultiplier = Math.min((card.perkBase + bh.BattleCardRepo.AddedPerkPerEvo * (1 + card.rarityType)), 100) / 100, value = calcValue(card, typeIndex) / shieldDivisor / healDivisor / 888 / turns, effectPoints = 0, perkPoints = 0;
-        card.effects.forEach(function (effect) { return effectPoints += getPoints(effect); });
-        card.perks.forEach(function (perk) { return perkPoints += getPoints(perk) * perkMultiplier; });
-        return Math.round((value + effectPoints + perkPoints) * targetMultiplier - turns);
+    return scores;
+    function calcTestScore(card, typeIndex, max) {
+        var target = bh.PlayerBattleCard.parseTarget(card.typesTargets[typeIndex]), offense = card.typesTargets[typeIndex].startsWith("Damage"), targetMultiplier = target.all ? offense ? 3 : 2 : target.splash ? 1.5 : target.single ? 1.25 : 1, turns = card.turns, regen = card.effects.concat(card.perks).find(function (s) { return s.startsWith("Regen"); }), regenEffect = regen ? new bh.GameEffect(regen) : null, regenDivisor = regen && regenEffect.turns || 1, shieldDivisor = card.typesTargets[typeIndex].startsWith("Shield") ? 2 : 1, healDivisor = card.typesTargets[typeIndex].startsWith("Heal") ? 3 * regenDivisor : 1, perkMultiplier = (max ? bh.BattleCardRepo.getMaxPerk(card) : bh.BattleCardRepo.getPerk(card, 0)) / 100, value = calcValue(card, typeIndex, max) / shieldDivisor / healDivisor / 888, effectPoints = 0, perkPoints = 0;
+        card.effects.forEach(function (effect) { return effectPoints += getPoints(effect) * targetMultiplier; });
+        card.perks.forEach(function (perk) { return perkPoints += getPoints(perk) * perkMultiplier * targetMultiplier; });
+        return Math.round((value + effectPoints + perkPoints) / turns - turns);
         function getPoints(value) {
-            var gameEffect = new bh.GameEffect(value), effect = gameEffect.effect, offense = card.typesTargets[typeIndex].startsWith("Damage");
-            if (gameEffect) {
+            var gameEffect = bh.GameEffect.parse(value), effect = gameEffect && gameEffect.effect || null, offense = card.typesTargets[typeIndex].startsWith("Damage");
+            if (effect && !["Critical", "Regen"].includes(effect)) {
                 if (offense) {
                     if (["Interrupt", "Burn", "Bleed", "Shock", "Poison", "Backstab"].includes(effect))
                         return 1;
                     if (["Sap", "Drown"].includes(effect))
                         return 2;
-                    if (["Mark"].includes(effect))
+                    if (["Mark", "Sleep"].includes(effect))
                         return gameEffect.turns;
-                    if (["Sleep"].includes(effect))
-                        return gameEffect.turns * target.targetMultiplier;
-                    if (effect == "Accuracy Down" && gameEffect.percentMultiplier == 1)
-                        return gameEffect.turns;
+                    if (["Accuracy Down"].includes(effect))
+                        return gameEffect.turns * gameEffect.percentMultiplier;
                 }
                 else {
+                    if (["Slow"].includes(effect))
+                        return -1;
                     if (["Cure All"].includes(effect))
                         return 1;
-                    if (["Haste", "Trait Up"].includes(effect))
-                        return 2 * target.targetMultiplier;
                     if (["Evade"].includes(effect))
                         return gameEffect.turns;
                 }
+                if (["Attack Up"].includes(effect))
+                    return 0.5 * gameEffect.turns;
+                if (["Haste", "Trait Up", "Speed Up"].includes(effect))
+                    return 2;
+                console.log(effect);
+                return 0.5;
             }
             return 0;
         }
     }
-    function calcDotValue(card, typeIndex) {
-        var damageValue = calcValue(card, typeIndex), maxPerkMultiplier = bh.BattleCardRepo.getMaxPerk(card) / 100, value = 0;
-        card.effects.forEach(function (effect) { return value += damageValue * calcDotMultiplier(effect); });
-        card.perks.forEach(function (perk) { return value += damageValue * calcDotMultiplier(perk) * maxPerkMultiplier; });
-        return value;
-    }
-    function calcDotMultiplier(effect) {
-        var gameEffect = new bh.GameEffect(effect), multiplier = 0;
-        if (["Burn", "Bleed", "Shock", "Poison"].includes(gameEffect.effect)) {
-            multiplier = gameEffect.turns < 3 ? 0.7 : gameEffect.turns == 3 ? 0.6 : 0.5;
+    function calcValue(card, typeIndex, max) {
+        var baseValue = max ? card.maxValues[typeIndex] : card.minValues[typeIndex][0], perkMultiplier = (max ? bh.BattleCardRepo.getMaxPerk(card) : bh.BattleCardRepo.getPerk(card, 0)) / 100, critMultiplier = card.perks.includes("Critical") ? 1.5 * perkMultiplier : 1, target = bh.PlayerBattleCard.parseTarget(card.typesTargets[typeIndex]), value = Math.round(baseValue * critMultiplier * target.targetMultiplier);
+        if (target.flurry) {
+            value = value / target.flurryCount * target.flurryHitMultiplier * target.flurryCount;
         }
-        else if (["Sap", "Drown"].includes(gameEffect.effect)) {
-            multiplier = gameEffect.turns < 2 ? 1.2 : gameEffect.turns == 3 ? 1.1 : 1.0;
-        }
-        return multiplier;
-    }
-    function calcValue(card, typeIndex) {
-        var maxValue = card.maxValues[typeIndex], maxPerkPercent = bh.BattleCardRepo.getMaxPerk(card) / 100, critMultiplier = card.perks.includes("Critical") ? 1.5 * maxPerkPercent : 1, target = bh.PlayerBattleCard.parseTarget(card.typesTargets[typeIndex]), flurryMultiplier = target.flurry ? target.flurryHitMultiplier : 1, value = Math.round(maxValue * critMultiplier * target.targetMultiplier * flurryMultiplier);
         if (!value)
             console.log(card.name, target);
         return value;
-    }
-    function getPerkMultiplier(perk, card) {
-        if (perk == "Critical")
-            return 0;
-        var perkMultiplier = (card.perkBase + bh.BattleCardRepo.AddedPerkPerEvo * (1 + card.rarityType)) / 100;
-        return getMultiplier(perk, card, perkMultiplier);
-    }
-    function getMultiplier(value, card, perkMultiplier) {
-        if (perkMultiplier === void 0) { perkMultiplier = 1; }
-        var effect = new bh.GameEffect(value), target = bh.PlayerBattleCard.parseTarget(card.typesTargets[0]), multiplier = effect.value * (effect.turns || 1) * (effect.percentMultiplier || 1) * (target.flurryHitMultiplier || 1) * perkMultiplier;
-        if (effect.effect == "Haste") {
-            if (["Hoist the Colours", "Ride of the Valkyries"].includes(card.name)) {
-                multiplier * 2;
-            }
-        }
-        return multiplier || 1;
     }
 }
 function tiered() {
