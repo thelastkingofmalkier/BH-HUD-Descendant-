@@ -36,27 +36,27 @@ function updateCardData() {
 		});
 		$("#data-output").val(tsv)
 	});
-	function effectTypeToTarget(value: string): GameBattleCardTarget[] {
-		return value.split("/").map(s => s.trim()).filter(s => !!s).map(s => {
-			// var gameTarget = totar
-			var parts = s.split(" "),
-				all = parts[1] == "All",
-				single = parts[1] == "Single",
-				splash = parts[1] == "Splash",
-				self = parts[1] == "Self";
-			if (s.includes("Flurry")) {
-				if (self) { return "Self Flurry"; }
-				if (all) { return "Multi Flurry"; }
-				if (single) { return "Single Flurry"; }
-			}
-			if (self) { return "Self"; }
-			if (single) { return "Single"; }
-			if (all) { return "Multi"; }
-			if (splash) { return "Splash"; }
-			console.log(`Target of "${s}"`);
-			return <any>s;
-		});
-	}
+	// function effectTypeToTarget(value: string): GameBattleCardTarget[] {
+	// 	return value.split("/").map(s => s.trim()).filter(s => !!s).map(s => {
+	// 		// var gameTarget = totar
+	// 		var parts = s.split(" "),
+	// 			all = parts[1] == "All",
+	// 			single = parts[1] == "Single",
+	// 			splash = parts[1] == "Splash",
+	// 			self = parts[1] == "Self";
+	// 		if (s.includes("Flurry")) {
+	// 			if (self) { return "Self Flurry"; }
+	// 			if (all) { return "Multi Flurry"; }
+	// 			if (single) { return "Single Flurry"; }
+	// 		}
+	// 		if (self) { return "Self"; }
+	// 		if (single) { return "Single"; }
+	// 		if (all) { return "Multi"; }
+	// 		if (splash) { return "Splash"; }
+	// 		console.log(`Target of "${s}"`);
+	// 		return <any>s;
+	// 	});
+	// }
 }
 
 interface ICardScore { card:IDataBattleCard; score:number; effectMultipliers:number[]; }
@@ -76,8 +76,6 @@ function rateCards(max = true) {
 
 	function calcTestScore(card: IDataBattleCard, typeIndex: number, max: boolean) {
 		var target = bh.PlayerBattleCard.parseTarget(card.typesTargets[typeIndex]),
-			offense = card.typesTargets[typeIndex].startsWith("Damage"),
-			targetMultiplier = target.all ? offense ? 3 : 2 : target.splash ? 1.5 : target.single ? 1.25 : 1,
 			turns = card.turns,
 			regen = card.effects.concat(card.perks).find(s => s.startsWith("Regen")),
 			regenEffect = regen ? new bh.GameEffect(regen) : null,
@@ -88,16 +86,15 @@ function rateCards(max = true) {
 			value = calcValue(card, typeIndex, max) / shieldDivisor / healDivisor / 888,
 			effectPoints = 0,
 			perkPoints = 0;
-		card.effects.forEach(effect => effectPoints += getPoints(effect) * targetMultiplier);
-		card.perks.forEach(perk => perkPoints += getPoints(perk) * perkMultiplier * targetMultiplier);
+		card.effects.forEach(effect => effectPoints += getPoints(effect) * target.targetMultiplier);
+		card.perks.forEach(perk => perkPoints += getPoints(perk) * perkMultiplier * target.targetMultiplier);
 		return Math.round((value + effectPoints + perkPoints) / turns - turns);
 
 		function getPoints(value: string) {
 			var gameEffect = bh.GameEffect.parse(value),
-				effect = gameEffect && gameEffect.effect || null,
-				offense = card.typesTargets[typeIndex].startsWith("Damage");
+				effect = gameEffect && gameEffect.effect || null;
 			if (effect && !["Critical", "Regen"].includes(effect)) {
-				if (offense) {
+				if (target.offense) {
 					if (["Interrupt", "Burn", "Bleed", "Shock", "Poison", "Backstab"].includes(effect)) return 1;
 					if (["Sap", "Drown"].includes(effect)) return 2;
 					if (["Mark", "Sleep"].includes(effect)) return gameEffect.turns;

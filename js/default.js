@@ -2484,36 +2484,6 @@ function updateCardData() {
         });
         $("#data-output").val(tsv);
     });
-    function effectTypeToTarget(value) {
-        return value.split("/").map(function (s) { return s.trim(); }).filter(function (s) { return !!s; }).map(function (s) {
-            var parts = s.split(" "), all = parts[1] == "All", single = parts[1] == "Single", splash = parts[1] == "Splash", self = parts[1] == "Self";
-            if (s.includes("Flurry")) {
-                if (self) {
-                    return "Self Flurry";
-                }
-                if (all) {
-                    return "Multi Flurry";
-                }
-                if (single) {
-                    return "Single Flurry";
-                }
-            }
-            if (self) {
-                return "Self";
-            }
-            if (single) {
-                return "Single";
-            }
-            if (all) {
-                return "Multi";
-            }
-            if (splash) {
-                return "Splash";
-            }
-            console.log("Target of \"" + s + "\"");
-            return s;
-        });
-    }
 }
 function rateCards(max) {
     if (max === void 0) { max = true; }
