@@ -65,7 +65,7 @@ function rateCards(max = true) {
 	var scores = cards.map(card => {
 		var scoreCard: ICardScore = { card:card, score:10, effectMultipliers:[] };
 		card.typesTargets.forEach((type, typeIndex) => {
-			scoreCard.score += calcTestScore(card, typeIndex, max);
+			scoreCard.score += calcTestScore(card, typeIndex, max ? card.rarityType : 0, max ? bh.BattleCardRepo.getLevelsForRarity(card.rarityType) - 1 : 0);
 		});
 		return scoreCard;
 	});
@@ -74,16 +74,16 @@ function rateCards(max = true) {
 	$("#data-output").val(scores.map(score => `${score.score} > ${bh.RarityType[score.card.rarityType][0]} ${score.card.name} (${score.card.turns}; ${score.card.typesTargets.concat(score.card.effects).concat(score.card.perks.map(p => p + " (" + (score.card.perkBase+20*(1+score.card.rarityType)) + "%)"))})`).join("\n"));
 	return scores;
 
-	function calcTestScore(card: IDataBattleCard, typeIndex: number, max: boolean) {
+	function calcTestScore(card: IDataBattleCard, typeIndex: number, evo: number, level: number) {
 		var target = bh.PlayerBattleCard.parseTarget(card.typesTargets[typeIndex]),
 			turns = card.turns,
 			regen = card.effects.concat(card.perks).find(s => s.startsWith("Regen")),
 			regenEffect = regen ? new bh.GameEffect(regen) : null,
 			regenDivisor = regen && regenEffect.turns || 1,
-			shieldDivisor = card.typesTargets[typeIndex].startsWith("Shield") ? 2 : 1,
-			healDivisor = card.typesTargets[typeIndex].startsWith("Heal") ? 3 * regenDivisor : 1,
-			perkMultiplier = (max ? bh.BattleCardRepo.getMaxPerk(card) : bh.BattleCardRepo.getPerk(card, 0)) / 100,
-			value = calcValue(card, typeIndex, max) / shieldDivisor / healDivisor / 888,
+			shieldDivisor = target.type == "Shield" ? 2 : 1,
+			healDivisor = target.type == "Heal" ? 3 * regenDivisor : 1,
+			perkMultiplier = bh.BattleCardRepo.getPerk(card, evo) / 100,
+			value = calcValue(card, typeIndex, evo, level) / shieldDivisor / healDivisor / 888,
 			effectPoints = 0,
 			perkPoints = 0;
 		card.effects.forEach(effect => effectPoints += getPoints(effect) * target.targetMultiplier);
@@ -113,9 +113,9 @@ function rateCards(max = true) {
 			return 0;
 		}
 	}
-	function calcValue(card: IDataBattleCard, typeIndex: number, max: boolean) {
-		var baseValue = max ? card.maxValues[typeIndex] : card.minValues[typeIndex][0],
-			perkMultiplier = (max ? bh.BattleCardRepo.getMaxPerk(card) : bh.BattleCardRepo.getPerk(card, 0)) / 100,
+	function calcValue(card: IDataBattleCard, typeIndex: number, evo: number, level: number) {
+		var baseValue = bh.BattleCardRepo.calculateValue(<any>{configId:card.guid,evolutionLevel:evo,level:level}),
+			perkMultiplier = bh.BattleCardRepo.getPerk(card, evo) / 100,
 			critMultiplier = card.perks.includes("Critical") ? 1.5 * perkMultiplier : 1,
 			target = bh.PlayerBattleCard.parseTarget(card.typesTargets[typeIndex]),
 			value = Math.round(baseValue * critMultiplier * target.targetMultiplier);

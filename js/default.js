@@ -2491,7 +2491,7 @@ function rateCards(max) {
     var scores = cards.map(function (card) {
         var scoreCard = { card: card, score: 10, effectMultipliers: [] };
         card.typesTargets.forEach(function (type, typeIndex) {
-            scoreCard.score += calcTestScore(card, typeIndex, max);
+            scoreCard.score += calcTestScore(card, typeIndex, max ? card.rarityType : 0, max ? bh.BattleCardRepo.getLevelsForRarity(card.rarityType) - 1 : 0);
         });
         return scoreCard;
     });
@@ -2499,15 +2499,15 @@ function rateCards(max) {
     $("textarea").val(scores.map(function (s, i) { return (i + 1) + ": " + s.card.name + (s.card.rarityType == bh.RarityType.Legendary ? " (L)" : ""); }).slice(0, 30).join("\n"));
     $("#data-output").val(scores.map(function (score) { return score.score + " > " + bh.RarityType[score.card.rarityType][0] + " " + score.card.name + " (" + score.card.turns + "; " + score.card.typesTargets.concat(score.card.effects).concat(score.card.perks.map(function (p) { return p + " (" + (score.card.perkBase + 20 * (1 + score.card.rarityType)) + "%)"; })) + ")"; }).join("\n"));
     return scores;
-    function calcTestScore(card, typeIndex, max) {
-        var target = bh.PlayerBattleCard.parseTarget(card.typesTargets[typeIndex]), offense = card.typesTargets[typeIndex].startsWith("Damage"), targetMultiplier = target.all ? offense ? 3 : 2 : target.splash ? 1.5 : target.single ? 1.25 : 1, turns = card.turns, regen = card.effects.concat(card.perks).find(function (s) { return s.startsWith("Regen"); }), regenEffect = regen ? new bh.GameEffect(regen) : null, regenDivisor = regen && regenEffect.turns || 1, shieldDivisor = card.typesTargets[typeIndex].startsWith("Shield") ? 2 : 1, healDivisor = card.typesTargets[typeIndex].startsWith("Heal") ? 3 * regenDivisor : 1, perkMultiplier = (max ? bh.BattleCardRepo.getMaxPerk(card) : bh.BattleCardRepo.getPerk(card, 0)) / 100, value = calcValue(card, typeIndex, max) / shieldDivisor / healDivisor / 888, effectPoints = 0, perkPoints = 0;
-        card.effects.forEach(function (effect) { return effectPoints += getPoints(effect) * targetMultiplier; });
-        card.perks.forEach(function (perk) { return perkPoints += getPoints(perk) * perkMultiplier * targetMultiplier; });
+    function calcTestScore(card, typeIndex, evo, level) {
+        var target = bh.PlayerBattleCard.parseTarget(card.typesTargets[typeIndex]), turns = card.turns, regen = card.effects.concat(card.perks).find(function (s) { return s.startsWith("Regen"); }), regenEffect = regen ? new bh.GameEffect(regen) : null, regenDivisor = regen && regenEffect.turns || 1, shieldDivisor = target.type == "Shield" ? 2 : 1, healDivisor = target.type == "Heal" ? 3 * regenDivisor : 1, perkMultiplier = bh.BattleCardRepo.getPerk(card, evo) / 100, value = calcValue(card, typeIndex, evo, level) / shieldDivisor / healDivisor / 888, effectPoints = 0, perkPoints = 0;
+        card.effects.forEach(function (effect) { return effectPoints += getPoints(effect) * target.targetMultiplier; });
+        card.perks.forEach(function (perk) { return perkPoints += getPoints(perk) * perkMultiplier * target.targetMultiplier; });
         return Math.round((value + effectPoints + perkPoints) / turns - turns);
         function getPoints(value) {
-            var gameEffect = bh.GameEffect.parse(value), effect = gameEffect && gameEffect.effect || null, offense = card.typesTargets[typeIndex].startsWith("Damage");
+            var gameEffect = bh.GameEffect.parse(value), effect = gameEffect && gameEffect.effect || null;
             if (effect && !["Critical", "Regen"].includes(effect)) {
-                if (offense) {
+                if (target.offense) {
                     if (["Interrupt", "Burn", "Bleed", "Shock", "Poison", "Backstab"].includes(effect))
                         return 1;
                     if (["Sap", "Drown"].includes(effect))
@@ -2535,8 +2535,8 @@ function rateCards(max) {
             return 0;
         }
     }
-    function calcValue(card, typeIndex, max) {
-        var baseValue = max ? card.maxValues[typeIndex] : card.minValues[typeIndex][0], perkMultiplier = (max ? bh.BattleCardRepo.getMaxPerk(card) : bh.BattleCardRepo.getPerk(card, 0)) / 100, critMultiplier = card.perks.includes("Critical") ? 1.5 * perkMultiplier : 1, target = bh.PlayerBattleCard.parseTarget(card.typesTargets[typeIndex]), value = Math.round(baseValue * critMultiplier * target.targetMultiplier);
+    function calcValue(card, typeIndex, evo, level) {
+        var baseValue = bh.BattleCardRepo.calculateValue({ configId: card.guid, evolutionLevel: evo, level: level }), perkMultiplier = bh.BattleCardRepo.getPerk(card, evo) / 100, critMultiplier = card.perks.includes("Critical") ? 1.5 * perkMultiplier : 1, target = bh.PlayerBattleCard.parseTarget(card.typesTargets[typeIndex]), value = Math.round(baseValue * critMultiplier * target.targetMultiplier);
         if (target.flurry) {
             value = value / target.flurryCount * target.flurryHitMultiplier * target.flurryCount;
         }
