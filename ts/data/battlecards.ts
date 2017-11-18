@@ -59,72 +59,71 @@ function updateCardData() {
 	// }
 }
 
-interface ICardScore { card:IDataBattleCard; score:number; effectMultipliers:number[]; }
+interface ICardScore { card:IDataBattleCard; score:number; }
 function rateCards(max = true) {
 	var cards = bh.data.BattleCardRepo.all;
-	var scores = cards.map(card => {
-		var scoreCard: ICardScore = { card:card, score:10, effectMultipliers:[] };
-		card.typesTargets.forEach((type, typeIndex) => {
-			scoreCard.score += calcTestScore(card, typeIndex, max ? card.rarityType : 0, max ? bh.BattleCardRepo.getLevelsForRarity(card.rarityType) - 1 : 0);
-		});
-		return scoreCard;
+	var scores: ICardScore[] = cards.map(card => {
+		var playerCard: IPlayer.PlayerCard = <any> { configId:card.guid };
+		playerCard.evolutionLevel = max ? card.rarityType : 0;
+		playerCard.level = max ? bh.BattleCardRepo.getLevelsForRarity(card.rarityType) - 1 : 0;
+		return { card:card, score:10 + bh.PowerRating.ratePlayerCard(playerCard) };
 	});
 	scores.sort((a, b) => b.score - a.score);
 	$("textarea").val(scores.map((s, i) => (i+1) + ": " + s.card.name + (s.card.rarityType == bh.RarityType.Legendary?" (L)":"")).slice(0, 30).join("\n"));
 	$("#data-output").val(scores.map(score => `${score.score} > ${bh.RarityType[score.card.rarityType][0]} ${score.card.name} (${score.card.turns}; ${score.card.typesTargets.concat(score.card.effects).concat(score.card.perks.map(p => p + " (" + (score.card.perkBase+20*(1+score.card.rarityType)) + "%)"))})`).join("\n"));
 	return scores;
 
-	function calcTestScore(card: IDataBattleCard, typeIndex: number, evo: number, level: number) {
-		var target = bh.PlayerBattleCard.parseTarget(card.typesTargets[typeIndex]),
-			turns = card.turns,
-			regen = card.effects.concat(card.perks).find(s => s.startsWith("Regen")),
-			regenEffect = regen ? new bh.GameEffect(regen) : null,
-			regenDivisor = regen && regenEffect.turns || 1,
-			shieldDivisor = target.type == "Shield" ? 2 : 1,
-			healDivisor = target.type == "Heal" ? 3 * regenDivisor : 1,
-			perkMultiplier = bh.BattleCardRepo.getPerk(card, evo) / 100,
-			value = calcValue(card, typeIndex, evo, level) / shieldDivisor / healDivisor / 888,
-			effectPoints = 0,
-			perkPoints = 0;
-		card.effects.forEach(effect => effectPoints += getPoints(effect) * target.targetMultiplier);
-		card.perks.forEach(perk => perkPoints += getPoints(perk) * perkMultiplier * target.targetMultiplier);
-		return Math.round((value + effectPoints + perkPoints) / turns - turns);
+	// function calcTestScore(card: IDataBattleCard, typeIndex: number, evo: number, level: number) {
+	// 	var target = bh.PlayerBattleCard.parseTarget(card.typesTargets[typeIndex]),
+	// 		turns = card.turns,
+	// 		regen = card.effects.concat(card.perks).find(s => s.startsWith("Regen")),
+	// 		regenEffect = regen ? new bh.GameEffect(regen) : null,
+	// 		regenDivisor = regen && regenEffect.turns || 1,
+	// 		shieldDivisor = target.type == "Shield" ? 2 : 1,
+	// 		healDivisor = target.type == "Heal" ? 3 * regenDivisor : 1,
+	// 		perkMultiplier = bh.BattleCardRepo.getPerk(card, evo) / 100,
+	// 		value = calcValue(card, typeIndex, evo, level) / shieldDivisor / healDivisor / 888,
+	// 		effectPoints = 0,
+	// 		perkPoints = 0;
+	// 	card.effects.forEach(effect => effectPoints += getPoints(effect) * target.targetMultiplier);
+	// 	card.perks.forEach(perk => perkPoints += getPoints(perk) * perkMultiplier * target.targetMultiplier);
+	// 	return Math.round((value + effectPoints + perkPoints) / turns - turns);
 
-		function getPoints(value: string) {
-			var gameEffect = bh.GameEffect.parse(value),
-				effect = gameEffect && gameEffect.effect || null;
-			if (effect && !["Critical", "Regen"].includes(effect)) {
-				if (target.offense) {
-					if (["Interrupt", "Burn", "Bleed", "Shock", "Poison", "Backstab"].includes(effect)) return 1;
-					if (["Sap", "Drown"].includes(effect)) return 2;
-					if (["Mark", "Sleep"].includes(effect)) return gameEffect.turns;
-					if (["Accuracy Down"].includes(effect)) return gameEffect.turns * gameEffect.percentMultiplier;
-				}else {
-					if (["Slow"].includes(effect)) return -1;
-					if (["Cure All"].includes(effect)) return 1;
-					if (["Evade"].includes(effect)) return gameEffect.turns;
-				}
-				if (["Attack Up"].includes(effect)) return 0.5 * gameEffect.turns;
-				if (["Haste", "Trait Up", "Speed Up"].includes(effect)) return 2;
-				// Trait up should scale by level ... assume level 50 = 100% and 1 = 0%
-				console.log(effect);
-				return 0.5;// * gameEffect.turns;
-			}
-			return 0;
-		}
-	}
-	function calcValue(card: IDataBattleCard, typeIndex: number, evo: number, level: number) {
-		var baseValue = bh.BattleCardRepo.calculateValue(<any>{configId:card.guid,evolutionLevel:evo,level:level}),
-			perkMultiplier = bh.BattleCardRepo.getPerk(card, evo) / 100,
-			critMultiplier = card.perks.includes("Critical") ? 1.5 * perkMultiplier : 1,
-			target = bh.PlayerBattleCard.parseTarget(card.typesTargets[typeIndex]),
-			value = Math.round(baseValue * critMultiplier * target.targetMultiplier);
-		if (target.flurry) {
-			value = value / target.flurryCount * target.flurryHitMultiplier * target.flurryCount;
-		}
-		if (!value) console.log(card.name, target);
-		return value;
-	}
+	// 	function getPoints(value: string) {
+	// 		var gameEffect = bh.GameEffect.parse(value),
+	// 			effect = gameEffect && gameEffect.effect || null;
+	// 		if (effect && !["Critical", "Regen"].includes(effect)) {
+	// 			if (target.offense) {
+	// 				if (["Interrupt", "Burn", "Bleed", "Shock", "Poison", "Backstab"].includes(effect)) return 1;
+	// 				if (["Sap", "Drown"].includes(effect)) return 2;
+	// 				if (["Mark", "Sleep"].includes(effect)) return gameEffect.turns;
+	// 				if (["Accuracy Down"].includes(effect)) return gameEffect.turns * gameEffect.percentMultiplier;
+	// 			}else {
+	// 				if (["Slow"].includes(effect)) return -1;
+	// 				if (["Cure All"].includes(effect)) return 1;
+	// 				if (["Evade"].includes(effect)) return gameEffect.turns;
+	// 			}
+	// 			if (["Attack Up"].includes(effect)) return 0.5 * gameEffect.turns;
+	// 			if (["Haste", "Trait Up", "Speed Up"].includes(effect)) return 2;
+	// 			// Trait up should scale by level ... assume level 50 = 100% and 1 = 0%
+	// 			console.log(effect);
+	// 			return 0.5;// * gameEffect.turns;
+	// 		}
+	// 		return 0;
+	// 	}
+	// }
+	// function calcValue(card: IDataBattleCard, typeIndex: number, evo: number, level: number) {
+	// 	var baseValue = bh.BattleCardRepo.calculateValue(<any>{configId:card.guid,evolutionLevel:evo,level:level}),
+	// 		perkMultiplier = bh.BattleCardRepo.getPerk(card, evo) / 100,
+	// 		critMultiplier = card.perks.includes("Critical") ? 1.5 * perkMultiplier : 1,
+	// 		target = bh.PlayerBattleCard.parseTarget(card.typesTargets[typeIndex]),
+	// 		value = Math.round(baseValue * critMultiplier * target.targetMultiplier);
+	// 	if (target.flurry) {
+	// 		value = value / target.flurryCount * target.flurryHitMultiplier * target.flurryCount;
+	// 	}
+	// 	if (!value) console.log(card.name, target);
+	// 	return value;
+	// }
 }
 function tiered() {
 	var tiered: { [tier: string]:IDataBattleCard[]; } = { };

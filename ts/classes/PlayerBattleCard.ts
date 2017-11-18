@@ -167,8 +167,7 @@ namespace bh {
 				flurry: !!flurryMatch,
 				flurryCount: flurryCount,
 				flurryHitPercent: flurryHitPercent,
-				flurryHitMultiplier: flurryHitMultiplier //,
-				// flurryMultiplier: flurryCount * flurryHitMultiplier
+				flurryHitMultiplier: flurryHitMultiplier
 			};
 		}
 	}
