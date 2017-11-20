@@ -102,7 +102,7 @@ namespace bh {
 		targets.forEach((target, typeIndex) => {
 			var turns = card.turns,
 				regen = card.effects.concat(card.perks).find(s => s.startsWith("Regen")),
-				regenEffect = regen ? new bh.GameEffect(regen) : null,
+				regenEffect = regen ? bh.GameEffect.parse(regen) : null,
 				regenDivisor = regen && regenEffect.turns || 1,
 				shieldDivisor = target.type == "Shield" ? 2 : 1,
 				healDivisor = target.type == "Heal" ? 3 * regenDivisor : 1,

@@ -155,12 +155,14 @@ var bh;
                 var gameEffect = GameEffect.parse(effectValue);
                 if (!gameEffect)
                     return console.error("GameEffect.parse: " + effectValue);
+                gameEffect.card = card;
                 gameEffects.push(gameEffect);
             });
             card.perks.forEach(function (perkValue) {
                 var gameEffect = GameEffect.parse(perkValue);
                 if (!gameEffect)
                     return console.error("GameEffect.parse: " + perkValue);
+                gameEffect.card = card;
                 gameEffect.perkMultiplier = perkMultiplier;
                 gameEffects.push(gameEffect);
             });
@@ -171,35 +173,55 @@ var bh;
     }());
     bh.GameEffect = GameEffect;
     var offensiveEffects = ["Interrupt", "Reset", "Burn", "Bleed", "Shock", "Poison", "Backstab", "Sap", "Drown", "Pierce", "Perfect Shot"];
+    var defensiveEffects = ["Regen"];
+    var healEffects = ["Regen"];
+    var shieldEffects = [""];
     var notRatedEffects = ["Stun", "Charm", "Max Health Up", "Luck Down", "Luck Up"];
     function reconcileTargets(gameEffects, card) {
         var targets = card.typesTargets.map(function (typeTarget) { return bh.PlayerBattleCard.parseTarget(typeTarget); }), damage = targets.find(function (t) { return t.type == "Damage"; }), shield = targets.find(function (t) { return t.type == "Shield"; }), heal = targets.find(function (t) { return t.type == "Heal"; }), damages = [];
         gameEffects.forEach(function (gameEffect) {
-            if (targets.length == 1) {
-                gameEffect.target = targets[0];
+            if (gameEffect.effect == "Critical") {
+                gameEffect.targetDamage = !!damage;
+                gameEffect.targetHeal = !!heal;
+                gameEffect.targetShield = !!shield;
+            }
+            else if (targets.length == 1 || gameEffect.perkMultiplier) {
+                gameEffect.targetDamage = targets[0] == damage;
+                gameEffect.targetShield = targets[0] == shield;
+                gameEffect.targetHeal = targets[0] == heal;
             }
             else {
-                if (damageEffects.includes(gameEffect.effect)) {
-                    gameEffect.target = damage;
+                if (offensiveEffects.includes(gameEffect.effect)) {
+                    gameEffect.targetDamage = !!damage;
                 }
-                else if (shieldEffects.includes(gameEffect.effect)) {
-                    gameEffect.target = shield;
-                }
-                else if (healEffects.includes(gameEffect.effect)) {
-                    gameEffect.target = heal;
+                else if (defensiveEffects.includes(gameEffect.effect)) {
+                    if (healEffects.includes(gameEffect.effect)) {
+                        gameEffect.targetHeal = !!heal;
+                    }
+                    else if (shieldEffects.includes(gameEffect.effect)) {
+                        gameEffect.targetShield = !!shield;
+                    }
+                    else if (gameEffect.effect.startsWith("Immunity")) {
+                        gameEffect.targetHeal = !!heal;
+                        gameEffect.targetShield = !!shield;
+                    }
+                    else {
+                    }
                 }
                 else {
-                    console.warn("can't find target for " + gameEffect.effect);
+                    console.warn("can't find target for " + gameEffect.effect, gameEffect.card);
                 }
             }
         });
     }
     function getPowerRating(gameEffect) {
-        var effect = gameEffect.effect, target = gameEffect.target && gameEffect.target.target;
+        var effect = gameEffect.effect, target = gameEffect.targetDamage || gameEffect.targetShield || gameEffect.targetHeal, offense = gameEffect.targetDamage;
         if (target) {
             if (!["Critical", "Regen"].includes(effect)) {
-                if (gameEffect.target.offense) {
-                    if (["Interrupt", "Burn", "Bleed", "Shock", "Poison", "Backstab"].includes(effect))
+                if (["Slow"].includes(effect))
+                    return offense ? 1 : -1;
+                if (offense) {
+                    if (["Interrupt", "Burn", "Bleed", "Shock", "Poison", "Backstab", "Chill"].includes(effect))
                         return 1;
                     if (["Sap", "Drown"].includes(effect))
                         return 2;
@@ -209,8 +231,6 @@ var bh;
                         return gameEffect.turns * gameEffect.percentMultiplier;
                 }
                 else {
-                    if (["Slow"].includes(effect))
-                        return -1;
                     if (["Cure All"].includes(effect))
                         return 1;
                     if (["Evade"].includes(effect))
@@ -221,7 +241,6 @@ var bh;
                 if (["Haste", "Trait Up", "Speed Up"].includes(effect))
                     return 2;
                 if (!notRatedEffects.includes(effect)) {
-                    console.log("not rating effect " + effect + " on " + target);
                 }
                 return 0.5;
             }
@@ -1825,7 +1844,7 @@ var bh;
     function ratePlayerCard(playerCard) {
         var card = bh.data.BattleCardRepo.find(playerCard.configId), evoLevel = playerCard.evolutionLevel, level = playerCard.level, perkMultiplier = bh.BattleCardRepo.getPerk(card, evoLevel) / 100, targets = card.typesTargets.map(function (typeTarget) { return bh.PlayerBattleCard.parseTarget(typeTarget); }), gameEffects = bh.GameEffect.parseAll(playerCard), rating = 0;
         targets.forEach(function (target, typeIndex) {
-            var turns = card.turns, regen = card.effects.concat(card.perks).find(function (s) { return s.startsWith("Regen"); }), regenEffect = regen ? new bh.GameEffect(regen) : null, regenDivisor = regen && regenEffect.turns || 1, shieldDivisor = target.type == "Shield" ? 2 : 1, healDivisor = target.type == "Heal" ? 3 * regenDivisor : 1, value = calcValue(card, typeIndex, evoLevel, level) / shieldDivisor / healDivisor / 888;
+            var turns = card.turns, regen = card.effects.concat(card.perks).find(function (s) { return s.startsWith("Regen"); }), regenEffect = regen ? bh.GameEffect.parse(regen) : null, regenDivisor = regen && regenEffect.turns || 1, shieldDivisor = target.type == "Shield" ? 2 : 1, healDivisor = target.type == "Heal" ? 3 * regenDivisor : 1, value = calcValue(card, typeIndex, evoLevel, level) / shieldDivisor / healDivisor / 888;
             rating += value / turns - turns;
         });
         gameEffects.forEach(function (gameEffect) { return rating += gameEffect.powerRating; });
