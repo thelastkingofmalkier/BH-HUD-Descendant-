@@ -166,5 +166,17 @@ namespace bh {
 				process();
 			});
 		}
+
+		export function clone<T>(obj: T): T;
+		export function clone(obj: any): any;
+		export function clone(obj: any): any {
+			var clone: any = { };
+			Object.keys(obj).forEach(key => clone[key] = obj[key]);
+			return clone;
+		}
+
+		export function isNullOrUndefined(obj: any): boolean {
+			return obj === null || obj === undefined;
+		}
 	}
 }

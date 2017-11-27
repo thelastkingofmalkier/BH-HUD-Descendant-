@@ -176,7 +176,7 @@ namespace bh {
 			return `<div>${getImg("misc", "Coin")} Gold <span class="badge pull-right ${color}">${utils.formatNumber(gold)} / ${utils.formatNumber(this.maxGoldCost || 0)}</span></div>`;
 		}
 		public get powerRating() {
-			return PowerRating.ratePlayerHeroAbility(this) * (this.level / HeroRepo.getAbilityMaxLevel(this.hero, this.type));
+			return PowerRating.ratePlayerHeroAbility(this);// * (this.level / HeroRepo.getAbilityMaxLevel(this.hero, this.type));
 		}
 
 		public toRowHtml(): string;

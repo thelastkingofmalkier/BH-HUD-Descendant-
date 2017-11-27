@@ -129,16 +129,15 @@ var bh;
 var bh;
 (function (bh) {
     var GameEffect = (function () {
-        function GameEffect(value) {
-            var parts = value.match(/([a-zA-z]+(?: [a-zA-Z]+)*)(?: (\d+)%)?(?: (\d+)T)?/), cleanValue = parts && parts[1] || value, effect = bh.data.EffectRepo.find(cleanValue);
+        function GameEffect(raw) {
+            this.raw = raw;
+            var parts = raw.match(/([a-zA-z]+(?: [a-zA-Z]+)*)(?: (\d+)%)?(?: (\d+)T)?/), cleanValue = parts && parts[1] || raw, effect = bh.data.EffectRepo.find(cleanValue);
             this.effect = effect && effect.name || cleanValue;
             this.percent = parts && parts[2] && (parts[2] + "%") || null;
             this.percentMultiplier = this.percent && (+parts[2] / 100) || null;
             this.turns = parts && +parts[3] || null;
             this.value = effect && effect.value;
             this.perkMultiplier = 0;
-            if (value.includes("Bamboozle"))
-                console.log(value);
         }
         Object.defineProperty(GameEffect.prototype, "powerRating", {
             get: function () { return getPowerRating(this); },
@@ -172,60 +171,79 @@ var bh;
         return GameEffect;
     }());
     bh.GameEffect = GameEffect;
-    var offensiveEffects = ["Interrupt", "Reset", "Burn", "Bleed", "Shock", "Poison", "Backstab", "Sap", "Drown", "Pierce", "Perfect Shot"];
-    var defensiveEffects = ["Regen"];
+    var offensiveEffects = ["Interrupt", "Reset", "Burn", "Bleed", "Shock", "Poison", "Backstab", "Sap", "Drown", "Pierce", "Perfect Shot", "Taunt"];
+    var defensiveEffects = ["Regen", "Immunity to Bleed", "Immunity to Burn", "Immunity to Charm", "Immunity to Chill", "Immunity to Confuse", "Immunity to Poison", "Immunity to Shock", "Immunity to Stun", "Attack Up", "Accuracy Up", "Trait Up"];
     var healEffects = ["Regen"];
     var shieldEffects = [""];
-    var notRatedEffects = ["Stun", "Charm", "Max Health Up", "Luck Down", "Luck Up"];
+    var notRatedEffects = ["Stun", "Charm", "Max Health Up", "Luck Down", "Luck Up", "Bamboozle"];
     function reconcileTargets(gameEffects, card) {
-        var targets = card.typesTargets.map(function (typeTarget) { return bh.PlayerBattleCard.parseTarget(typeTarget); }), damage = targets.find(function (t) { return t.type == "Damage"; }), shield = targets.find(function (t) { return t.type == "Shield"; }), heal = targets.find(function (t) { return t.type == "Heal"; }), damages = [];
-        gameEffects.forEach(function (gameEffect) {
+        var targets = card.typesTargets.map(function (typeTarget) { return bh.PlayerBattleCard.parseTarget(typeTarget); }), damage = targets.find(function (t) { return t.type == "Damage"; }), shield = targets.find(function (t) { return t.type == "Shield"; }), heal = targets.find(function (t) { return t.type == "Heal"; }), def = targets.find(function (t) { return ["Heal", "Shield"].includes(t.type); }), damages = [];
+        gameEffects.slice().forEach(function (gameEffect) {
             if (gameEffect.effect == "Critical") {
-                gameEffect.targetDamage = !!damage;
-                gameEffect.targetHeal = !!heal;
-                gameEffect.targetShield = !!shield;
+                gameEffect.target = targets[0];
+                targets.slice(1).forEach(function (t) {
+                    var ge = GameEffect.parse(gameEffect.raw);
+                    ge.target = t;
+                    gameEffects.push(ge);
+                });
             }
             else if (targets.length == 1 || gameEffect.perkMultiplier) {
-                gameEffect.targetDamage = targets[0] == damage;
-                gameEffect.targetShield = targets[0] == shield;
-                gameEffect.targetHeal = targets[0] == heal;
+                if (gameEffect.effect == "Storm" && ["Wind Barrier", "Hurricane Barrier"].includes(card.name)) {
+                    gameEffect.target = bh.PlayerBattleCard.parseTarget("Damage All Enemies");
+                }
+                else if (gameEffect.effect == "Terra" && ["Forest Barrier", "Shield of The Nature"].includes(card.name)) {
+                    gameEffect.target = bh.PlayerBattleCard.parseTarget("Damage All Enemies");
+                }
+                else if (gameEffect.effect == "Bamboozle" && ["Rum Shower"].includes(card.name)) {
+                    gameEffect.target = gameEffect.perkMultiplier ? damage : bh.PlayerBattleCard.parseTarget("Heal Self");
+                }
+                else if (gameEffect.effect == "Stun" && ["Breaking Chakra"].includes(card.name)) {
+                    gameEffect.target = gameEffect.perkMultiplier ? damage : bh.PlayerBattleCard.parseTarget("Heal Self");
+                }
+                else {
+                    gameEffect.target = targets[0];
+                }
             }
             else {
                 if (offensiveEffects.includes(gameEffect.effect)) {
-                    gameEffect.targetDamage = !!damage;
+                    gameEffect.target = damage;
                 }
                 else if (defensiveEffects.includes(gameEffect.effect)) {
                     if (healEffects.includes(gameEffect.effect)) {
-                        gameEffect.targetHeal = !!heal;
+                        gameEffect.target = heal;
                     }
                     else if (shieldEffects.includes(gameEffect.effect)) {
-                        gameEffect.targetShield = !!shield;
+                        gameEffect.target = shield;
                     }
                     else if (gameEffect.effect.startsWith("Immunity")) {
-                        gameEffect.targetHeal = !!heal;
-                        gameEffect.targetShield = !!shield;
-                    }
-                    else {
+                        gameEffect.target = def;
                     }
                 }
-                else {
-                    console.warn("can't find target for " + gameEffect.effect, gameEffect.card);
+                else if (gameEffect.effect == "Storm" && ["Wind Barrier", "Hurricane Barrier"].includes(card.name)) {
+                    gameEffect.target = bh.PlayerBattleCard.parseTarget("Damage All Enemies");
+                }
+                else if (gameEffect.effect == "Terra" && ["Forest Barrier", "Shield of The Nature"].includes(card.name)) {
+                    gameEffect.target = bh.PlayerBattleCard.parseTarget("Damage All Enemies");
                 }
             }
+            if (!gameEffect.target)
+                console.warn("can't find target for " + gameEffect.effect, gameEffect.card);
         });
     }
     function getPowerRating(gameEffect) {
-        var effect = gameEffect.effect, target = gameEffect.targetDamage || gameEffect.targetShield || gameEffect.targetHeal, offense = gameEffect.targetDamage;
+        var effect = gameEffect.effect, target = gameEffect.target, offense = target && target.offense;
         if (target) {
             if (!["Critical", "Regen"].includes(effect)) {
                 if (["Slow"].includes(effect))
                     return offense ? 1 : -1;
+                if (["Sleep"].includes(effect))
+                    return (offense ? 1 : -1) * gameEffect.turns;
                 if (offense) {
-                    if (["Interrupt", "Burn", "Bleed", "Shock", "Poison", "Backstab", "Chill"].includes(effect))
+                    if (["Interrupt", "Burn", "Bleed", "Shock", "Poison", "Backstab", "Chill", "Reset"].includes(effect))
                         return 1;
                     if (["Sap", "Drown"].includes(effect))
                         return 2;
-                    if (["Marked", "Sleep"].includes(effect))
+                    if (["Marked"].includes(effect))
                         return gameEffect.turns;
                     if (["Accuracy Down"].includes(effect))
                         return gameEffect.turns * gameEffect.percentMultiplier;
@@ -1013,6 +1031,41 @@ var bh;
     }());
     bh.PlayerBattleCard = PlayerBattleCard;
 })(bh || (bh = {}));
+function updateCardData() {
+    $.get("https://docs.google.com/spreadsheets/d/1xckeq3t9T2g4sR5zgKK52ZkXNEXQGgiUrJ8EQ5FJAPI/pub?output=tsv").then(function (raw) {
+        var mapped = bh.Repo.mapTsv(raw), cards = mapped.map(function (card) {
+            var guid = card["Id"], existing = bh.data.BattleCardRepo.find(guid), multiValues = card["Effect Type"].includes("/"), minValuesArray = multiValues ? [0, 1] : [0];
+            var created = {
+                guid: guid,
+                name: existing && existing.name || card["Name"],
+                klassType: bh.KlassType[card["Class"].replace("Ranged", "Skill").replace("Melee", "Might")],
+                elementType: bh.ElementType[card["Element"]],
+                rarityType: bh.RarityType[card["Rarity"].replace(/ /, "")],
+                turns: +card["Turns"],
+                typesTargets: card["Effect Type"].trim().split(/\s*\/\s*/),
+                brag: bh.utils.parseBoolean(card["Is Brag?"]),
+                minValues: minValuesArray.map(function (index) { return [0, 1, 2, 3, 4, 5].map(function (i) { return card[i + "* Min"]; }).filter(function (s) { return !!s; }).map(function (s) { return +s.split(/\s*\/\s*/)[index]; }); }),
+                maxValues: [0, 1, 2, 3, 4, 5].map(function (i) { return card[i + "* Max"]; }).filter(function (s) { return !!s; }).pop().split(/\s*\/\s*/).map(function (s) { return +s; }),
+                tier: existing && existing.tier || "",
+                mats: [1, 2, 3, 4].map(function (i) { return card[i + "* Evo Jar"]; }).filter(function (s) { return !!s; }),
+                perkBase: +card["Perk %"],
+                perks: [1, 2].map(function (i) { return card["Perk #" + i]; }).filter(function (s) { return !!s; }),
+                effects: [1, 2, 3].map(function (i) { return card["Effect #" + i]; }).filter(function (s) { return !!s && s != "Splash"; }),
+                inPacks: bh.utils.parseBoolean(card["In Packs?"])
+            };
+            if (!existing)
+                console.log("New Card: " + card["Name"]);
+            else if (existing.name != card["Name"])
+                console.log(existing.name + " !== " + card["Name"]);
+            return created;
+        });
+        var tsv = "guid\tname\tklassType\telementType\trarityType\tturns\ttypesTargets\tbrag\tminValues\tmaxValues\ttier\tmats\tperkBase\tperks\teffects\tpacks";
+        cards.forEach(function (c) {
+            tsv += "\n" + c.guid + "\t" + c.name + "\t" + bh.KlassType[c.klassType] + "\t" + bh.ElementType[c.elementType] + "\t" + bh.RarityType[c.rarityType] + "\t" + c.turns + "\t" + c.typesTargets.join("|") + "\t" + c.brag + "\t" + c.minValues.map(function (a) { return a.join(","); }).join("|") + "\t" + c.maxValues.join("|") + "\t" + c.tier + "\t" + c.mats.join(",") + "\t" + c.perkBase + "\t" + c.perks.join(",") + "\t" + c.effects.join(",") + "\t" + c.inPacks;
+        });
+        $("#data-output").val(tsv);
+    });
+}
 var bh;
 (function (bh) {
     var PlayerBoosterCard = (function () {
@@ -1511,7 +1564,7 @@ var bh;
         });
         Object.defineProperty(PlayerHeroAbility.prototype, "powerRating", {
             get: function () {
-                return bh.PowerRating.ratePlayerHeroAbility(this) * (this.level / bh.HeroRepo.getAbilityMaxLevel(this.hero, this.type));
+                return bh.PowerRating.ratePlayerHeroAbility(this);
             },
             enumerable: true,
             configurable: true
@@ -1766,32 +1819,9 @@ var bh;
 })(bh || (bh = {}));
 var bh;
 (function (bh) {
-    var CardMultiplier = 2.5;
-    var AbilityBlock = 5000, CardBlock = 5000;
     var RarityEvolutions = { Common: 1, Uncommon: 2, Rare: 3, SuperRare: 4, Legendary: 5 };
     var RarityLevels = { Common: 10, Uncommon: 20, Rare: 35, SuperRare: 50, Legendary: 50 };
     var RarityMultipliers = { Common: 10, Uncommon: 20, Rare: 35, SuperRare: 50, Legendary: 60 };
-    var a1 = AbilityBlock * 0.40, a2 = AbilityBlock * 0.25, a3 = AbilityBlock * 0.20, a4 = AbilityBlock * 0.15;
-    var b1 = a1 + a4 * 0.40, b2 = a2 + a4 * 0.25, b3 = a3 + a4 * 0.20, b4 = a4 * 0.15;
-    var c1 = a1 + a4 * 0.45, c2 = a2 + a4 * 0.30, c3 = a3 + a4 * 0.25, c4 = 0;
-    function calculateHeroAbilityScore(hero, ability) {
-        switch (hero.name) {
-            case "Bree": return ability == "HP" ? b2 : ability == "Trait" ? b1 : ability == "Active" ? b4 : b3;
-            case "Brom": return ability == "HP" ? b2 : ability == "Trait" ? b1 : ability == "Active" ? b4 : b3;
-            case "Fergus": return ability == "HP" ? a2 : ability == "Trait" ? a3 : ability == "Active" ? a4 : a1;
-            case "Gilda": return ability == "HP" ? a4 : ability == "Trait" ? a2 : ability == "Active" ? a1 : a3;
-            case "Hawkeye": return ability == "HP" ? a4 : ability == "Trait" ? a1 : ability == "Active" ? a3 : a2;
-            case "Jinx": return ability == "HP" ? c3 : ability == "Trait" ? c1 : ability == "Active" ? c2 : c4;
-            case "Krell": return ability == "HP" ? a3 : ability == "Trait" ? a1 : ability == "Active" ? a2 : a4;
-            case "Logan": return ability == "HP" ? b3 : ability == "Trait" ? b2 : ability == "Active" ? b4 : b1;
-            case "Monty": return ability == "HP" ? a4 : ability == "Trait" ? a1 : ability == "Active" ? a2 : a3;
-            case "Peg": return ability == "HP" ? a4 : ability == "Trait" ? a1 : ability == "Active" ? a2 : a3;
-            case "Red": return ability == "HP" ? a4 : ability == "Trait" ? a1 : ability == "Active" ? a3 : a2;
-            case "Thrudd": return ability == "HP" ? b2 : ability == "Trait" ? b1 : ability == "Active" ? b4 : b3;
-            case "Trix": return ability == "HP" ? a4 : ability == "Trait" ? a3 : ability == "Active" ? a1 : a2;
-            default: return 0;
-        }
-    }
     var MinMaxType;
     (function (MinMaxType) {
         MinMaxType[MinMaxType["Min"] = 0] = "Min";
@@ -1800,17 +1830,13 @@ var bh;
     var PowerRating = (function () {
         function PowerRating() {
         }
-        PowerRating.rateHeroHP = function (hero) {
-            var maxHP = bh.data.HeroRepo.all.map(function (h) { return [bh.Hero.getHitPoints(h, 90), h]; }).sort().pop()[0], heroMultiplier = bh.Hero.getHitPoints(hero.hero, 90) / maxHP, levelMultiplier = hero.level / 90;
-            return Math.round(1000 * heroMultiplier * levelMultiplier) / 100;
-        };
         PowerRating.rateMaxedHero = function (hero) {
-            var hp = calculateHeroAbilityScore(hero, "HP"), trait = calculateHeroAbilityScore(hero, "Trait"), active = calculateHeroAbilityScore(hero, "Active"), passive = calculateHeroAbilityScore(hero, "Passive"), deck = PowerRating.rateMaxedDeck(hero);
-            return hp + trait + active + passive + deck;
+            var abilities = hero.name == "Jinx" ? 30 : 40;
+            return abilities + PowerRating.rateMaxedDeck(hero);
         };
         PowerRating.rateMaxedDeck = function (hero) {
-            var heroCards = bh.Hero.filterCardsByHero(hero, bh.data.BattleCardRepo.all), ratedCards = heroCards.map(function (card) { return { card: card, score: PowerRating.rateBattleCard(card, MinMaxType.Max) }; }), sortedCards = ratedCards.sort(function (a, b) { return a.score == b.score ? 0 : a.score < b.score ? 1 : -1; }), topCards = sortedCards.slice(0, 4);
-            return topCards.reduce(function (score, card) { return score + card.score * 2; }, 0);
+            var heroCards = bh.Hero.filterCardsByHero(hero, bh.data.BattleCardRepo.all), ratedCards = heroCards.map(function (card) { return { card: card, powerRating: PowerRating.rateBattleCard(card, MinMaxType.Max) }; }), sortedCards = ratedCards.sort(function (a, b) { return a.powerRating == b.powerRating ? 0 : a.powerRating < b.powerRating ? 1 : -1; }), topCards = sortedCards.slice(0, 4);
+            return topCards.reduce(function (score, card) { return score + card.powerRating * 2; }, 0);
         };
         PowerRating.rateDeck = function (deck) {
             var rated = deck.reduce(function (out, card) { out[card.playerCard.configId] = PowerRating.ratePlayerCard(card.playerCard); return out; }, {}), cycleCards = deck.filter(function (card) { return bh.BattleCardRepo.isCycleCard(card, card.evo); }), cycleCount = cycleCards.length, cards = deck.filter(function (card) { return !cycleCards.includes(card); });
@@ -1830,13 +1856,13 @@ var bh;
             return ratePlayerCard(playerCard);
         };
         PowerRating.ratePlayerHeroAbility = function (playerHeroAbility) {
-            return 0;
+            if (playerHeroAbility.hero.name == "Jinx" && playerHeroAbility.heroAbility.type == bh.AbilityType.Passive)
+                return 0;
+            return Math.round(1000 * playerHeroAbility.level / playerHeroAbility.levelMax) / 100;
         };
         PowerRating.ratePlayerHeroHitPoints = function (playerHero) {
-            return 0;
-        };
-        PowerRating.tierToMultiplier = function (tier) {
-            return 0;
+            var maxHP = bh.data.HeroRepo.all.map(function (h) { return [bh.Hero.getHitPoints(h, 90), h]; }).sort().pop()[0], heroMultiplier = bh.Hero.getHitPoints(playerHero.hero, 90) / maxHP, levelMultiplier = playerHero.level / 90;
+            return Math.round(1000 * heroMultiplier * levelMultiplier) / 100;
         };
         return PowerRating;
     }());
@@ -1860,6 +1886,20 @@ var bh;
         return value;
     }
 })(bh || (bh = {}));
+function rateCards(max) {
+    if (max === void 0) { max = true; }
+    var cards = bh.data.BattleCardRepo.all;
+    var scores = cards.map(function (card) {
+        var playerCard = { configId: card.guid };
+        playerCard.evolutionLevel = max ? card.rarityType : 0;
+        playerCard.level = max ? bh.BattleCardRepo.getLevelsForRarity(card.rarityType) - 1 : 0;
+        return { card: card, powerRating: 10 + bh.PowerRating.ratePlayerCard(playerCard) };
+    });
+    scores.sort(function (a, b) { return b.powerRating - a.powerRating; });
+    $("textarea").val(scores.map(function (s, i) { return (i + 1) + ": " + s.card.name + (s.card.rarityType == bh.RarityType.Legendary ? " (L)" : ""); }).slice(0, 30).join("\n"));
+    $("#data-output").val(scores.map(function (score) { return score.powerRating + " > " + bh.RarityType[score.card.rarityType][0] + " " + score.card.name + " (" + score.card.turns + "; " + score.card.typesTargets.concat(score.card.effects).concat(score.card.perks.map(function (p) { return p + " (" + (score.card.perkBase + 20 * (1 + score.card.rarityType)) + "%)"; })) + ")"; }).join("\n"));
+    return scores;
+}
 var bh;
 (function (bh) {
     var Recipe = (function (_super) {
@@ -2578,66 +2618,6 @@ var bh;
     }());
     bh.RarityRepo = RarityRepo;
 })(bh || (bh = {}));
-function updateCardData() {
-    $.get("https://docs.google.com/spreadsheets/d/1xckeq3t9T2g4sR5zgKK52ZkXNEXQGgiUrJ8EQ5FJAPI/pub?output=tsv").then(function (raw) {
-        var mapped = bh.Repo.mapTsv(raw), cards = mapped.map(function (card) {
-            var guid = card["Id"], existing = bh.data.BattleCardRepo.find(guid), multiValues = card["Effect Type"].includes("/"), minValuesArray = multiValues ? [0, 1] : [0];
-            var created = {
-                guid: guid,
-                name: existing && existing.name || card["Name"],
-                klassType: bh.KlassType[card["Class"].replace("Ranged", "Skill").replace("Melee", "Might")],
-                elementType: bh.ElementType[card["Element"]],
-                rarityType: bh.RarityType[card["Rarity"].replace(/ /, "")],
-                turns: +card["Turns"],
-                typesTargets: card["Effect Type"].trim().split(/\s*\/\s*/),
-                brag: bh.utils.parseBoolean(card["Is Brag?"]),
-                minValues: minValuesArray.map(function (index) { return [0, 1, 2, 3, 4, 5].map(function (i) { return card[i + "* Min"]; }).filter(function (s) { return !!s; }).map(function (s) { return +s.split(/\s*\/\s*/)[index]; }); }),
-                maxValues: [0, 1, 2, 3, 4, 5].map(function (i) { return card[i + "* Max"]; }).filter(function (s) { return !!s; }).pop().split(/\s*\/\s*/).map(function (s) { return +s; }),
-                tier: existing && existing.tier || "",
-                mats: [1, 2, 3, 4].map(function (i) { return card[i + "* Evo Jar"]; }).filter(function (s) { return !!s; }),
-                perkBase: +card["Perk %"],
-                perks: [1, 2].map(function (i) { return card["Perk #" + i]; }).filter(function (s) { return !!s; }),
-                effects: [1, 2, 3].map(function (i) { return card["Effect #" + i]; }).filter(function (s) { return !!s && s != "Splash"; }),
-                inPacks: bh.utils.parseBoolean(card["In Packs?"])
-            };
-            if (!existing)
-                console.log("New Card: " + card["Name"]);
-            else if (existing.name != card["Name"])
-                console.log(existing.name + " !== " + card["Name"]);
-            return created;
-        });
-        var tsv = "guid\tname\tklassType\telementType\trarityType\tturns\ttypesTargets\tbrag\tminValues\tmaxValues\ttier\tmats\tperkBase\tperks\teffects\tpacks";
-        cards.forEach(function (c) {
-            tsv += "\n" + c.guid + "\t" + c.name + "\t" + bh.KlassType[c.klassType] + "\t" + bh.ElementType[c.elementType] + "\t" + bh.RarityType[c.rarityType] + "\t" + c.turns + "\t" + c.typesTargets.join("|") + "\t" + c.brag + "\t" + c.minValues.map(function (a) { return a.join(","); }).join("|") + "\t" + c.maxValues.join("|") + "\t" + c.tier + "\t" + c.mats.join(",") + "\t" + c.perkBase + "\t" + c.perks.join(",") + "\t" + c.effects.join(",") + "\t" + c.inPacks;
-        });
-        $("#data-output").val(tsv);
-    });
-}
-function rateCards(max) {
-    if (max === void 0) { max = true; }
-    var cards = bh.data.BattleCardRepo.all;
-    var scores = cards.map(function (card) {
-        var playerCard = { configId: card.guid };
-        playerCard.evolutionLevel = max ? card.rarityType : 0;
-        playerCard.level = max ? bh.BattleCardRepo.getLevelsForRarity(card.rarityType) - 1 : 0;
-        return { card: card, score: 10 + bh.PowerRating.ratePlayerCard(playerCard) };
-    });
-    scores.sort(function (a, b) { return b.score - a.score; });
-    $("textarea").val(scores.map(function (s, i) { return (i + 1) + ": " + s.card.name + (s.card.rarityType == bh.RarityType.Legendary ? " (L)" : ""); }).slice(0, 30).join("\n"));
-    $("#data-output").val(scores.map(function (score) { return score.score + " > " + bh.RarityType[score.card.rarityType][0] + " " + score.card.name + " (" + score.card.turns + "; " + score.card.typesTargets.concat(score.card.effects).concat(score.card.perks.map(function (p) { return p + " (" + (score.card.perkBase + 20 * (1 + score.card.rarityType)) + "%)"; })) + ")"; }).join("\n"));
-    return scores;
-}
-function tiered() {
-    var tiered = {};
-    bh.data.BattleCardRepo.all.forEach(function (card) {
-        if (!card.tier)
-            return;
-        if (!tiered[card.tier])
-            tiered[card.tier] = [];
-        tiered[card.tier].push(card);
-    });
-    return tiered;
-}
 var bh;
 (function (bh) {
     var data;
@@ -3187,14 +3167,19 @@ var bh;
         }
         events.toggle = toggle;
         function sortHeroes(playerGuid) {
-            var container = $("div.brain-hud-scouter-player" + (playerGuid ? "[data-guid=\"" + playerGuid + "\"]" : ".active")), sortTags = ["element-klass", "power-asc", "hp-asc", "name"], oldSortIndex = sortTags.indexOf(container.data("sort") || "element-klass"), newSort = sortTags[oldSortIndex + 1] || "element-klass";
+            var container = $("div.brain-hud-scouter-player" + (playerGuid ? "[data-guid=\"" + playerGuid + "\"]" : ".active")), sortTags = ["element-klass", "power-percent-asc", "power-asc", "hp-asc", "name"], oldSortIndex = sortTags.indexOf(container.data("sort") || "element-klass"), newSort = sortTags[oldSortIndex + 1] || "element-klass";
             container.data("sort", newSort);
             if (!playerGuid) {
                 playerGuid = container.data("guid");
             }
             var player = bh.data.PlayerRepo.find(playerGuid), heroes = player.heroes.sort(function (a, b) {
-                if (newSort == "power-asc") {
+                if (newSort == "power-percent-asc") {
                     var aP = a.powerPercent, bP = b.powerPercent;
+                    if (aP != bP)
+                        return aP < bP ? -1 : 1;
+                }
+                if (newSort == "power-asc") {
+                    var aP = a.powerRating, bP = b.powerRating;
                     if (aP != bP)
                         return aP < bP ? -1 : 1;
                 }
@@ -3938,6 +3923,16 @@ var bh;
             });
         }
         utils.asyncForEach = asyncForEach;
+        function clone(obj) {
+            var clone = {};
+            Object.keys(obj).forEach(function (key) { return clone[key] = obj[key]; });
+            return clone;
+        }
+        utils.clone = clone;
+        function isNullOrUndefined(obj) {
+            return obj === null || obj === undefined;
+        }
+        utils.isNullOrUndefined = isNullOrUndefined;
     })(utils = bh.utils || (bh.utils = {}));
 })(bh || (bh = {}));
 var bh;
@@ -4035,7 +4030,7 @@ var bh;
                         + ("<span class=\"hero-level\">" + level + "</span>")
                         + ("<span class=\"hero-hp\">" + bh.utils.truncateNumber(hero.hitPoints) + " HP</span>")
                         + ("<span class=\"hero-rating-bar\">" + progressBar + "</span>")
-                        + ("<span class=\"hero-rating\">" + powerPercent + "%</span>"), content = "";
+                        + ("<span class=\"hero-rating\">" + hero.powerRating + "</span>"), content = "";
                     if (player.isMe || player.isAlly) {
                         var abilities = hero.playerHeroAbilities
                             .map(function (playerHeroAbility) {

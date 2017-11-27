@@ -69,7 +69,7 @@ namespace bh {
 
 		function sortHeroes(playerGuid?: string) {
 			var container = $(`div.brain-hud-scouter-player${playerGuid ? `[data-guid="${playerGuid}"]` : `.active`}`),
-				sortTags = ["element-klass", "power-asc", "hp-asc", "name"],
+				sortTags = ["element-klass", "power-percent-asc", "power-asc", "hp-asc", "name"],
 				oldSortIndex = sortTags.indexOf(container.data("sort") || "element-klass"),
 				newSort = sortTags[oldSortIndex + 1] || "element-klass";
 			container.data("sort", newSort);
@@ -78,8 +78,12 @@ namespace bh {
 			}
 			var player = data.PlayerRepo.find(playerGuid),
 				heroes = player.heroes.sort((a, b) => {
-					if (newSort == "power-asc") {
+					if (newSort == "power-percent-asc") {
 						var aP = a.powerPercent, bP = b.powerPercent;
+						if (aP != bP) return aP < bP ? -1 : 1;
+					}
+					if (newSort == "power-asc") {
+						var aP = a.powerRating, bP = b.powerRating;
 						if (aP != bP) return aP < bP ? -1 : 1;
 					}
 					if (newSort == "hp-asc") {

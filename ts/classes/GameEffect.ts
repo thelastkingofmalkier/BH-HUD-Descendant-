@@ -6,14 +6,12 @@ namespace bh {
 		public percentMultiplier: number;
 		public perkMultiplier: number;
 		public turns: number;
-		public targetDamage: boolean;
-		public targetHeal: boolean;
-		public targetShield: boolean;
+		public target: IDataBattleCardTarget;
 		public card: IDataBattleCard;
 
-		private constructor(value: string) {
-			var parts = value.match(/([a-zA-z]+(?: [a-zA-Z]+)*)(?: (\d+)%)?(?: (\d+)T)?/),
-				cleanValue = parts && parts[1] || value,
+		private constructor(public raw: string) {
+			var parts = raw.match(/([a-zA-z]+(?: [a-zA-Z]+)*)(?: (\d+)%)?(?: (\d+)T)?/),
+				cleanValue = parts && parts[1] || raw,
 				effect = bh.data.EffectRepo.find(cleanValue);
 			this.effect = effect && effect.name || cleanValue;
 			this.percent = parts && parts[2] && (`${parts[2]}%`) || null;
@@ -21,7 +19,6 @@ namespace bh {
 			this.turns = parts && +parts[3] || null;
 			this.value = effect && effect.value;
 			this.perkMultiplier = 0;
-			if (value.includes("Bamboozle")) console.log(value);
 		}
 
 		public get powerRating(): number { return getPowerRating(this); }
@@ -50,58 +47,70 @@ namespace bh {
 			return gameEffects;
 		}
 	}
-	var offensiveEffects = ["Interrupt", "Reset", "Burn", "Bleed", "Shock", "Poison", "Backstab", "Sap", "Drown", "Pierce", "Perfect Shot"];
-	var defensiveEffects = ["Regen"];
+	var offensiveEffects = ["Interrupt", "Reset", "Burn", "Bleed", "Shock", "Poison", "Backstab", "Sap", "Drown", "Pierce", "Perfect Shot", "Taunt"];
+	var defensiveEffects = ["Regen", "Immunity to Bleed", "Immunity to Burn", "Immunity to Charm", "Immunity to Chill", "Immunity to Confuse", "Immunity to Poison", "Immunity to Shock", "Immunity to Stun", "Attack Up", "Accuracy Up", "Trait Up"];
 	var healEffects = ["Regen"];
 	var shieldEffects = [""];
-	var notRatedEffects = ["Stun", "Charm", "Max Health Up", "Luck Down", "Luck Up"];
+	var notRatedEffects = ["Stun", "Charm", "Max Health Up", "Luck Down", "Luck Up", "Bamboozle"];
 	function reconcileTargets(gameEffects: GameEffect[], card: IDataBattleCard): void {
 		var targets = card.typesTargets.map(typeTarget => bh.PlayerBattleCard.parseTarget(typeTarget)),
 			damage = targets.find(t => t.type == "Damage"),
 			shield = targets.find(t => t.type == "Shield"),
 			heal = targets.find(t => t.type == "Heal"),
+			def = targets.find(t => ["Heal", "Shield"].includes(t.type)),
 			damages = [];
-		gameEffects.forEach(gameEffect => {
+		gameEffects.slice().forEach(gameEffect => {
 			if (gameEffect.effect == "Critical") {
-				gameEffect.targetDamage = !!damage;
-				gameEffect.targetHeal = !!heal;
-				gameEffect.targetShield = !!shield;
+				gameEffect.target = targets[0];
+				targets.slice(1).forEach(t => {
+					var ge = GameEffect.parse(gameEffect.raw);
+					ge.target = t;
+					gameEffects.push(ge);
+				});
 			}else if (targets.length == 1 || gameEffect.perkMultiplier) {
-				gameEffect.targetDamage = targets[0] == damage;
-				gameEffect.targetShield = targets[0] == shield;
-				gameEffect.targetHeal = targets[0] == heal;
+				if (gameEffect.effect == "Storm" && ["Wind Barrier", "Hurricane Barrier"].includes(card.name)) {
+					gameEffect.target = bh.PlayerBattleCard.parseTarget("Damage All Enemies");
+				}else if (gameEffect.effect == "Terra" && ["Forest Barrier", "Shield of The Nature"].includes(card.name)) {
+					gameEffect.target = bh.PlayerBattleCard.parseTarget("Damage All Enemies");
+				}else if (gameEffect.effect == "Bamboozle" && ["Rum Shower"].includes(card.name)) {
+					gameEffect.target = gameEffect.perkMultiplier ? damage : bh.PlayerBattleCard.parseTarget("Heal Self");
+				}else if (gameEffect.effect == "Stun" && ["Breaking Chakra"].includes(card.name)) {
+					gameEffect.target = gameEffect.perkMultiplier ? damage : bh.PlayerBattleCard.parseTarget("Heal Self");
+				}else {
+					gameEffect.target = targets[0];
+				}
 			}else {
 				if (offensiveEffects.includes(gameEffect.effect)) {
-					gameEffect.targetDamage = !!damage;
+					gameEffect.target = damage;
 				}else if (defensiveEffects.includes(gameEffect.effect)) {
 					if (healEffects.includes(gameEffect.effect)) {
-						gameEffect.targetHeal = !!heal;
+						gameEffect.target = heal;
 					}else if (shieldEffects.includes(gameEffect.effect)) {
-						gameEffect.targetShield = !!shield;
+						gameEffect.target = shield;
 					}else if (gameEffect.effect.startsWith("Immunity")) {
-						gameEffect.targetHeal = !!heal;
-						gameEffect.targetShield = !!shield;
-					}else {
-						// gameEffect.target = shield;
-						// gameEffect.target = heal;
+						gameEffect.target = def;
 					}
-				}else {
-					console.warn("can't find target for " + gameEffect.effect, gameEffect.card);
+				}else if (gameEffect.effect == "Storm" && ["Wind Barrier", "Hurricane Barrier"].includes(card.name)) {
+					gameEffect.target = bh.PlayerBattleCard.parseTarget("Damage All Enemies");
+				}else if (gameEffect.effect == "Terra" && ["Forest Barrier", "Shield of The Nature"].includes(card.name)) {
+					gameEffect.target = bh.PlayerBattleCard.parseTarget("Damage All Enemies");
 				}
 			}
+			if (!gameEffect.target) console.warn("can't find target for " + gameEffect.effect, gameEffect.card);
 		});
 	}
 	function getPowerRating(gameEffect: GameEffect): number {
 		var effect = gameEffect.effect,
-			target = gameEffect.targetDamage || gameEffect.targetShield || gameEffect.targetHeal,
-			offense = gameEffect.targetDamage;
+			target = gameEffect.target,
+			offense = target && target.offense;
 		if (target) {
 			if (!["Critical", "Regen"].includes(effect)) {
 				if (["Slow"].includes(effect)) return offense ? 1 : -1;
+				if (["Sleep"].includes(effect)) return (offense ? 1 : -1) * gameEffect.turns;
 				if (offense) {
-					if (["Interrupt", "Burn", "Bleed", "Shock", "Poison", "Backstab", "Chill"].includes(effect)) return 1;
+					if (["Interrupt", "Burn", "Bleed", "Shock", "Poison", "Backstab", "Chill", "Reset"].includes(effect)) return 1;
 					if (["Sap", "Drown"].includes(effect)) return 2;
-					if (["Marked", "Sleep"].includes(effect)) return gameEffect.turns;
+					if (["Marked"].includes(effect)) return gameEffect.turns;
 					if (["Accuracy Down"].includes(effect)) return gameEffect.turns * gameEffect.percentMultiplier;
 				}else {
 					if (["Cure All"].includes(effect)) return 1;
@@ -111,7 +120,7 @@ namespace bh {
 				if (["Haste", "Trait Up", "Speed Up"].includes(effect)) return 2;
 				// Trait up should scale by level ... assume level 50 = 100% and 1 = 0%
 				if (!notRatedEffects.includes(effect)) {
-					// console.log("not rating effect " + effect + " on " + target);
+					// console.log("not rating effect " + effect + " on " + target.target);
 				}
 				return 0.5;// * gameEffect.turns;
 			}

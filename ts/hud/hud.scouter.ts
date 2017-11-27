@@ -40,7 +40,7 @@ namespace bh {
 							+ `<span class="hero-level">${level}</span>`
 							+ `<span class="hero-hp">${utils.truncateNumber(hero.hitPoints)} HP</span>`
 							+ `<span class="hero-rating-bar">${progressBar}</span>`
-							+ `<span class="hero-rating">${powerPercent}%</span>`,
+							+ `<span class="hero-rating">${hero.powerRating}</span>`,
 						content = "";
 					if (player.isMe || player.isAlly) {
 						var abilities = hero.playerHeroAbilities
