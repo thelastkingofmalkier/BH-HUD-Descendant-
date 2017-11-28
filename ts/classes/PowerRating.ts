@@ -12,9 +12,20 @@ namespace bh {
 		}
 		public static rateMaxedDeck(hero: Hero) {
 			var heroCards = Hero.filterCardsByHero(hero, data.BattleCardRepo.all),
-				ratedCards = heroCards.map(card => { return { card:card, powerRating:PowerRating.rateBattleCard(card, MinMaxType.Max) }; }),
+				ratedCards: ICardRating[] = heroCards.map(card => { return { card:card, powerRating:PowerRating.rateBattleCard(card, MinMaxType.Max) }; }),
 				sortedCards = ratedCards.sort((a, b) => a.powerRating == b.powerRating ? 0 : a.powerRating < b.powerRating ? 1 : -1),
-				topCards = sortedCards.slice(0, 4);
+				topCards: ICardRating[] = [];
+			sortedCards.forEach(card => {
+				var existing = topCards.find(c => c.card.name == card.card.name);
+				if (existing) {
+					if (existing.card.rarityType == RarityType.SuperRare && card.card.rarityType == RarityType.Legendary) {
+						topCards = topCards.filter(c => c != existing);
+						topCards.push(card);
+					}
+				}else if (topCards.length < 4) {
+					topCards.push(card);
+				}
+			});
 			return topCards.reduce((score, card) => score + card.powerRating * 2, 0);
 		}
 		public static rateDeck(deck: PlayerBattleCard[]) {

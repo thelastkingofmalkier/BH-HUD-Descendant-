@@ -1,5 +1,5 @@
 var __extends = (this && this.__extends) || (function () {
-    var extendStatics = Object.setPrototypeOf ||
+   var extendStatics = Object.setPrototypeOf ||
         ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
         function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
     return function (d, b) {
@@ -1847,7 +1847,19 @@ var bh;
             return abilities + PowerRating.rateMaxedDeck(hero);
         };
         PowerRating.rateMaxedDeck = function (hero) {
-            var heroCards = bh.Hero.filterCardsByHero(hero, bh.data.BattleCardRepo.all), ratedCards = heroCards.map(function (card) { return { card: card, powerRating: PowerRating.rateBattleCard(card, MinMaxType.Max) }; }), sortedCards = ratedCards.sort(function (a, b) { return a.powerRating == b.powerRating ? 0 : a.powerRating < b.powerRating ? 1 : -1; }), topCards = sortedCards.slice(0, 4);
+            var heroCards = bh.Hero.filterCardsByHero(hero, bh.data.BattleCardRepo.all), ratedCards = heroCards.map(function (card) { return { card: card, powerRating: PowerRating.rateBattleCard(card, MinMaxType.Max) }; }), sortedCards = ratedCards.sort(function (a, b) { return a.powerRating == b.powerRating ? 0 : a.powerRating < b.powerRating ? 1 : -1; }), topCards = [];
+            sortedCards.forEach(function (card) {
+                var existing = topCards.find(function (c) { return c.card.name == card.card.name; });
+                if (existing) {
+                    if (existing.card.rarityType == bh.RarityType.SuperRare && card.card.rarityType == bh.RarityType.Legendary) {
+                        topCards = topCards.filter(function (c) { return c != existing; });
+                        topCards.push(card);
+                    }
+                }
+                else if (topCards.length < 4) {
+                    topCards.push(card);
+                }
+            });
             return topCards.reduce(function (score, card) { return score + card.powerRating * 2; }, 0);
         };
         PowerRating.rateDeck = function (deck) {
