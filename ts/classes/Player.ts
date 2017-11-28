@@ -42,7 +42,14 @@ namespace bh {
 		public get guildGuid() { return this._pp ? this._pp.playerGuild || null : this._gp && this._gp.guildId || null; }
 		public get guildParent() { var guildName = data.guilds.findNameByGuid(this.guildGuid); return guildName && guildName.parent || null; }
 		public get guilds(): IGuild.Name[] {
-			return this.fromCache("guilds", () => data.guilds.filterNamesByParent(this.guildParent));
+			var guilds: IGuild.Name[] = this.fromCache("guilds", () => data.guilds.filterNamesByParent(this.guildParent));
+			if (!guilds.length) {
+				var guildName = data.guilds.findNameByGuid(this.guildGuid);
+				if (guildName) {
+					guilds.push(guildName);
+				}
+			}
+			return guilds;
 		}
 		public get heroes(): PlayerHero[] {
 			return this.fromCache("heroes", () => {

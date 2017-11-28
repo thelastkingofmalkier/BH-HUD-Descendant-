@@ -388,12 +388,17 @@ var bh;
             }
         };
         Messenger.prototype.postMessage = function (message) {
-            if (Messenger.isValidMessage(message)) {
+            if (Messenger.isValidMessage(message) && this.targetWindow) {
                 this.updateActive(message);
                 this.targetWindow.postMessage(message, "*");
             }
             else {
-                console.log("invalid message: " + (message && message.action || "[no message]"));
+                if (!this.targetWindow) {
+                    console.log("no target window: " + (message && message.action || "[no message]"));
+                }
+                else {
+                    console.log("invalid message: " + (message && message.action || "[no message]"));
+                }
             }
         };
         Messenger.isValidMessage = function (message) {
@@ -519,7 +524,14 @@ var bh;
         Object.defineProperty(Player.prototype, "guilds", {
             get: function () {
                 var _this = this;
-                return this.fromCache("guilds", function () { return bh.data.guilds.filterNamesByParent(_this.guildParent); });
+                var guilds = this.fromCache("guilds", function () { return bh.data.guilds.filterNamesByParent(_this.guildParent); });
+                if (!guilds.length) {
+                    var guildName = bh.data.guilds.findNameByGuid(this.guildGuid);
+                    if (guildName) {
+                        guilds.push(guildName);
+                    }
+                }
+                return guilds;
             },
             enumerable: true,
             configurable: true

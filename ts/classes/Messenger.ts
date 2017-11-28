@@ -36,11 +36,15 @@ namespace bh {
 		}
 
 		public postMessage(message: IMessage) {
-			if (Messenger.isValidMessage(message)) {
+			if (Messenger.isValidMessage(message) && this.targetWindow) {
 				this.updateActive(message);
 				this.targetWindow.postMessage(message, "*");
 			}else {
-				console.log(`invalid message: ${message && message.action || "[no message]"}`);
+				if (!this.targetWindow) {
+					console.log(`no target window: ${message && message.action || "[no message]"}`);
+				}else {
+					console.log(`invalid message: ${message && message.action || "[no message]"}`);
+				}
 			}
 		}
 
