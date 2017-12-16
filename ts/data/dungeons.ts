@@ -14,7 +14,7 @@ function numToRoman(num: string) {
 	}
 }
 function updateDungeonData() {
-	$.get("https://docs.google.com/spreadsheets/d/e/2PACX-1vRCyjBTeKjsBri_uvkFnT-i9f-jI4RUR0YffYh32XFtQfywivXktmLcmGOuXTfOQZH1sv6VTmF9Ceee/pub?gid=1815567292&single=true&output=tsv").then(raw => {
+	$.get(DungeonDataUrl).then(raw => {
 		var mapped = bh.Repo.mapTsv<INewDungeon>(raw),
 			columns = Object.keys(mapped[0]),
 			dungeons = mapped.map(d => {

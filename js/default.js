@@ -1043,7 +1043,7 @@ var bh;
     bh.PlayerBattleCard = PlayerBattleCard;
 })(bh || (bh = {}));
 function updateCardData() {
-    $.get("https://docs.google.com/spreadsheets/d/1xckeq3t9T2g4sR5zgKK52ZkXNEXQGgiUrJ8EQ5FJAPI/pub?output=tsv").then(function (raw) {
+    $.get(BattleCardDataUrl).then(function (raw) {
         var mapped = bh.Repo.mapTsv(raw), cards = mapped.map(function (card) {
             var guid = card["Id"], existing = bh.data.BattleCardRepo.find(guid), multiValues = card["Effect Type"].includes("/"), minValuesArray = multiValues ? [0, 1] : [0];
             var created = {
@@ -1072,7 +1072,7 @@ function updateCardData() {
         });
         var tsv = "guid\tname\tklassType\telementType\trarityType\tturns\ttypesTargets\tbrag\tminValues\tmaxValues\ttier\tmats\tperkBase\tperks\teffects\tpacks";
         cards.forEach(function (c) {
-            tsv += "\n" + c.guid + "\t" + c.name + "\t" + bh.KlassType[c.klassType] + "\t" + bh.ElementType[c.elementType] + "\t" + bh.RarityType[c.rarityType] + "\t" + c.turns + "\t" + c.typesTargets.join("|") + "\t" + c.brag + "\t" + c.minValues.map(function (a) { return a.join(","); }).join("|") + "\t" + c.maxValues.join("|") + "\t" + c.tier + "\t" + c.mats.join(",") + "\t" + c.perkBase + "\t" + c.perks.join(",") + "\t" + c.effects.join(",") + "\t" + c.inPacks;
+            tsv += "\n" + c.guid + "\t" + c.name + "\t" + bh.KlassType[c.klassType].slice(0, 2) + "\t" + bh.ElementType[c.elementType][0] + "\t" + bh.RarityType[c.rarityType][0] + "\t" + c.turns + "\t" + c.typesTargets.join("|") + "\t" + String(c.brag)[0] + "\t" + c.minValues.map(function (a) { return a.join(","); }).join("|") + "\t" + c.maxValues.join("|") + "\t" + c.tier + "\t" + c.mats.join(",") + "\t" + c.perkBase + "\t" + c.perks.join(",") + "\t" + c.effects.join(",") + "\t" + String(c.inPacks)[0];
         });
         $("#data-output").val(tsv);
     });
@@ -2720,7 +2720,7 @@ var bh;
     bh.RarityRepo = RarityRepo;
 })(bh || (bh = {}));
 var DataSheetID = "1uXkC_xua7KhhWQsfX_CZNa6fyl9CJlV9E7KNDO4_1T4";
-var BattleCardRepoGID = 1134947346;
+var BattleCardRepoGID = 1013492615;
 var BoosterCardRepoGID = 1709781959;
 var DungeonRepoGID = 1980099142;
 var EffectRepoGID = 901337848;
@@ -2731,6 +2731,8 @@ var GuildsGID = 496437953;
 var USE_CACHE = true;
 var NO_CACHE = false;
 var MaxFameLevel = 50;
+var BattleCardDataUrl = "https://docs.google.com/spreadsheets/d/1xckeq3t9T2g4sR5zgKK52ZkXNEXQGgiUrJ8EQ5FJAPI/pub?output=tsv";
+var DungeonDataUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRCyjBTeKjsBri_uvkFnT-i9f-jI4RUR0YffYh32XFtQfywivXktmLcmGOuXTfOQZH1sv6VTmF9Ceee/pub?gid=1815567292&single=true&output=tsv";
 var bh;
 (function (bh) {
     var data;
@@ -2806,7 +2808,7 @@ function numToRoman(num) {
     }
 }
 function updateDungeonData() {
-    $.get("https://docs.google.com/spreadsheets/d/e/2PACX-1vRCyjBTeKjsBri_uvkFnT-i9f-jI4RUR0YffYh32XFtQfywivXktmLcmGOuXTfOQZH1sv6VTmF9Ceee/pub?gid=1815567292&single=true&output=tsv").then(function (raw) {
+    $.get(DungeonDataUrl).then(function (raw) {
         var mapped = bh.Repo.mapTsv(raw), columns = Object.keys(mapped[0]), dungeons = mapped.map(function (d) {
             var name = d["Dungeon"] + " " + d["Difficulty"] + " " + numToRoman(d["Level"]), dungeon = bh.data.DungeonRepo.find(name);
             if (!dungeon) {

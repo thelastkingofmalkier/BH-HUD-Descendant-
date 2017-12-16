@@ -5,7 +5,7 @@
 /// <reference path="../classes/repos/ItemRepo.ts"/>
 
 var DataSheetID = "1uXkC_xua7KhhWQsfX_CZNa6fyl9CJlV9E7KNDO4_1T4";
-var BattleCardRepoGID = 1134947346;
+var BattleCardRepoGID = 1013492615;
 var BoosterCardRepoGID = 1709781959;
 var DungeonRepoGID = 1980099142;
 var EffectRepoGID = 901337848;
@@ -16,6 +16,9 @@ var GuildsGID = 496437953;
 var USE_CACHE = true;
 var NO_CACHE = false;
 var MaxFameLevel = 50;
+
+var BattleCardDataUrl = "https://docs.google.com/spreadsheets/d/1xckeq3t9T2g4sR5zgKK52ZkXNEXQGgiUrJ8EQ5FJAPI/pub?output=tsv";
+var DungeonDataUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRCyjBTeKjsBri_uvkFnT-i9f-jI4RUR0YffYh32XFtQfywivXktmLcmGOuXTfOQZH1sv6VTmF9Ceee/pub?gid=1815567292&single=true&output=tsv";
 
 namespace bh {
 	export namespace data {

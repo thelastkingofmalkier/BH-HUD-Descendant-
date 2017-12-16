@@ -175,7 +175,7 @@ namespace bh {
 
 interface INewCard { [key: string]: string; }
 function updateCardData() {
-	$.get("https://docs.google.com/spreadsheets/d/1xckeq3t9T2g4sR5zgKK52ZkXNEXQGgiUrJ8EQ5FJAPI/pub?output=tsv").then(raw => {
+	$.get(BattleCardDataUrl).then(raw => {
 		var mapped = bh.Repo.mapTsv<INewCard>(raw),
 			cards = mapped.map(card => {
 				var guid = card["Id"],
@@ -206,7 +206,7 @@ function updateCardData() {
 			});
 		var tsv = "guid\tname\tklassType\telementType\trarityType\tturns\ttypesTargets\tbrag\tminValues\tmaxValues\ttier\tmats\tperkBase\tperks\teffects\tpacks";
 		cards.forEach(c => {
-			tsv += `\n${c.guid}\t${c.name}\t${bh.KlassType[c.klassType]}\t${bh.ElementType[c.elementType]}\t${bh.RarityType[c.rarityType]}\t${c.turns}\t${c.typesTargets.join("|")}\t${c.brag}\t${c.minValues.map(a=>a.join(",")).join("|")}\t${c.maxValues.join("|")}\t${c.tier}\t${c.mats.join(",")}\t${c.perkBase}\t${c.perks.join(",")}\t${c.effects.join(",")}\t${c.inPacks}`;
+			tsv += `\n${c.guid}\t${c.name}\t${bh.KlassType[c.klassType].slice(0, 2)}\t${bh.ElementType[c.elementType][0]}\t${bh.RarityType[c.rarityType][0]}\t${c.turns}\t${c.typesTargets.join("|")}\t${String(c.brag)[0]}\t${c.minValues.map(a=>a.join(",")).join("|")}\t${c.maxValues.join("|")}\t${c.tier}\t${c.mats.join(",")}\t${c.perkBase}\t${c.perks.join(",")}\t${c.effects.join(",")}\t${String(c.inPacks)[0]}`;
 		});
 		$("#data-output").val(tsv)
 	});
