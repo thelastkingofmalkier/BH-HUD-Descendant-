@@ -1,21 +1,10 @@
 namespace bh {
 	export var TSV: { [key: string]: string; };
 	export class Repo<T extends IHasGuidAndName> {
-		private id: string;
-		private gid: number;
-		private cacheable: boolean;
 		protected data: T[];
 
-		constructor();
-		constructor(gid: number);
-		constructor(id: string, gid: number);
-		constructor(gid: number, cacheable: boolean);
-		constructor(id: string, gid: number, cacheable: boolean);
-		constructor(idOrGid?: string|number, gidOrCacheable?: number|boolean, cacheable?: boolean) {
+		constructor(private id = "", private gid = 0, private cacheable = false) {
 			Repo.AllRepos.push(this);
-			this.id = typeof(gidOrCacheable) == "number" ? <string>idOrGid : null,
-			this.gid = typeof(gidOrCacheable) == "number" ? gidOrCacheable : <number>idOrGid;
-			this.cacheable = gidOrCacheable === true || cacheable === true;
 		}
 
 		private _init: Promise<T[]>;
@@ -108,30 +97,30 @@ namespace bh {
 							case "elementTypes":
 							case "crystalElementTypes":
 							case "boosterElementTypes":
-								object[key] = value.split(",").filter(s => !!s).map(s => ElementType[<GameElement>s]);
+								object[key] = value.split(",").filter(s => !!s).map(s => ElementRepo.findType(s));
 								break;
 
 							case "element":
 							case "elementType":
-								object["elementType"] = ElementType[<GameElement>value];
+								object["elementType"] = ElementRepo.findType(value);
 								break;
 
 							case "rarity":
 							case "rarityType":
-								object["rarityType"] = RarityType[<GameRarity>value.replace(/ /g, "")];
+								object["rarityType"] = RarityRepo.findType(value);
 								break;
 
 							case "klass":
 							case "klassType":
-								object["klassType"] = KlassType[<GameKlass>value];
+								object["klassType"] = KlassRepo.findType(value);
 								break;
 
 							case "itemType":
-								object["itemType"] = ItemType[<GameItemType>value.replace(/ /g, "")];
+								object["itemType"] = ItemRepo.findType(value);
 								break;
 
 							case "abilityType":
-								object["abilityType"] = AbilityType[<GameAbilityType>value];
+								object["abilityType"] = AbilityRepo.findType(value);
 								break;
 
 							case "brag":

@@ -110,6 +110,6 @@ function rateCards(max = true) {
 	});
 	scores.sort((a, b) => b.powerRating - a.powerRating);
 	$("textarea").val(scores.map((s, i) => (i+1) + ": " + s.card.name + (s.card.rarityType == bh.RarityType.Legendary?" (L)":"")).slice(0, 30).join("\n"));
-	$("#data-output").val(scores.map(score => `${score.powerRating} > ${bh.RarityType[score.card.rarityType][0]} ${score.card.name} (${score.card.turns}; ${score.card.typesTargets.concat(score.card.effects).concat(score.card.perks.map(p => p + " (" + (score.card.perkBase+20*(1+score.card.rarityType)) + "%)"))})`).join("\n"));
+	$("#data-output").val(scores.map(score => `${score.powerRating} > ${bh.RarityType[score.card.rarityType][0]} ${score.card.name} (${score.card.turns}; ${score.card.typesTargets.concat(score.card.effects).concat(score.card.perks.map(p => p + " (" + (score.card.perkBase+bh.BattleCardRepo.AddedPerkPerEvo*(1+score.card.rarityType)) + "%)"))})`).join("\n"));
 	return scores;
 }

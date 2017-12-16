@@ -1,10 +1,6 @@
 /// <reference path="Repo.ts"/>
 namespace bh {
 	export class EffectRepo extends Repo<IDataEffect> {
-
-		constructor() {
-			super(901337848, false);
-		}
 		protected parseTsv(tsv: string): IDataEffect[] {
 			this.data = Repo.mapTsv<IDataEffect>(tsv);
 			this.data.forEach(effect => effect.guid = effect.lower.replace(/\W/g, "-"));

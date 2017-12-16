@@ -29,29 +29,30 @@ namespace bh {
 					playerHeroes: PlayerHero[] = player.heroes.sort(utils.sort.byElementThenKlass);
 				playerHeroes.forEach(hero => {
 					var id = `${player.guid}-${hero.guid}`,
-						icon = getImg("heroes", hero.name),
-						level = hero.level == HeroRepo.MaxLevel ? hero.isMeat ? `<span class="evo-star">&#9734;</span>` : `<span class="star">&#9734;</span>` : `(${hero.level})`,
+						icon = hero.isLocked ? getImg("misc", "Lock") : getImg("heroes", hero.name),
+						level = hero.isLocked ? `` : hero.level == HeroRepo.MaxLevel ? hero.isMeat ? `<span class="evo-star">&#9734;</span>` : `<span class="star">&#9734;</span>` : `(${hero.level})`,
+						hitPoints = hero.isLocked ? `` : `${utils.truncateNumber(hero.hitPoints)} HP`,
 						powerPercent = hero.powerPercent,
 						progressBG = hero.isOp ? "background-color:pink;" : "",
 						color = powerPercent < 25 ? "progress-bar-info" : powerPercent < 50 ? "progress-bar-success" : powerPercent < 75 ? "progress-bar-warning" : "progress-bar-danger",
-						progressBar = `<div class="progress" style="${progressBG}"><div class="progress-bar ${color}" style="width:${powerPercent}%;"><span></span></div></div>`,
+						progressBar = hero.isLocked ? `` : `<div class="progress" style="${progressBG}"><div class="progress-bar ${color}" style="width:${powerPercent}%;"><span></span></div></div>`,
+						powerRating = hero.isLocked ? `` : hero.powerRating,
 						title = `<span class="hero-icon">${icon}</span>`
 							+ `<span class="hero-name">${hero.name}</span>`
 							+ `<span class="hero-level">${level}</span>`
-							+ `<span class="hero-hp">${utils.truncateNumber(hero.hitPoints)} HP</span>`
+							+ `<span class="hero-hp">${hitPoints}</span>`
 							+ `<span class="hero-rating-bar">${progressBar}</span>`
-							+ `<span class="hero-rating">${hero.powerRating}</span>`,
+							+ `<span class="hero-rating">${powerRating}</span>`,
 						content = "";
 					if (player.isMe || player.isAlly) {
 						var abilities = hero.playerHeroAbilities
 								.map(playerHeroAbility => {
 									var level = playerHeroAbility.level,
-										isCapped = playerHeroAbility.isCapped,
-										isLocked = playerHeroAbility.isLocked,
-										isMaxed = playerHeroAbility.isMaxed,
 										maxLevel = playerHeroAbility.levelMax,
-										levelText = isLocked ? "locked" : isMaxed ? "max" : isCapped ? "capped" : `${level} / ${maxLevel}`,
-										text = `${playerHeroAbility.img} ${playerHeroAbility.name} (${levelText})`,
+										isMaxed = playerHeroAbility.isMaxed,
+										capped = playerHeroAbility.isCapped ? "; capped" : "",
+										levelText = playerHeroAbility.isLocked ? getImg("misc", "Lock") : isMaxed ? "(max)" : `(${level} / ${maxLevel}${capped})`,
+										text = `${playerHeroAbility.img} ${playerHeroAbility.name} ${levelText}`,
 										children = "";
 									if (!isMaxed) { // !isCapped
 										children += playerHeroAbility.materialHtml;

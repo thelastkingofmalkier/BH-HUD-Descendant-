@@ -55,7 +55,7 @@ namespace bh {
 			return this.fromCache("heroes", () => {
 				var archetypes: IPlayer.Hero[];
 				if (this._pp) {
-					archetypes = this._pp.archetypes || [];
+					archetypes = data.HeroRepo.all.map(hero => this._pp.archetypes.find(arch => arch.id == hero.guid) || HeroRepo.getLockedArchetype(this.guid, hero.guid));
 				}else {
 					archetypes = Object.keys(this._gp.archetypeLevels).map(guid => {
 						return <any>{ playerId:this.guid, id:guid, level:this._gp.archetypeLevels[guid] };

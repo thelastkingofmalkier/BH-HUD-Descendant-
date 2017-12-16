@@ -1,9 +1,6 @@
 /// <reference path="Repo.ts"/>
 namespace bh {
 	export class ItemRepo extends Repo<IDataInventoryItem> {
-		constructor() {
-			super(879699541, true);
-		}
 		public get evoJars() {
 			return this.data.filter(item => item.itemType === ItemType.EvoJar);
 		}
@@ -35,6 +32,12 @@ namespace bh {
 					: item.itemType == ItemType.Crystal ? item.name.split(/ /)[0]
 					: data.HeroRepo.find(item.name.split("'")[0]).abilities[0].name.replace(/\W/g, "");
 			return getSrc(folder, name);
+		}
+		public static get allTypes(): ItemType[] {
+			return [0, 1, 2];
+		}
+		public static findType(value: string): ItemType {
+			return this.allTypes.find(itemType => value[0] == ItemType[itemType][0]);
 		}
 	}
 }

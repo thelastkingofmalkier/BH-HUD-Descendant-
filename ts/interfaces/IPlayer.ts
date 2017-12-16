@@ -25,6 +25,7 @@ namespace IPlayer {
 		version: number;
 		abilityLevels: GuidNumberMap;
 		deck: string[]; // IPlayerCard.configId
+		locked: boolean;
 	}
 	export interface DailyLoginInfo {
 		playerId: string;

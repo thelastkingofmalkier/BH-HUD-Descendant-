@@ -1,8 +1,6 @@
 namespace bh {
 	export namespace data {
 		export namespace guilds {
-			var gid = 496437953;
-
 			var _names: IGuild.Name[] = [];
 			var _guilds: IGuild.Guild[] = [];
 
@@ -89,11 +87,11 @@ namespace bh {
 			export function init(): Promise<IGuild.Name[]> {
 				if (!_init) {
 					_init = new Promise<IGuild.Name[]>((resolvefn: (names: IGuild.Name[]) => void) => {
-						var tsv = (TSV||{})[String(gid)];
+						var tsv = (TSV||{})[String(GuildsGID)];
 						if (tsv) {
 							resolvefn(parseTSV(tsv));
 						}else {
-							Repo.fetchTsv(null, gid).then(tsv => resolvefn(parseTSV(tsv)), () => resolvefn(_names));
+							Repo.fetchTsv(null, GuildsGID).then(tsv => resolvefn(parseTSV(tsv)), () => resolvefn(_names));
 						}
 					});
 				}

@@ -15,7 +15,7 @@ namespace bh {
 		}
 		export function addElements($ = bh.$()) {
 			var style = $("<style type='text/css' id='bh-hud-elements'/>").appendTo($("head"));
-			ElementRepo.all.forEach(elementType => elementType == ElementType.Neutral ? void 0 : style.append(`div.bh-hud-image.img-${ElementType[elementType]} { background-image:url('${ElementRepo.toImageSrc(elementType)}'); }`))
+			ElementRepo.allTypes.forEach(elementType => elementType == ElementType.Neutral ? void 0 : style.append(`div.bh-hud-image.img-${ElementType[elementType]} { background-image:url('${ElementRepo.toImageSrc(elementType)}'); }`))
 		}
 		export function addHeroes($ = bh.$()) {
 			var style = $("<style type='text/css' id='bh-hud-heroes'/>").appendTo($("head"));
@@ -28,7 +28,7 @@ namespace bh {
 		export function addKlasses($ = bh.$()) {
 			var style = $("<style type='text/css' id='bh-hud-klasses'/>").appendTo($("head")),
 				widths = [16, 12, 12];
-			KlassRepo.all.forEach(klassType => style.append(`div.bh-hud-image.img-${KlassType[klassType]} { width:16px; background-size:${widths[klassType]}px 20px; background-image:url('${KlassRepo.toImageSrc(klassType)}'); }`))
+			KlassRepo.allTypes.forEach(klassType => style.append(`div.bh-hud-image.img-${KlassType[klassType]} { width:16px; background-size:${widths[klassType]}px 20px; background-image:url('${KlassRepo.toImageSrc(klassType)}'); }`))
 		}
 	}
 }

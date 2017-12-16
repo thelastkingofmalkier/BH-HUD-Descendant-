@@ -137,6 +137,7 @@ namespace bh {
 			export declare var EvoJars: string;
 			export declare var Fragments: string;
 			export declare var GemStone: string;
+			export declare var Lock: string;
 		}
 		export namespace runes {
 			export declare var DeathTrap: string;

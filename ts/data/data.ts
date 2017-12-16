@@ -4,21 +4,34 @@
 /// <reference path="../classes/repos/HeroRepo.ts"/>
 /// <reference path="../classes/repos/ItemRepo.ts"/>
 
+var DataSheetID = "1uXkC_xua7KhhWQsfX_CZNa6fyl9CJlV9E7KNDO4_1T4";
+var BattleCardRepoGID = 1134947346;
+var BoosterCardRepoGID = 1709781959;
+var DungeonRepoGID = 1980099142;
+var EffectRepoGID = 901337848;
+var HeroRepoGID = 1755919442;
+var ItemRepoGID = 1250310062;
+var WildCardRepoGID = 2106503523;
+var GuildsGID = 496437953;
+var USE_CACHE = true;
+var NO_CACHE = false;
+var MaxFameLevel = 50;
+
 namespace bh {
 	export namespace data {
-		export var BattleCardRepo = new bh.BattleCardRepo();
-		export var BoosterCardRepo = new bh.BoosterCardRepo();
-		export var DungeonRepo = new bh.DungeonRepo();
-		export var EffectRepo = new bh.EffectRepo();
-		export var HeroRepo = new bh.HeroRepo();
-		export var ItemRepo = new bh.ItemRepo();
+		export var BattleCardRepo = new bh.BattleCardRepo(DataSheetID, BattleCardRepoGID, NO_CACHE||true);
+		export var BoosterCardRepo = new bh.BoosterCardRepo(DataSheetID, BoosterCardRepoGID, USE_CACHE);
+		export var DungeonRepo = new bh.DungeonRepo(DataSheetID, DungeonRepoGID, NO_CACHE||true);
+		export var EffectRepo = new bh.EffectRepo(DataSheetID, EffectRepoGID, NO_CACHE||true);
+		export var HeroRepo = new bh.HeroRepo(DataSheetID, HeroRepoGID, USE_CACHE&&false);
+		export var ItemRepo = new bh.ItemRepo(DataSheetID, ItemRepoGID, USE_CACHE);
 		export var PlayerRepo = new Repo<Player>();
-		export var WildCardRepo = new Repo<IDataWildCard>(2106503523, true);
+		export var WildCardRepo = new Repo<IDataWildCard>(DataSheetID, WildCardRepoGID, USE_CACHE);
 
 		export function arenaToPlayers(json: any): IPlayer.Player[] {
 			var players: IPlayer.Player[] = [];
 			if (Array.isArray(json)) {
-				if (json.length == 3) {
+				if (json.length > 0) {
 					(<any[]>json).forEach(match => {
 						var indexKeys = Object.keys(match) || [],
 							indexKey = indexKeys[0] || "0",

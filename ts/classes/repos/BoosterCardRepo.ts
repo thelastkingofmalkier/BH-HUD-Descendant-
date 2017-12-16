@@ -1,10 +1,6 @@
 /// <reference path="Repo.ts"/>
 namespace bh {
 	export class BoosterCardRepo extends Repo<IDataBoosterCard> {
-		constructor() {
-			super(1709781959, true);
-		}
-
 		public static getXpValue(card: IDataBoosterCard, match = false) {
 			var multiplier = match ? 1.5 : 1;
 			switch (card.rarityType) {

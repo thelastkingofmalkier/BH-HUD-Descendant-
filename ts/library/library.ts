@@ -259,8 +259,8 @@ namespace bh {
 			return tests[dungeon.guid] || [];
 		}
 
-		var elementLowers = ElementRepo.all.map(type => ElementType[type].toLowerCase());
-		var rarityLowers = RarityRepo.all.map(type => RarityType[type].toLowerCase());
+		var elementLowers = ElementRepo.allTypes.map(type => ElementType[type].toLowerCase());
+		var rarityLowers = RarityRepo.allTypes.map(type => RarityType[type].toLowerCase());
 		var heroNameLowers: string[] = null;
 		function matchTests(which: FilterType, tests: string[], word: string) {
 			if (which == "effect") return matchTestsIncludes(tests, word);

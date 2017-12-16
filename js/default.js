@@ -1,5 +1,5 @@
 var __extends = (this && this.__extends) || (function () {
-   var extendStatics = Object.setPrototypeOf ||
+    var extendStatics = Object.setPrototypeOf ||
         ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
         function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
     return function (d, b) {
@@ -334,7 +334,6 @@ var bh;
                 case "Thrudd":
                     return Math.floor(38 / 7 * level * level + 19 / 7 * level + 190 - 38 / 7 - 19 / 7);
                 default:
-                    console.log(hero.name);
                     return 0;
             }
         };
@@ -542,7 +541,7 @@ var bh;
                 return this.fromCache("heroes", function () {
                     var archetypes;
                     if (_this._pp) {
-                        archetypes = _this._pp.archetypes || [];
+                        archetypes = bh.data.HeroRepo.all.map(function (hero) { return _this._pp.archetypes.find(function (arch) { return arch.id == hero.guid; }) || bh.HeroRepo.getLockedArchetype(_this.guid, hero.guid); });
                     }
                     else {
                         archetypes = Object.keys(_this._gp.archetypeLevels).map(function (guid) {
@@ -1230,6 +1229,11 @@ var bh;
         });
         Object.defineProperty(PlayerHero.prototype, "isCapped", {
             get: function () { return this.isActiveCapped && this.isPassiveCapped && this.isTraitCapped; },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(PlayerHero.prototype, "isLocked", {
+            get: function () { return this.archetype.locked; },
             enumerable: true,
             configurable: true
         });
@@ -1921,7 +1925,7 @@ function rateCards(max) {
     });
     scores.sort(function (a, b) { return b.powerRating - a.powerRating; });
     $("textarea").val(scores.map(function (s, i) { return (i + 1) + ": " + s.card.name + (s.card.rarityType == bh.RarityType.Legendary ? " (L)" : ""); }).slice(0, 30).join("\n"));
-    $("#data-output").val(scores.map(function (score) { return score.powerRating + " > " + bh.RarityType[score.card.rarityType][0] + " " + score.card.name + " (" + score.card.turns + "; " + score.card.typesTargets.concat(score.card.effects).concat(score.card.perks.map(function (p) { return p + " (" + (score.card.perkBase + 20 * (1 + score.card.rarityType)) + "%)"; })) + ")"; }).join("\n"));
+    $("#data-output").val(scores.map(function (score) { return score.powerRating + " > " + bh.RarityType[score.card.rarityType][0] + " " + score.card.name + " (" + score.card.turns + "; " + score.card.typesTargets.concat(score.card.effects).concat(score.card.perks.map(function (p) { return p + " (" + (score.card.perkBase + bh.BattleCardRepo.AddedPerkPerEvo * (1 + score.card.rarityType)) + "%)"; })) + ")"; }).join("\n"));
     return scores;
 }
 var bh;
@@ -2053,11 +2057,14 @@ var bh;
 var bh;
 (function (bh) {
     var Repo = (function () {
-        function Repo(idOrGid, gidOrCacheable, cacheable) {
+        function Repo(id, gid, cacheable) {
+            if (id === void 0) { id = ""; }
+            if (gid === void 0) { gid = 0; }
+            if (cacheable === void 0) { cacheable = false; }
+            this.id = id;
+            this.gid = gid;
+            this.cacheable = cacheable;
             Repo.AllRepos.push(this);
-            this.id = typeof (gidOrCacheable) == "number" ? idOrGid : null,
-                this.gid = typeof (gidOrCacheable) == "number" ? gidOrCacheable : idOrGid;
-            this.cacheable = gidOrCacheable === true || cacheable === true;
         }
         Repo.prototype.init = function () {
             var _this = this;
@@ -2164,25 +2171,25 @@ var bh;
                         case "elementTypes":
                         case "crystalElementTypes":
                         case "boosterElementTypes":
-                            object[key] = value.split(",").filter(function (s) { return !!s; }).map(function (s) { return bh.ElementType[s]; });
+                            object[key] = value.split(",").filter(function (s) { return !!s; }).map(function (s) { return bh.ElementRepo.findType(s); });
                             break;
                         case "element":
                         case "elementType":
-                            object["elementType"] = bh.ElementType[value];
+                            object["elementType"] = bh.ElementRepo.findType(value);
                             break;
                         case "rarity":
                         case "rarityType":
-                            object["rarityType"] = bh.RarityType[value.replace(/ /g, "")];
+                            object["rarityType"] = bh.RarityRepo.findType(value);
                             break;
                         case "klass":
                         case "klassType":
-                            object["klassType"] = bh.KlassType[value];
+                            object["klassType"] = bh.KlassRepo.findType(value);
                             break;
                         case "itemType":
-                            object["itemType"] = bh.ItemType[value.replace(/ /g, "")];
+                            object["itemType"] = bh.ItemRepo.findType(value);
                             break;
                         case "abilityType":
-                            object["abilityType"] = bh.AbilityType[value];
+                            object["abilityType"] = bh.AbilityRepo.findType(value);
                             break;
                         case "brag":
                         case "packs":
@@ -2234,18 +2241,43 @@ var bh;
 })(bh || (bh = {}));
 var bh;
 (function (bh) {
+    var AbilityRepo = (function () {
+        function AbilityRepo() {
+        }
+        Object.defineProperty(AbilityRepo, "allTypes", {
+            get: function () {
+                return [0, 1, 2];
+            },
+            enumerable: true,
+            configurable: true
+        });
+        AbilityRepo.isAbility = function (ability) {
+            return String(ability).replace(/ /g, "") in bh.AbilityType;
+        };
+        AbilityRepo.findType = function (value) {
+            return this.allTypes.find(function (abilityType) { return value[0] == bh.AbilityType[abilityType][0]; });
+        };
+        return AbilityRepo;
+    }());
+    bh.AbilityRepo = AbilityRepo;
+})(bh || (bh = {}));
+var _allHastes = [];
+var bh;
+(function (bh) {
     var BattleCardRepo = (function (_super) {
         __extends(BattleCardRepo, _super);
         function BattleCardRepo() {
-            return _super.call(this, 1134947346, false) || this;
+            return _super !== null && _super.apply(this, arguments) || this;
         }
         BattleCardRepo.isCycleCard = function (card, evo) {
             if (evo === void 0) { evo = card.rarityType + 1; }
+            card.effects.concat(card.perks).filter(function (e) { return e.toLowerCase().includes("haste") || e.toLowerCase().includes("speed"); }).forEach(function (e) { return _allHastes.push(card.name + " (" + bh.RarityType[card.rarityType][0] + "): " + e); });
             if (card.turns != 1)
                 return false;
             if (card.effects.find(function (e) { return e == "Haste 1T"; }))
                 return true;
-            if (card.perks.find(function (p) { return p == "Haste 1T"; }) && BattleCardRepo.getPerk(card, evo) == 100)
+            var perk = card.perks.find(function (p) { return p == "Haste 1T"; });
+            if (perk && BattleCardRepo.getPerk(card, evo) == 100)
                 return true;
             return false;
         };
@@ -2267,15 +2299,16 @@ var bh;
             return [10, 20, 35, 50, 50][rarityType];
         };
         BattleCardRepo.isMaxLevel = function (rarity, level) {
-            return level == BattleCardRepo.getLevelsForRarity(bh.RarityType[(rarity || "").replace(/ /, "")]);
+            return level == BattleCardRepo.getLevelsForRarity(bh.RarityRepo.findType(rarity));
         };
         BattleCardRepo.getXpDeltaFromLevel = function (level) {
             return level ? (level - 1) * 36 + 100 : 0;
         };
         BattleCardRepo.getXpForLevel = function (level) {
             var xp = 0;
-            for (var i = 1; i < level; i++)
+            for (var i = 1; i < level; i++) {
                 xp += BattleCardRepo.getXpDeltaFromLevel(i);
+            }
             return xp;
         };
         BattleCardRepo.getXpValue = function (card) {
@@ -2288,7 +2321,7 @@ var bh;
                 default: return 0;
             }
         };
-        BattleCardRepo.AddedPerkPerEvo = 20;
+        BattleCardRepo.AddedPerkPerEvo = 10;
         return BattleCardRepo;
     }(bh.Repo));
     bh.BattleCardRepo = BattleCardRepo;
@@ -2298,7 +2331,7 @@ var bh;
     var BoosterCardRepo = (function (_super) {
         __extends(BoosterCardRepo, _super);
         function BoosterCardRepo() {
-            return _super.call(this, 1709781959, true) || this;
+            return _super !== null && _super.apply(this, arguments) || this;
         }
         BoosterCardRepo.getXpValue = function (card, match) {
             if (match === void 0) { match = false; }
@@ -2320,7 +2353,7 @@ var bh;
     var DungeonRepo = (function (_super) {
         __extends(DungeonRepo, _super);
         function DungeonRepo() {
-            return _super.call(this, 1980099142) || this;
+            return _super !== null && _super.apply(this, arguments) || this;
         }
         DungeonRepo.prototype.parseTsv = function (tsv) {
             this.data = bh.Repo.mapTsv(tsv);
@@ -2336,7 +2369,7 @@ var bh;
     var EffectRepo = (function (_super) {
         __extends(EffectRepo, _super);
         function EffectRepo() {
-            return _super.call(this, 901337848, false) || this;
+            return _super !== null && _super.apply(this, arguments) || this;
         }
         EffectRepo.prototype.parseTsv = function (tsv) {
             this.data = bh.Repo.mapTsv(tsv);
@@ -2452,8 +2485,10 @@ var bh;
     var ElementRepo = (function () {
         function ElementRepo() {
         }
-        Object.defineProperty(ElementRepo, "all", {
-            get: function () { return [0, 1, 2, 3, 4, 5]; },
+        Object.defineProperty(ElementRepo, "allTypes", {
+            get: function () {
+                return [0, 1, 2, 3, 4, 5];
+            },
             enumerable: true,
             configurable: true
         });
@@ -2464,7 +2499,15 @@ var bh;
         ElementRepo.toImageSrc = function (elementType) {
             return bh.getSrc("elements", bh.ElementType[elementType]);
         };
-        ElementRepo.isElement = function (element) { return String(element) in bh.ElementType; };
+        ElementRepo.isElement = function (element) {
+            return String(element) in bh.ElementType;
+        };
+        ElementRepo.findType = function (value) {
+            var type = this.allTypes.find(function (elementType) { return value[0] == bh.ElementType[elementType][0]; });
+            if (type === null)
+                console.log(value);
+            return type;
+        };
         return ElementRepo;
     }());
     bh.ElementRepo = ElementRepo;
@@ -2474,7 +2517,7 @@ var bh;
     var HeroRepo = (function (_super) {
         __extends(HeroRepo, _super);
         function HeroRepo() {
-            return _super.call(this, 411895816, true) || this;
+            return _super !== null && _super.apply(this, arguments) || this;
         }
         HeroRepo.prototype.parseTsv = function (tsv) {
             var _this = this;
@@ -2514,9 +2557,9 @@ var bh;
         HeroRepo.getMaxPassive = function (hero, level) { return hero.name == "Jinx" ? Math.max(level - 14, 0) : Math.max(level - 29, 0); };
         HeroRepo.getAbilityLevelCap = function (playerHeroAbility) {
             switch (playerHeroAbility.type) {
-                case bh.AbilityType.Active: return HeroRepo.getMaxActive(playerHeroAbility.hero, playerHeroAbility.level);
-                case bh.AbilityType.Passive: return HeroRepo.getMaxPassive(playerHeroAbility.hero, playerHeroAbility.level);
-                case bh.AbilityType.Trait: return HeroRepo.getMaxTrait(playerHeroAbility.level);
+                case bh.AbilityType.Active: return HeroRepo.getMaxActive(playerHeroAbility.hero, playerHeroAbility.playerHero.level);
+                case bh.AbilityType.Passive: return HeroRepo.getMaxPassive(playerHeroAbility.hero, playerHeroAbility.playerHero.level);
+                case bh.AbilityType.Trait: return HeroRepo.getMaxTrait(playerHeroAbility.playerHero.level);
             }
         };
         HeroRepo.getAbilityLevelMax = function (playerHeroAbility) {
@@ -2527,7 +2570,7 @@ var bh;
             }
         };
         Object.defineProperty(HeroRepo, "MaxFame", {
-            get: function () { return 45; },
+            get: function () { return MaxFameLevel; },
             enumerable: true,
             configurable: true
         });
@@ -2543,6 +2586,18 @@ var bh;
                 case bh.AbilityType.Trait: return HeroRepo.getMaxTrait(HeroRepo.MaxLevel);
             }
         };
+        HeroRepo.getLockedArchetype = function (playerGuid, heroGuid) {
+            return {
+                "playerId": playerGuid,
+                "id": heroGuid,
+                "experience": 0,
+                "level": 0,
+                "version": 0,
+                "abilityLevels": {},
+                "deck": [],
+                "locked": true
+            };
+        };
         return HeroRepo;
     }(bh.Repo));
     bh.HeroRepo = HeroRepo;
@@ -2552,7 +2607,7 @@ var bh;
     var ItemRepo = (function (_super) {
         __extends(ItemRepo, _super);
         function ItemRepo() {
-            return _super.call(this, 879699541, true) || this;
+            return _super !== null && _super.apply(this, arguments) || this;
         }
         Object.defineProperty(ItemRepo.prototype, "evoJars", {
             get: function () {
@@ -2602,6 +2657,16 @@ var bh;
                     : bh.data.HeroRepo.find(item.name.split("'")[0]).abilities[0].name.replace(/\W/g, "");
             return bh.getSrc(folder, name);
         };
+        Object.defineProperty(ItemRepo, "allTypes", {
+            get: function () {
+                return [0, 1, 2];
+            },
+            enumerable: true,
+            configurable: true
+        });
+        ItemRepo.findType = function (value) {
+            return this.allTypes.find(function (itemType) { return value[0] == bh.ItemType[itemType][0]; });
+        };
         return ItemRepo;
     }(bh.Repo));
     bh.ItemRepo = ItemRepo;
@@ -2611,8 +2676,10 @@ var bh;
     var KlassRepo = (function () {
         function KlassRepo() {
         }
-        Object.defineProperty(KlassRepo, "all", {
-            get: function () { return [0, 1, 2]; },
+        Object.defineProperty(KlassRepo, "allTypes", {
+            get: function () {
+                return [0, 1, 2];
+            },
             enumerable: true,
             configurable: true
         });
@@ -2623,6 +2690,9 @@ var bh;
         KlassRepo.toImageSrc = function (klassType) {
             return bh.getSrc("classes", bh.KlassType[klassType]);
         };
+        KlassRepo.findType = function (value) {
+            return this.allTypes.find(function (klassType) { return value.slice(0, 2) == bh.KlassType[klassType].slice(0, 2); });
+        };
         return KlassRepo;
     }());
     bh.KlassRepo = KlassRepo;
@@ -2632,32 +2702,51 @@ var bh;
     var RarityRepo = (function () {
         function RarityRepo() {
         }
-        Object.defineProperty(RarityRepo, "all", {
-            get: function () { return [0, 1, 2, 3, 4]; },
+        Object.defineProperty(RarityRepo, "allTypes", {
+            get: function () {
+                return [0, 1, 2, 3, 4];
+            },
             enumerable: true,
             configurable: true
         });
-        RarityRepo.isRarity = function (rarity) { return String(rarity).replace(/ /g, "") in bh.RarityType; };
+        RarityRepo.isRarity = function (rarity) {
+            return String(rarity).replace(/ /g, "") in bh.RarityType;
+        };
+        RarityRepo.findType = function (value) {
+            return this.allTypes.find(function (rarityType) { return value[0] == bh.RarityType[rarityType][0]; });
+        };
         return RarityRepo;
     }());
     bh.RarityRepo = RarityRepo;
 })(bh || (bh = {}));
+var DataSheetID = "1uXkC_xua7KhhWQsfX_CZNa6fyl9CJlV9E7KNDO4_1T4";
+var BattleCardRepoGID = 1134947346;
+var BoosterCardRepoGID = 1709781959;
+var DungeonRepoGID = 1980099142;
+var EffectRepoGID = 901337848;
+var HeroRepoGID = 1755919442;
+var ItemRepoGID = 1250310062;
+var WildCardRepoGID = 2106503523;
+var GuildsGID = 496437953;
+var USE_CACHE = true;
+var NO_CACHE = false;
+var MaxFameLevel = 50;
 var bh;
 (function (bh) {
     var data;
     (function (data) {
-        data.BattleCardRepo = new bh.BattleCardRepo();
-        data.BoosterCardRepo = new bh.BoosterCardRepo();
-        data.DungeonRepo = new bh.DungeonRepo();
-        data.EffectRepo = new bh.EffectRepo();
-        data.HeroRepo = new bh.HeroRepo();
-        data.ItemRepo = new bh.ItemRepo();
+        data.BattleCardRepo = new bh.BattleCardRepo(DataSheetID, BattleCardRepoGID, NO_CACHE || true);
+        data.BoosterCardRepo = new bh.BoosterCardRepo(DataSheetID, BoosterCardRepoGID, USE_CACHE);
+        data.DungeonRepo = new bh.DungeonRepo(DataSheetID, DungeonRepoGID, NO_CACHE || true);
+        data.EffectRepo = new bh.EffectRepo(DataSheetID, EffectRepoGID, NO_CACHE || true);
+        data.HeroRepo = new bh.HeroRepo(DataSheetID, HeroRepoGID, USE_CACHE && false);
+        data.ItemRepo = new bh.ItemRepo(DataSheetID, ItemRepoGID, USE_CACHE);
         data.PlayerRepo = new bh.Repo();
-        data.WildCardRepo = new bh.Repo(2106503523, true);
+        data.WildCardRepo = new bh.Repo(DataSheetID, WildCardRepoGID, USE_CACHE);
         function arenaToPlayers(json) {
             var players = [];
             if (Array.isArray(json)) {
-                if (json.length == 3) {
+                if (json.length > 0) {
                     json.forEach(function (match) {
                         var indexKeys = Object.keys(match) || [], indexKey = indexKeys[0] || "0", playerContainer = match[indexKey], playerGuids = Object.keys(playerContainer) || [], playerGuid = playerGuids[0] || "", player = playerContainer[playerGuid] || null;
                         if (isPlayer(player))
@@ -2874,7 +2963,6 @@ var bh;
     (function (data) {
         var guilds;
         (function (guilds) {
-            var gid = 496437953;
             var _names = [];
             var _guilds = [];
             function findByGuid(guid) {
@@ -2961,12 +3049,12 @@ var bh;
             function init() {
                 if (!_init) {
                     _init = new Promise(function (resolvefn) {
-                        var tsv = (bh.TSV || {})[String(gid)];
+                        var tsv = (bh.TSV || {})[String(GuildsGID)];
                         if (tsv) {
                             resolvefn(parseTSV(tsv));
                         }
                         else {
-                            bh.Repo.fetchTsv(null, gid).then(function (tsv) { return resolvefn(parseTSV(tsv)); }, function () { return resolvefn(_names); });
+                            bh.Repo.fetchTsv(null, GuildsGID).then(function (tsv) { return resolvefn(parseTSV(tsv)); }, function () { return resolvefn(_names); });
                         }
                     });
                 }
@@ -3102,7 +3190,7 @@ var bh;
         function addElements($) {
             if ($ === void 0) { $ = bh.$(); }
             var style = $("<style type='text/css' id='bh-hud-elements'/>").appendTo($("head"));
-            bh.ElementRepo.all.forEach(function (elementType) { return elementType == bh.ElementType.Neutral ? void 0 : style.append("div.bh-hud-image.img-" + bh.ElementType[elementType] + " { background-image:url('" + bh.ElementRepo.toImageSrc(elementType) + "'); }"); });
+            bh.ElementRepo.allTypes.forEach(function (elementType) { return elementType == bh.ElementType.Neutral ? void 0 : style.append("div.bh-hud-image.img-" + bh.ElementType[elementType] + " { background-image:url('" + bh.ElementRepo.toImageSrc(elementType) + "'); }"); });
         }
         css.addElements = addElements;
         function addHeroes($) {
@@ -3120,7 +3208,7 @@ var bh;
         function addKlasses($) {
             if ($ === void 0) { $ = bh.$(); }
             var style = $("<style type='text/css' id='bh-hud-klasses'/>").appendTo($("head")), widths = [16, 12, 12];
-            bh.KlassRepo.all.forEach(function (klassType) { return style.append("div.bh-hud-image.img-" + bh.KlassType[klassType] + " { width:16px; background-size:" + widths[klassType] + "px 20px; background-image:url('" + bh.KlassRepo.toImageSrc(klassType) + "'); }"); });
+            bh.KlassRepo.allTypes.forEach(function (klassType) { return style.append("div.bh-hud-image.img-" + bh.KlassType[klassType] + " { width:16px; background-size:" + widths[klassType] + "px 20px; background-image:url('" + bh.KlassRepo.toImageSrc(klassType) + "'); }"); });
         }
         css.addKlasses = addKlasses;
     })(css = bh.css || (bh.css = {}));
@@ -4049,16 +4137,16 @@ var bh;
                 if (arenaIndex === void 0) { arenaIndex = -1; }
                 var star = player.isFullMeat ? "&#9734;" : "", averagePercentText = player.powerPercent == player.averagePowerPercent ? "" : "; Avg " + player.averagePowerPercent + "%", percentText = player.isArena ? "" : " <span style=\"white-space:nowrap;\">(" + player.powerPercent + "%" + averagePercentText + ")</span>", html = "<div class=\"player-name\" data-action=\"sort-heroes\">" + star + " " + bh.utils.htmlFriendly(player.name) + " " + percentText + "</div>", playerHeroes = player.heroes.sort(bh.utils.sort.byElementThenKlass);
                 playerHeroes.forEach(function (hero) {
-                    var id = player.guid + "-" + hero.guid, icon = bh.getImg("heroes", hero.name), level = hero.level == bh.HeroRepo.MaxLevel ? hero.isMeat ? "<span class=\"evo-star\">&#9734;</span>" : "<span class=\"star\">&#9734;</span>" : "(" + hero.level + ")", powerPercent = hero.powerPercent, progressBG = hero.isOp ? "background-color:pink;" : "", color = powerPercent < 25 ? "progress-bar-info" : powerPercent < 50 ? "progress-bar-success" : powerPercent < 75 ? "progress-bar-warning" : "progress-bar-danger", progressBar = "<div class=\"progress\" style=\"" + progressBG + "\"><div class=\"progress-bar " + color + "\" style=\"width:" + powerPercent + "%;\"><span></span></div></div>", title = "<span class=\"hero-icon\">" + icon + "</span>"
+                    var id = player.guid + "-" + hero.guid, icon = hero.isLocked ? bh.getImg("misc", "Lock") : bh.getImg("heroes", hero.name), level = hero.isLocked ? "" : hero.level == bh.HeroRepo.MaxLevel ? hero.isMeat ? "<span class=\"evo-star\">&#9734;</span>" : "<span class=\"star\">&#9734;</span>" : "(" + hero.level + ")", hitPoints = hero.isLocked ? "" : bh.utils.truncateNumber(hero.hitPoints) + " HP", powerPercent = hero.powerPercent, progressBG = hero.isOp ? "background-color:pink;" : "", color = powerPercent < 25 ? "progress-bar-info" : powerPercent < 50 ? "progress-bar-success" : powerPercent < 75 ? "progress-bar-warning" : "progress-bar-danger", progressBar = hero.isLocked ? "" : "<div class=\"progress\" style=\"" + progressBG + "\"><div class=\"progress-bar " + color + "\" style=\"width:" + powerPercent + "%;\"><span></span></div></div>", powerRating = hero.isLocked ? "" : hero.powerRating, title = "<span class=\"hero-icon\">" + icon + "</span>"
                         + ("<span class=\"hero-name\">" + hero.name + "</span>")
                         + ("<span class=\"hero-level\">" + level + "</span>")
-                        + ("<span class=\"hero-hp\">" + bh.utils.truncateNumber(hero.hitPoints) + " HP</span>")
+                        + ("<span class=\"hero-hp\">" + hitPoints + "</span>")
                         + ("<span class=\"hero-rating-bar\">" + progressBar + "</span>")
-                        + ("<span class=\"hero-rating\">" + hero.powerRating + "</span>"), content = "";
+                        + ("<span class=\"hero-rating\">" + powerRating + "</span>"), content = "";
                     if (player.isMe || player.isAlly) {
                         var abilities = hero.playerHeroAbilities
                             .map(function (playerHeroAbility) {
-                            var level = playerHeroAbility.level, isCapped = playerHeroAbility.isCapped, isLocked = playerHeroAbility.isLocked, isMaxed = playerHeroAbility.isMaxed, maxLevel = playerHeroAbility.levelMax, levelText = isLocked ? "locked" : isMaxed ? "max" : isCapped ? "capped" : level + " / " + maxLevel, text = playerHeroAbility.img + " " + playerHeroAbility.name + " (" + levelText + ")", children = "";
+                            var level = playerHeroAbility.level, maxLevel = playerHeroAbility.levelMax, isMaxed = playerHeroAbility.isMaxed, capped = playerHeroAbility.isCapped ? "; capped" : "", levelText = playerHeroAbility.isLocked ? bh.getImg("misc", "Lock") : isMaxed ? "(max)" : "(" + level + " / " + maxLevel + capped + ")", text = playerHeroAbility.img + " " + playerHeroAbility.name + " " + levelText, children = "";
                             if (!isMaxed) {
                                 children += playerHeroAbility.materialHtml;
                                 children += playerHeroAbility.goldHtml;
@@ -4297,8 +4385,8 @@ var bh;
             }
             return tests[dungeon.guid] || [];
         }
-        var elementLowers = bh.ElementRepo.all.map(function (type) { return bh.ElementType[type].toLowerCase(); });
-        var rarityLowers = bh.RarityRepo.all.map(function (type) { return bh.RarityType[type].toLowerCase(); });
+        var elementLowers = bh.ElementRepo.allTypes.map(function (type) { return bh.ElementType[type].toLowerCase(); });
+        var rarityLowers = bh.RarityRepo.allTypes.map(function (type) { return bh.RarityType[type].toLowerCase(); });
         var heroNameLowers = null;
         function matchTests(which, tests, word) {
             if (which == "effect")

@@ -1,9 +1,6 @@
 /// <reference path="Repo.ts"/>
 namespace bh {
 	export class HeroRepo extends Repo<Hero> {
-		constructor() {
-			super(411895816, true);
-		}
 		protected parseTsv(tsv: string) {
 			return new Promise<Hero[]>((resolvefn: (heroes: Hero[]) => void) => {
 				var mapped = Repo.mapTsv<IDataHeroAbility>(tsv),
@@ -43,9 +40,9 @@ namespace bh {
 		public static getMaxPassive(hero: Hero, level: number) { return hero.name == "Jinx" ? Math.max(level - 14, 0) : Math.max(level - 29, 0); }
 		public static getAbilityLevelCap(playerHeroAbility: PlayerHeroAbility) {
 			switch (playerHeroAbility.type) {
-				case AbilityType.Active: return HeroRepo.getMaxActive(playerHeroAbility.hero, playerHeroAbility.level);
-				case AbilityType.Passive: return HeroRepo.getMaxPassive(playerHeroAbility.hero, playerHeroAbility.level);
-				case AbilityType.Trait: return HeroRepo.getMaxTrait(playerHeroAbility.level);
+				case AbilityType.Active: return HeroRepo.getMaxActive(playerHeroAbility.hero, playerHeroAbility.playerHero.level);
+				case AbilityType.Passive: return HeroRepo.getMaxPassive(playerHeroAbility.hero, playerHeroAbility.playerHero.level);
+				case AbilityType.Trait: return HeroRepo.getMaxTrait(playerHeroAbility.playerHero.level);
 			}
 		}
 		public static getAbilityLevelMax(playerHeroAbility: PlayerHeroAbility) {
@@ -56,7 +53,7 @@ namespace bh {
 			}
 		}
 
-		public static get MaxFame() { return 45; }
+		public static get MaxFame() { return MaxFameLevel; }
 		public static get MaxLevel() { return HeroRepo.getMaxLevel(HeroRepo.MaxFame); }
 
 		public static getAbilityMaxLevel(hero: Hero, abilityType: AbilityType) {
@@ -65,6 +62,19 @@ namespace bh {
 				case AbilityType.Passive: return HeroRepo.getMaxPassive(hero, HeroRepo.MaxLevel);
 				case AbilityType.Trait: return HeroRepo.getMaxTrait(HeroRepo.MaxLevel);
 			}
+		}
+
+		public static getLockedArchetype(playerGuid: string, heroGuid: string): IPlayer.Hero {
+			return <any>{
+					"playerId": playerGuid,
+					"id": heroGuid,
+					"experience": 0,
+					"level": 0,
+					"version": 0,
+					"abilityLevels": { },
+					"deck": [],
+					"locked": true
+				};
 		}
 	}
 }

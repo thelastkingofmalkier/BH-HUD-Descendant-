@@ -63,7 +63,8 @@ namespace bh {
 				case "Thrudd":
 					return Math.floor(38/7 * level * level + 19/7 * level + 190 - 38/7 - 19/7);
 				default:
-					console.log(hero.name); return 0;
+					//console.log(hero.name);
+					return 0;
 			}
 		}
 	}
