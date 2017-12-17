@@ -13,7 +13,9 @@ namespace bh {
 		if (level < 72) return 10;
 		if (level < 80) return 11;
 		if (level < 87) return 12;
-		return 13;
+		if (level < 95) return 13;
+		if (level < 103) return 14;
+		return 15;
 	}
 	function getGoldCostForTrait(level: number): number {
 		if (level == 1) return 1000;
@@ -42,7 +44,9 @@ namespace bh {
 		if (level < 63) return 14;
 		if (level < 68) return 15;
 		if (level < 73) return 16;
-		return 17;
+		if (level < 78) return 17;
+		if (level < 83) return 18;
+		return 19;
 	}
 	function getGoldCostForActive(level: number): number {
 		if (level == 1) return 5000;
@@ -74,7 +78,9 @@ namespace bh {
 		if (level < 52) return 18;
 		if (level < 56) return 19;
 		if (level < 59) return 20;
-		return 21;
+		if (level < 62) return 21;
+		if (level < 66) return 22;
+		return 23;
 	}
 	function getGoldCostForPassive(level: number): number {
 		if (level == 1) return 7000;

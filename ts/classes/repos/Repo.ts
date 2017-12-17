@@ -162,7 +162,11 @@ namespace bh {
 
 							case "name":
 								object["lower"] = value.toLowerCase();
+								object[key] = (value || "").trim();
+								break;
+
 							default:
+								console.warn("mapTSV: " + key);
 								object[key] = (value || "").trim();
 								break;
 

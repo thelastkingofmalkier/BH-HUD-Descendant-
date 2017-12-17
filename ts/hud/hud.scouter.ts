@@ -47,14 +47,11 @@ namespace bh {
 					if (player.isMe || player.isAlly) {
 						var abilities = hero.playerHeroAbilities
 								.map(playerHeroAbility => {
-									var level = playerHeroAbility.level,
-										maxLevel = playerHeroAbility.levelMax,
-										isMaxed = playerHeroAbility.isMaxed,
-										capped = playerHeroAbility.isCapped ? "; capped" : "",
-										levelText = playerHeroAbility.isLocked ? getImg("misc", "Lock") : isMaxed ? "(max)" : `(${level} / ${maxLevel}${capped})`,
+									var cappedOrMaxed = playerHeroAbility.isMaxed ? "; maxed" : playerHeroAbility.isCapped ? "; capped" : "",
+										levelText = playerHeroAbility.isLocked ? getImg("misc", "Lock") : `(${playerHeroAbility.level} / ${playerHeroAbility.levelMax}${cappedOrMaxed})`,
 										text = `${playerHeroAbility.img} ${playerHeroAbility.name} ${levelText}`,
 										children = "";
-									if (!isMaxed) { // !isCapped
+									if (!playerHeroAbility.isMaxed) { // !isCapped
 										children += playerHeroAbility.materialHtml;
 										children += playerHeroAbility.goldHtml;
 									}

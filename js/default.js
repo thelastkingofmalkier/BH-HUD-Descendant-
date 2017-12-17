@@ -1323,7 +1323,11 @@ var bh;
             return 11;
         if (level < 87)
             return 12;
-        return 13;
+        if (level < 95)
+            return 13;
+        if (level < 103)
+            return 14;
+        return 15;
     }
     function getGoldCostForTrait(level) {
         if (level == 1)
@@ -1366,7 +1370,11 @@ var bh;
             return 15;
         if (level < 73)
             return 16;
-        return 17;
+        if (level < 78)
+            return 17;
+        if (level < 83)
+            return 18;
+        return 19;
     }
     function getGoldCostForActive(level) {
         if (level == 1)
@@ -1415,7 +1423,11 @@ var bh;
             return 19;
         if (level < 59)
             return 20;
-        return 21;
+        if (level < 62)
+            return 21;
+        if (level < 66)
+            return 22;
+        return 23;
     }
     function getGoldCostForPassive(level) {
         if (level == 1)
@@ -4148,8 +4160,8 @@ var bh;
                     if (player.isMe || player.isAlly) {
                         var abilities = hero.playerHeroAbilities
                             .map(function (playerHeroAbility) {
-                            var level = playerHeroAbility.level, maxLevel = playerHeroAbility.levelMax, isMaxed = playerHeroAbility.isMaxed, capped = playerHeroAbility.isCapped ? "; capped" : "", levelText = playerHeroAbility.isLocked ? bh.getImg("misc", "Lock") : isMaxed ? "(max)" : "(" + level + " / " + maxLevel + capped + ")", text = playerHeroAbility.img + " " + playerHeroAbility.name + " " + levelText, children = "";
-                            if (!isMaxed) {
+                            var cappedOrMaxed = playerHeroAbility.isMaxed ? "; maxed" : playerHeroAbility.isCapped ? "; capped" : "", levelText = playerHeroAbility.isLocked ? bh.getImg("misc", "Lock") : "(" + playerHeroAbility.level + " / " + playerHeroAbility.levelMax + cappedOrMaxed + ")", text = playerHeroAbility.img + " " + playerHeroAbility.name + " " + levelText, children = "";
+                            if (!playerHeroAbility.isMaxed) {
                                 children += playerHeroAbility.materialHtml;
                                 children += playerHeroAbility.goldHtml;
                             }

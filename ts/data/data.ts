@@ -6,7 +6,7 @@
 
 var DataSheetID = "1uXkC_xua7KhhWQsfX_CZNa6fyl9CJlV9E7KNDO4_1T4";
 var BattleCardRepoGID = 1013492615;
-var BoosterCardRepoGID = 1709781959;
+var BoosterCardRepoGID = 1070164839;
 var DungeonRepoGID = 1980099142;
 var EffectRepoGID = 901337848;
 var HeroRepoGID = 1755919442;
