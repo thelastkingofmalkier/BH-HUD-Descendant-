@@ -1,7 +1,7 @@
 namespace bh {
 	export class GameEffect {
 		public effect: string;
-		public value: number;
+		public value: string;
 		public percent: string;
 		public percentMultiplier: number;
 		public perkMultiplier: number;
@@ -100,29 +100,38 @@ namespace bh {
 		});
 	}
 	function getPowerRating(gameEffect: GameEffect): number {
+		var rating = _getPowerRating(gameEffect);
+		// if (rating != gameEffect.value) console.log(gameEffect.raw + ": " + gameEffect.value + " ("+typeof(gameEffect.value)+")")
+		return rating;
+	}
+	function _getPowerRating(gameEffect: GameEffect): number {
 		var effect = gameEffect.effect,
 			target = gameEffect.target,
-			offense = target && target.offense;
+			offense = target && target.offense,
+			match = (gameEffect.value || "").match(/(\d+(?:\.\d+))(T)?/i),
+			points = match && +match[1] || 1,
+			turns = match && match[2] == "T" ? gameEffect.turns : 1,
+			percentMultiplier = gameEffect.percentMultiplier || 1,
+			value = match ? points * turns * percentMultiplier : 0.5;
 		if (target) {
 			if (!["Critical", "Regen"].includes(effect)) {
-				if (["Slow"].includes(effect)) return offense ? 1 : -1;
-				if (["Sleep"].includes(effect)) return (offense ? 1 : -1) * gameEffect.turns;
+				if (["Slow"].includes(effect)) return value * (offense ? 1 : -1);
+				if (["Sleep"].includes(effect)) return value * (offense ? 1 : -1);
 				if (offense) {
-					if (["Interrupt", "Burn", "Bleed", "Shock", "Poison", "Backstab", "Chill", "Reset"].includes(effect)) return 1;
-					if (["Sap", "Drown"].includes(effect)) return 2;
-					if (["Marked"].includes(effect)) return gameEffect.turns;
-					if (["Accuracy Down"].includes(effect)) return gameEffect.turns * gameEffect.percentMultiplier;
+					if (["Interrupt", "Burn", "Bleed", "Shock", "Poison", "Backstab", "Chill", "Reset"].includes(effect))
+						return value;
+					if (["Sap", "Drown"].includes(effect))
+						return value;
+					if (["Marked"].includes(effect))
+					return value;
+					if (["Accuracy Down"].includes(effect)) return value;
 				}else {
-					if (["Cure All"].includes(effect)) return 1;
-					if (["Evade"].includes(effect)) return gameEffect.turns;
+					if (["Cure All"].includes(effect)) return value;
+					if (["Evade"].includes(effect)) return value;
 				}
-				if (["Attack Up"].includes(effect)) return 0.5 * gameEffect.turns;
-				if (["Haste", "Trait Up", "Speed Up"].includes(effect)) return 2;
-				// Trait up should scale by level ... assume level 50 = 100% and 1 = 0%
-				if (!notRatedEffects.includes(effect)) {
-					// console.log("not rating effect " + effect + " on " + target.target);
-				}
-				return 0.5;// * gameEffect.turns;
+				if (["Attack Up"].includes(effect)) return value;
+				if (["Haste", "Trait Up", "Speed Up"].includes(effect)) return value;
+				return value;
 			}
 		}else {
 			console.warn("no target", gameEffect);

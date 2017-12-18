@@ -75,7 +75,7 @@ interface IDataEffect extends IHasGuidAndName {
 	effectType: GameEffectType;
 	alt?: string;
 	description: string;
-	value: number;
+	value: string;
 }
 interface IDataDungeon extends IHasGuidAndName {
 	dungeon: string;

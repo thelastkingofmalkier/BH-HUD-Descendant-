@@ -231,36 +231,38 @@ var bh;
         });
     }
     function getPowerRating(gameEffect) {
-        var effect = gameEffect.effect, target = gameEffect.target, offense = target && target.offense;
+        var rating = _getPowerRating(gameEffect);
+        return rating;
+    }
+    function _getPowerRating(gameEffect) {
+        var effect = gameEffect.effect, target = gameEffect.target, offense = target && target.offense, match = (gameEffect.value || "").match(/(\d+(?:\.\d+))(T)?/i), points = match && +match[1] || 1, turns = match && match[2] == "T" ? gameEffect.turns : 1, percentMultiplier = gameEffect.percentMultiplier || 1, value = match ? points * turns * percentMultiplier : 0.5;
         if (target) {
             if (!["Critical", "Regen"].includes(effect)) {
                 if (["Slow"].includes(effect))
-                    return offense ? 1 : -1;
+                    return value * (offense ? 1 : -1);
                 if (["Sleep"].includes(effect))
-                    return (offense ? 1 : -1) * gameEffect.turns;
+                    return value * (offense ? 1 : -1);
                 if (offense) {
                     if (["Interrupt", "Burn", "Bleed", "Shock", "Poison", "Backstab", "Chill", "Reset"].includes(effect))
-                        return 1;
+                        return value;
                     if (["Sap", "Drown"].includes(effect))
-                        return 2;
+                        return value;
                     if (["Marked"].includes(effect))
-                        return gameEffect.turns;
+                        return value;
                     if (["Accuracy Down"].includes(effect))
-                        return gameEffect.turns * gameEffect.percentMultiplier;
+                        return value;
                 }
                 else {
                     if (["Cure All"].includes(effect))
-                        return 1;
+                        return value;
                     if (["Evade"].includes(effect))
-                        return gameEffect.turns;
+                        return value;
                 }
                 if (["Attack Up"].includes(effect))
-                    return 0.5 * gameEffect.turns;
+                    return value;
                 if (["Haste", "Trait Up", "Speed Up"].includes(effect))
-                    return 2;
-                if (!notRatedEffects.includes(effect)) {
-                }
-                return 0.5;
+                    return value;
+                return value;
             }
         }
         else {
