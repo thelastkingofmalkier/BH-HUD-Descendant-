@@ -157,6 +157,7 @@ namespace bh {
 				flurryHitMultiplier = flurryMatch && (+flurryMatch[2] / 100) || null;
 			return {
 				type: <GameBattleCardType>type,
+				typeDivisor: type == "Damage" ? AttackDivisor : type == "Shield" ? ShieldDivisor : HealDivisor,
 				target: <GameBattleCardTarget>target,
 				offense: offense,
 				all: all,

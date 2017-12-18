@@ -43,6 +43,7 @@ interface IDataBattleCard extends IHasGuid, IHasName, IHasElementType, IHasKlass
 }
 interface IDataBattleCardTarget {
 	type: GameBattleCardType;
+	typeDivisor: number;
 	target: GameBattleCardTarget;
 	offense: boolean;
 	all: boolean;

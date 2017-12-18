@@ -166,7 +166,6 @@ namespace bh {
 								break;
 
 							default:
-								console.warn("mapTSV: " + key);
 								object[key] = (value || "").trim();
 								break;
 

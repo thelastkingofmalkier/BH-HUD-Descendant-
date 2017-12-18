@@ -1025,6 +1025,7 @@ var bh;
             var parts = value.split("Flurry")[0].trim().split(" "), type = parts.shift(), target = parts.join(" "), offense = type == "Damage", all = target.includes("All Allies") || target.includes("All Enemies"), splash = target.includes("Splash"), self = target.includes("Self"), single = !all && !splash && !self, flurryMatch = value.match(/Flurry \((\d+) @ (\d+)%\)/), flurryCount = flurryMatch && +flurryMatch[1] || null, flurryHitPercent = flurryMatch && (flurryMatch[2] + "%") || null, flurryHitMultiplier = flurryMatch && (+flurryMatch[2] / 100) || null;
             return {
                 type: type,
+                typeDivisor: type == "Damage" ? AttackDivisor : type == "Shield" ? ShieldDivisor : HealDivisor,
                 target: target,
                 offense: offense,
                 all: all,
@@ -1910,7 +1911,7 @@ var bh;
     function ratePlayerCard(playerCard) {
         var card = bh.data.BattleCardRepo.find(playerCard.configId), evoLevel = playerCard.evolutionLevel, level = playerCard.level, perkMultiplier = bh.BattleCardRepo.getPerk(card, evoLevel) / 100, targets = card.typesTargets.map(function (typeTarget) { return bh.PlayerBattleCard.parseTarget(typeTarget); }), gameEffects = bh.GameEffect.parseAll(playerCard), rating = 0;
         targets.forEach(function (target, typeIndex) {
-            var turns = card.turns, regen = card.effects.concat(card.perks).find(function (s) { return s.startsWith("Regen"); }), regenEffect = regen ? bh.GameEffect.parse(regen) : null, regenDivisor = regen && regenEffect.turns || 1, shieldDivisor = target.type == "Shield" ? 2 : 1, healDivisor = target.type == "Heal" ? 3 * regenDivisor : 1, value = calcValue(card, typeIndex, evoLevel, level) / shieldDivisor / healDivisor / 888;
+            var turns = card.turns, regen = target.type == "Heal" && card.effects.concat(card.perks).find(function (s) { return s.startsWith("Regen"); }), regenEffect = regen ? bh.GameEffect.parse(regen) : null, regenDivisor = regen && regenEffect.turns || 1, value = calcValue(card, typeIndex, evoLevel, level) / target.typeDivisor / regenDivisor;
             rating += value / turns - turns;
         });
         gameEffects.forEach(function (gameEffect) { return rating += gameEffect.powerRating; });
@@ -2235,6 +2236,8 @@ var bh;
                             break;
                         case "name":
                             object["lower"] = value.toLowerCase();
+                            object[key] = (value || "").trim();
+                            break;
                         default:
                             object[key] = (value || "").trim();
                             break;
@@ -2733,16 +2736,19 @@ var bh;
 })(bh || (bh = {}));
 var DataSheetID = "1uXkC_xua7KhhWQsfX_CZNa6fyl9CJlV9E7KNDO4_1T4";
 var BattleCardRepoGID = 1013492615;
-var BoosterCardRepoGID = 1709781959;
+var BoosterCardRepoGID = 1070164839;
 var DungeonRepoGID = 1980099142;
-var EffectRepoGID = 901337848;
+var EffectRepoGID = 1091073205;
 var HeroRepoGID = 1755919442;
 var ItemRepoGID = 1250310062;
 var WildCardRepoGID = 2106503523;
 var GuildsGID = 496437953;
 var USE_CACHE = true;
 var NO_CACHE = false;
-var MaxFameLevel = 50;
+var MaxFameLevel = 45;
+var AttackDivisor = 888;
+var ShieldDivisor = 888 * 2;
+var HealDivisor = 888 * 3;
 var BattleCardDataUrl = "https://docs.google.com/spreadsheets/d/1xckeq3t9T2g4sR5zgKK52ZkXNEXQGgiUrJ8EQ5FJAPI/pub?output=tsv";
 var DungeonDataUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRCyjBTeKjsBri_uvkFnT-i9f-jI4RUR0YffYh32XFtQfywivXktmLcmGOuXTfOQZH1sv6VTmF9Ceee/pub?gid=1815567292&single=true&output=tsv";
 var bh;
