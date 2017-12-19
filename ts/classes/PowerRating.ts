@@ -6,12 +6,13 @@ namespace bh {
 
 	export enum MinMaxType { Min, Max }
 	export class PowerRating {
-		public static rateMaxedHero(hero: Hero) {
-			var abilities = hero.name == "Jinx" ? 45 : 55;
-			return abilities + PowerRating.rateMaxedDeck(hero);
+		public static rateMaxedHero(hero: Hero, maxRarity = RarityType.Legendary) {
+			var abilities = hero.name == "Jinx" ? 45 : 55,
+				maxRarityMultiplier = (maxRarity + 1) * 20 / 100;
+			return abilities * maxRarityMultiplier + PowerRating.rateMaxedDeck(hero, maxRarity);
 		}
-		public static rateMaxedDeck(hero: Hero) {
-			var heroCards = Hero.filterCardsByHero(hero, data.BattleCardRepo.all),
+		public static rateMaxedDeck(hero: Hero, maxRarity = RarityType.Legendary) {
+			var heroCards = Hero.filterCardsByHero(hero, data.BattleCardRepo.all).filter(c => c.rarityType <= maxRarity),
 				ratedCards: ICardRating[] = heroCards.map(card => { return { card:card, powerRating:PowerRating.rateBattleCard(card, MinMaxType.Max) }; }),
 				sortedCards = ratedCards.sort((a, b) => a.powerRating == b.powerRating ? 0 : a.powerRating < b.powerRating ? 1 : -1),
 				topCards: ICardRating[] = [];
@@ -102,7 +103,7 @@ function rateCards(max = true) {
 		return { card:card, powerRating:bh.PowerRating.ratePlayerCard(playerCard) };
 	});
 	scores.sort((a, b) => b.powerRating - a.powerRating);
-	$("textarea").val(scores.map((s, i) => (i+1) + ": " + s.card.name + (s.card.rarityType == bh.RarityType.Legendary?" (L)":"")).slice(0, 30).join("\n"));
-	$("#data-output").val(scores.map(score => `${score.powerRating} > ${bh.RarityType[score.card.rarityType][0]} ${score.card.name} (${score.card.turns}; ${score.card.typesTargets.concat(score.card.effects).concat(score.card.perks.map(p => p + " (" + (score.card.perkBase+bh.BattleCardRepo.AddedPerkPerEvo*(1+score.card.rarityType)) + "%)"))})`).join("\n"));
+	$("textarea").val(scores.map((s, i) => (i+1) + ": " + s.powerRating + " - " + bh.RarityType[s.card.rarityType][0] + " " + s.card.name).join("\n"));
+	// $("#data-output").val(scores.map(score => `${score.powerRating} > ${bh.RarityType[score.card.rarityType][0]} ${score.card.name} (${score.card.turns}; ${score.card.typesTargets.concat(score.card.effects).concat(score.card.perks.map(p => p + " (" + (score.card.perkBase+bh.BattleCardRepo.AddedPerkPerEvo*(1+score.card.rarityType)) + "%)"))})`).join("\n"));
 	return scores;
 }

@@ -266,6 +266,14 @@ var bh;
             enumerable: true,
             configurable: true
         });
+        Object.defineProperty(Hero.prototype, "maxPowerThresholds", {
+            get: function () {
+                var _this = this;
+                return bh.RarityRepo.allTypes.map(function (r) { return bh.PowerRating.rateMaxedHero(_this, r); });
+            },
+            enumerable: true,
+            configurable: true
+        });
         Hero.filterCardsByHero = function (hero, cards) {
             return cards.filter(function (card) { return card.klassType === hero.klassType && (card.elementType == bh.ElementType.Neutral || card.elementType == hero.elementType); });
         };
@@ -1831,12 +1839,14 @@ var bh;
     var PowerRating = (function () {
         function PowerRating() {
         }
-        PowerRating.rateMaxedHero = function (hero) {
-            var abilities = hero.name == "Jinx" ? 45 : 55;
-            return abilities + PowerRating.rateMaxedDeck(hero);
+        PowerRating.rateMaxedHero = function (hero, maxRarity) {
+            if (maxRarity === void 0) { maxRarity = bh.RarityType.Legendary; }
+            var abilities = hero.name == "Jinx" ? 45 : 55, maxRarityMultiplier = (maxRarity + 1) * 20 / 100;
+            return abilities * maxRarityMultiplier + PowerRating.rateMaxedDeck(hero, maxRarity);
         };
-        PowerRating.rateMaxedDeck = function (hero) {
-            var heroCards = bh.Hero.filterCardsByHero(hero, bh.data.BattleCardRepo.all), ratedCards = heroCards.map(function (card) { return { card: card, powerRating: PowerRating.rateBattleCard(card, MinMaxType.Max) }; }), sortedCards = ratedCards.sort(function (a, b) { return a.powerRating == b.powerRating ? 0 : a.powerRating < b.powerRating ? 1 : -1; }), topCards = [];
+        PowerRating.rateMaxedDeck = function (hero, maxRarity) {
+            if (maxRarity === void 0) { maxRarity = bh.RarityType.Legendary; }
+            var heroCards = bh.Hero.filterCardsByHero(hero, bh.data.BattleCardRepo.all).filter(function (c) { return c.rarityType <= maxRarity; }), ratedCards = heroCards.map(function (card) { return { card: card, powerRating: PowerRating.rateBattleCard(card, MinMaxType.Max) }; }), sortedCards = ratedCards.sort(function (a, b) { return a.powerRating == b.powerRating ? 0 : a.powerRating < b.powerRating ? 1 : -1; }), topCards = [];
             sortedCards.forEach(function (card) {
                 var existing = topCards.find(function (c) { return c.card.name == card.card.name; });
                 if (existing) {
@@ -1908,8 +1918,7 @@ function rateCards(max) {
         return { card: card, powerRating: bh.PowerRating.ratePlayerCard(playerCard) };
     });
     scores.sort(function (a, b) { return b.powerRating - a.powerRating; });
-    $("textarea").val(scores.map(function (s, i) { return (i + 1) + ": " + s.card.name + (s.card.rarityType == bh.RarityType.Legendary ? " (L)" : ""); }).slice(0, 30).join("\n"));
-    $("#data-output").val(scores.map(function (score) { return score.powerRating + " > " + bh.RarityType[score.card.rarityType][0] + " " + score.card.name + " (" + score.card.turns + "; " + score.card.typesTargets.concat(score.card.effects).concat(score.card.perks.map(function (p) { return p + " (" + (score.card.perkBase + bh.BattleCardRepo.AddedPerkPerEvo * (1 + score.card.rarityType)) + "%)"; })) + ")"; }).join("\n"));
+    $("textarea").val(scores.map(function (s, i) { return (i + 1) + ": " + s.powerRating + " - " + bh.RarityType[s.card.rarityType][0] + " " + s.card.name; }).join("\n"));
     return scores;
 }
 var bh;
@@ -4142,12 +4151,12 @@ var bh;
                 if (arenaIndex === void 0) { arenaIndex = -1; }
                 var fullMeat = player.isFullMeat, star = fullMeat ? "&#9734;" : "", percentText = player.isArena || fullMeat ? "" : " <span style=\"white-space:nowrap;\">(" + player.completionPercent + "%)</span>", html = "<div class=\"player-name\" data-action=\"sort-heroes\">" + star + " " + bh.utils.htmlFriendly(player.name) + " " + percentText + "</div>", playerHeroes = player.heroes.sort(bh.utils.sort.byElementThenKlass);
                 playerHeroes.forEach(function (hero) {
-                    var id = player.guid + "-" + hero.guid, icon = hero.isLocked ? bh.getImg("misc", "Lock") : bh.getImg("heroes", hero.name), level = hero.isLocked ? "" : hero.level == bh.HeroRepo.MaxLevel ? hero.isMeat ? "<span class=\"evo-star\">&#9734;</span>" : "<span class=\"star\">&#9734;</span>" : "(" + hero.level + ")", hitPoints = hero.isLocked ? "" : bh.utils.truncateNumber(hero.hitPoints) + " HP", powerPercent = hero.powerPercent, progressBG = hero.isOp ? "background-color:pink;" : "", color = powerPercent < 25 ? "progress-bar-info" : powerPercent < 50 ? "progress-bar-success" : powerPercent < 75 ? "progress-bar-warning" : "progress-bar-danger", progressBar = hero.isLocked ? "" : "<div class=\"progress\" style=\"" + progressBG + "\"><div class=\"progress-bar " + color + "\" style=\"width:" + powerPercent + "%;\"><span></span></div></div>", powerRating = hero.isLocked ? "" : hero.powerRating, title = "<span class=\"hero-icon\">" + icon + "</span>"
+                    var id = player.guid + "-" + hero.guid, icon = hero.isLocked ? bh.getImg("misc", "Lock") : bh.getImg("heroes", hero.name), level = hero.isLocked ? "" : hero.level == bh.HeroRepo.MaxLevel ? hero.isMeat ? "<span class=\"evo-star\">&#9734;</span>" : "<span class=\"star\">&#9734;</span>" : "(" + hero.level + ")", hitPoints = hero.isLocked ? "" : bh.utils.truncateNumber(hero.hitPoints) + " HP", powerThresholds = hero.hero.maxPowerThresholds, powerRating = hero.powerRating, powerPercent = Math.round(100 * powerRating / powerThresholds[powerRating < powerThresholds[3] ? 3 : 4]), progressBG = hero.isOp ? "background-color:pink;" : "", color = powerRating <= powerThresholds[0] ? "progress-bar-info" : powerRating <= powerThresholds[1] ? "progress-bar-success" : powerRating <= powerThresholds[2] ? "progress-bar-warning" : "progress-bar-danger", progressBar = hero.isLocked ? "" : "<div class=\"progress\" style=\"" + progressBG + "\"><div class=\"progress-bar " + color + "\" style=\"width:" + powerPercent + "%;\"><span></span></div></div>", powerRatingText = hero.isLocked ? "" : powerRating, title = "<span class=\"hero-icon\">" + icon + "</span>"
                         + ("<span class=\"hero-name\">" + hero.name + "</span>")
                         + ("<span class=\"hero-level\">" + level + "</span>")
                         + ("<span class=\"hero-hp\">" + hitPoints + "</span>")
                         + ("<span class=\"hero-rating-bar\">" + progressBar + "</span>")
-                        + ("<span class=\"hero-rating\">" + powerRating + "</span>"), content = "";
+                        + ("<span class=\"hero-rating\">" + powerRatingText + "</span>"), content = "";
                     if (player.isMe || player.isAlly) {
                         var abilities = hero.playerHeroAbilities
                             .map(function (playerHeroAbility) {

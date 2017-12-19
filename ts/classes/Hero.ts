@@ -40,6 +40,9 @@ namespace bh {
 		public get maxPowerRating() {
 			return PowerRating.rateMaxedHero(this);
 		}
+		public get maxPowerThresholds() {
+			return RarityRepo.allTypes.map(r => PowerRating.rateMaxedHero(this, r));
+		}
 
 		public static filterCardsByHero(hero: Hero, cards: IDataBattleCard[]): IDataBattleCard[];
 		public static filterCardsByHero(hero: Hero, cards: PlayerBattleCard[]): PlayerBattleCard[];

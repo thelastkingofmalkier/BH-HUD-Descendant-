@@ -34,17 +34,20 @@ namespace bh {
 						icon = hero.isLocked ? getImg("misc", "Lock") : getImg("heroes", hero.name),
 						level = hero.isLocked ? `` : hero.level == HeroRepo.MaxLevel ? hero.isMeat ? `<span class="evo-star">&#9734;</span>` : `<span class="star">&#9734;</span>` : `(${hero.level})`,
 						hitPoints = hero.isLocked ? `` : `${utils.truncateNumber(hero.hitPoints)} HP`,
-						powerPercent = hero.powerPercent,
+						powerThresholds = hero.hero.maxPowerThresholds,
+						powerRating = hero.powerRating,
+						powerPercent = Math.round(100*powerRating/powerThresholds[powerRating<powerThresholds[3]?3:4]),
 						progressBG = hero.isOp ? "background-color:pink;" : "",
-						color = powerPercent < 25 ? "progress-bar-info" : powerPercent < 50 ? "progress-bar-success" : powerPercent < 75 ? "progress-bar-warning" : "progress-bar-danger",
+						// color = powerPercent < 25 ? "progress-bar-info" : powerPercent < 50 ? "progress-bar-success" : powerPercent < 75 ? "progress-bar-warning" : "progress-bar-danger",
+						color = powerRating <= powerThresholds[0] ? "progress-bar-info" : powerRating <= powerThresholds[1] ? "progress-bar-success" : powerRating <= powerThresholds[2] ? "progress-bar-warning" : "progress-bar-danger",
 						progressBar = hero.isLocked ? `` : `<div class="progress" style="${progressBG}"><div class="progress-bar ${color}" style="width:${powerPercent}%;"><span></span></div></div>`,
-						powerRating = hero.isLocked ? `` : hero.powerRating,
+						powerRatingText = hero.isLocked ? `` : powerRating,
 						title = `<span class="hero-icon">${icon}</span>`
 							+ `<span class="hero-name">${hero.name}</span>`
 							+ `<span class="hero-level">${level}</span>`
 							+ `<span class="hero-hp">${hitPoints}</span>`
 							+ `<span class="hero-rating-bar">${progressBar}</span>`
-							+ `<span class="hero-rating">${powerRating}</span>`,
+							+ `<span class="hero-rating">${powerRatingText}</span>`,
 						content = "";
 					if (player.isMe || player.isAlly) {
 						var abilities = hero.playerHeroAbilities
