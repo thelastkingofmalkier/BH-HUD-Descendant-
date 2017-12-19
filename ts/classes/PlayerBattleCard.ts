@@ -179,6 +179,7 @@ function updateCardData() {
 	$.get(BattleCardDataUrl).then(raw => {
 		var mapped = bh.Repo.mapTsv<INewCard>(raw),
 			cards = mapped.map(card => {
+				try{
 				var guid = card["Id"],
 					existing = bh.data.BattleCardRepo.find(guid),
 					multiValues = card["Effect Type"].includes("/"),
@@ -192,7 +193,7 @@ function updateCardData() {
 					turns: +card["Turns"],
 					typesTargets: card["Effect Type"].trim().split(/\s*\/\s*/),
 					brag: bh.utils.parseBoolean(card["Is Brag?"]),
-					minValues: minValuesArray.map(index => [0,1,2,3,4,5].map(i => card[`${i}* Min`]).filter(s => !!s).map(s => +s.split(/\s*\/\s*/)[index])),
+					minValues: minValuesArray.map(index => [0,1,2,3,4,5].map(i => card[`${i}* Min`]).filter(s => !!s).map(s => +String(s).split(/\s*\/\s*/)[index])),
 					maxValues: [0,1,2,3,4,5].map(i => card[`${i}* Max`]).filter(s => !!s).pop().split(/\s*\/\s*/).map(s => +s),
 					tier: existing && existing.tier || <any>"",
 					mats: [1,2,3,4].map(i => card[`${i}* Evo Jar`]).filter(s => !!s),
@@ -204,9 +205,13 @@ function updateCardData() {
 				if (!existing) console.log("New Card: " + card["Name"]);
 				else if (existing.name != card["Name"]) console.log(existing.name + " !== " + card["Name"]);
 				return created;
+			}catch(ex){
+				console.error(card)
+			}
+			return null;
 			});
 		var tsv = "guid\tname\tklassType\telementType\trarityType\tturns\ttypesTargets\tbrag\tminValues\tmaxValues\ttier\tmats\tperkBase\tperks\teffects\tpacks";
-		cards.forEach(c => {
+		cards.filter(c=>!!c).forEach(c => {
 			tsv += `\n${c.guid}\t${c.name}\t${bh.KlassType[c.klassType].slice(0, 2)}\t${bh.ElementType[c.elementType][0]}\t${bh.RarityType[c.rarityType][0]}\t${c.turns}\t${c.typesTargets.join("|")}\t${String(c.brag)[0]}\t${c.minValues.map(a=>a.join(",")).join("|")}\t${c.maxValues.join("|")}\t${c.tier}\t${c.mats.join(",")}\t${c.perkBase}\t${c.perks.join(",")}\t${c.effects.join(",")}\t${String(c.inPacks)[0]}`;
 		});
 		$("#data-output").val(tsv)

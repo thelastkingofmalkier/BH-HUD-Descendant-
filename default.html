@@ -4,25 +4,16 @@
 		<meta charset="UTF-16" />
 
 		<script type="text/javascript" src="https://code.jquery.com/jquery-2.2.0.min.js"></script>
-		<script type="text/javascript" src="./js/images.all.js"></script>
-		<!-- <script type="text/javascript" src="./js/data.all.js"></script> -->
 		<script type="text/javascript" src="./js/default.js"></script>
 		<script>
-			var guid = "b0a8b57b-54f5-47d8-8b7a-f9dac8300ca0",
+			var jai = "b0a8b57b-54f5-47d8-8b7a-f9dac8300ca0",
+				baby = "8c063b42-8474-43f1-acb3-b432bb590480",
+				guid = jai,
 				sessionKey = "12345678901234567890123456789012";
 			bh.hud.listener.init(window).then(()=>{
 				$.getJSON(`./json/${guid}.json`).then(json => {
 					var xhr = {
 						requestUrl: `/v1/player/get?player=${guid}&sessionKey=${sessionKey}`,
-						responseJSON: json,
-						readyState: XmlHttpRequest.DONE
-					};
-					bh.Messenger.ActivePlayerGuid = json.id;
-					setTimeout(() => window[0].bh.hud.listener.handleReadyStateChange(xhr), 500);
-				});
-				$.getJSON("./json/brain_storm_war.json").then(json => {//console.log(json)
-					var xhr = {
-						requestUrl: `/v1/guildwars/get?player=${guid}&sessionKey=${sessionKey}`,
 						responseJSON: json,
 						readyState: XmlHttpRequest.DONE
 					};

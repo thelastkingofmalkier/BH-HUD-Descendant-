@@ -131,7 +131,9 @@ var bh;
     var GameEffect = (function () {
         function GameEffect(raw) {
             this.raw = raw;
-            var parts = raw.match(/([a-zA-z]+(?: [a-zA-Z]+)*)(?: (\d+)%)?(?: (\d+)T)?/), cleanValue = parts && parts[1] || raw, effect = bh.data.EffectRepo.find(cleanValue);
+            var parts = raw == "Critical" ? ["Critical", "Critical"]
+                : raw == "Splash Enemy" ? ["Splash", "Splash"]
+                    : raw.match(/([a-zA-z]+(?: [a-zA-Z]+)*)(?: (\d+)%)?(?: (\d+)T)?(?: (Enemy|Ally|Self))/), cleanValue = parts && parts[1] || raw, effect = bh.data.EffectRepo.find(cleanValue);
             this.effect = effect && effect.name || cleanValue;
             this.percent = parts && parts[2] && (parts[2] + "%") || null;
             this.percentMultiplier = this.percent && (+parts[2] / 100) || null;
@@ -139,6 +141,7 @@ var bh;
             this.value = effect && effect.value;
             this.perkMultiplier = 0;
             this.offense = !(effect && effect.value || "").toLowerCase().startsWith("d");
+            this.rawTarget = parts && parts[4] || null;
         }
         Object.defineProperty(GameEffect.prototype, "powerRating", {
             get: function () { return getPowerRating(this); },
@@ -146,6 +149,8 @@ var bh;
             configurable: true
         });
         GameEffect.parse = function (value) {
+            if (!value)
+                return null;
             var gameEffect = new GameEffect(value);
             return gameEffect.effect && gameEffect || null;
         };
@@ -172,10 +177,12 @@ var bh;
         return GameEffect;
     }());
     bh.GameEffect = GameEffect;
-    var offensiveEffects = ["Interrupt", "Reset", "Burn", "Bleed", "Shock", "Poison", "Backstab", "Sap", "Drown", "Pierce", "Perfect Shot"];
     function reconcileTargets(gameEffects, card) {
-        var targets = card.typesTargets.map(function (typeTarget) { return bh.PlayerBattleCard.parseTarget(typeTarget); }), damage = targets.find(function (t) { return t.type == "Damage"; }), shield = targets.find(function (t) { return t.type == "Shield"; }), heal = targets.find(function (t) { return t.type == "Heal"; }), def = targets.find(function (t) { return ["Heal", "Shield"].includes(t.type); }), damages = [];
+        var targets = card.typesTargets.map(function (typeTarget) { return bh.PlayerBattleCard.parseTarget(typeTarget); }), damage = targets.find(function (t) { return t.type == "Damage"; }), def = targets.find(function (t) { return ["Heal", "Shield"].includes(t.type); }), damages = [];
         gameEffects.slice().forEach(function (gameEffect) {
+            if (["Leech", "Sap"].includes(gameEffect.effect)) {
+                gameEffect.rawTarget = "Enemy";
+            }
             if (gameEffect.effect == "Critical") {
                 gameEffect.target = targets[0];
                 targets.slice(1).forEach(function (t) {
@@ -184,57 +191,35 @@ var bh;
                     gameEffects.push(ge);
                 });
             }
-            else if (gameEffect.effect.startsWith("Immunity")) {
-                gameEffect.target = def || bh.PlayerBattleCard.parseTarget(damage.all ? "Heal All Allies" : "Heal Self");
+            else if (gameEffect.effect == "Splash Damage") {
             }
-            else if (gameEffect.effect == "Bamboozle" && ["Rum Shower"].includes(card.name)) {
-                gameEffect.target = gameEffect.perkMultiplier ? damage : bh.PlayerBattleCard.parseTarget("Heal Self");
-            }
-            else if (gameEffect.effect == "Stun" && ["Breaking Chakra"].includes(card.name)) {
-                gameEffect.target = gameEffect.perkMultiplier ? damage : bh.PlayerBattleCard.parseTarget("Heal Self");
-            }
-            else if (["Attack Up", "Trait Up", "Evade", "Accuracy Up", "Defence Up"].includes(gameEffect.effect) && damage) {
-                gameEffect.target = bh.PlayerBattleCard.parseTarget("Heal Self");
-            }
-            else if (["Charm", "Taunt"].includes(gameEffect.effect) && damage) {
-                gameEffect.target = def || bh.PlayerBattleCard.parseTarget("Heal Self");
-            }
-            else if (["Haste", "Regen"].includes(gameEffect.effect)) {
-                gameEffect.target = def || bh.PlayerBattleCard.parseTarget(damage.all ? "Heal All Allies" : "Heal Self");
-            }
-            else if (["Wet"].includes(gameEffect.effect) && card.name == "Apnoea") {
-                gameEffect.target = damage || bh.PlayerBattleCard.parseTarget("Damage Single Enemy");
-            }
-            else if (["Storm", "Terra", "Wet"].includes(gameEffect.effect) && ["Wind Barrier", "Hurricane Barrier", "Forest Barrier", "Shield of The Nature", "Tides Control", "Wet Kiss"].includes(card.name)) {
+            else if (gameEffect.rawTarget == "Enemy") {
                 gameEffect.target = damage || bh.PlayerBattleCard.parseTarget(def.all ? "Damage All Enemies" : "Damage Single Enemy");
             }
-            else if (gameEffect.effect == "Terra" && card.name == "Peace Pipe" && card.rarityType == bh.RarityType.Legendary) {
-                gameEffect.target = damage || bh.PlayerBattleCard.parseTarget(def.all ? "Damage All Enemies" : "Damage Single Enemy");
+            else if (gameEffect.rawTarget == "Ally") {
+                var healOrShield = def && def.type || "Heal";
+                gameEffect.target = bh.PlayerBattleCard.parseTarget((damage || def).all ? healOrShield + " All Allies" : healOrShield + " Single Ally");
             }
-            else if (targets.length == 1 || gameEffect.perkMultiplier) {
-                gameEffect.target = targets[0];
-            }
-            else if (offensiveEffects.includes(gameEffect.effect) && damage) {
-                gameEffect.target = damage;
+            else if (gameEffect.rawTarget == "Self") {
+                var healOrShield = def && def.type || "Heal";
+                gameEffect.target = bh.PlayerBattleCard.parseTarget(healOrShield + " Self");
             }
             else {
+                if (!gameEffect.target)
+                    console.warn("can't find target for " + gameEffect.effect, gameEffect.card);
             }
-            if (!gameEffect.target)
-                console.warn("can't find target for " + gameEffect.effect, gameEffect.card);
         });
     }
     function getPowerRating(gameEffect) {
         var rating = _getPowerRating(gameEffect);
-        if (rating < 0)
-            console.log(gameEffect);
         return rating;
     }
     function _getPowerRating(gameEffect) {
-        if (["Critical", "Regen"].includes(gameEffect.effect))
+        if (["Critical", "Regen", "Splash Damage"].includes(gameEffect.effect))
             return 0;
-        var target = gameEffect.target, targetOffense = target && target.offense, targetDefense = target && !target.offense, match = (gameEffect.value || "").toUpperCase().match(/(O|D)?((?:\+|\-)?\d+(?:\.\d+)?)(T)?(%)?/), effectOffense = match && match[1] == "O", effectDefense = match && match[1] == "D", points = match && +match[2] || 1, turns = match && match[3] == "T" ? gameEffect.turns : 1, percentMultiplier = match && match[4] == "%" ? gameEffect.percentMultiplier : 1, value = match ? points * turns * percentMultiplier : 0.5;
+        var match = (gameEffect.value || "").toUpperCase().match(/(O|D)?((?:\+|\-)?\d+(?:\.\d+)?)(T)?(%)?/), effectOffense = match && match[1] == "O", effectDefense = match && match[1] == "D", points = match && +match[2] || 1, turns = match && match[3] == "T" ? gameEffect.turns : 1, percentMultiplier = match && match[4] == "%" ? gameEffect.percentMultiplier : 1, value = match ? points * turns * percentMultiplier : 0.5, target = gameEffect.target, targetOffense = target && target.offense, targetDefense = target && !target.offense, oppoMultiplier = targetOffense == effectOffense || targetDefense == effectDefense ? 1 : -1, perkMultiplier = gameEffect.perkMultiplier || 1;
         if (target) {
-            return value * gameEffect.perkMultiplier * (targetOffense == effectOffense || targetDefense == effectDefense ? 1 : -1);
+            return value * perkMultiplier * oppoMultiplier;
         }
         else {
             console.warn("no target", gameEffect);
@@ -1047,33 +1032,39 @@ var bh;
 function updateCardData() {
     $.get(BattleCardDataUrl).then(function (raw) {
         var mapped = bh.Repo.mapTsv(raw), cards = mapped.map(function (card) {
-            var guid = card["Id"], existing = bh.data.BattleCardRepo.find(guid), multiValues = card["Effect Type"].includes("/"), minValuesArray = multiValues ? [0, 1] : [0];
-            var created = {
-                guid: guid,
-                name: existing && existing.name || card["Name"],
-                klassType: bh.KlassType[card["Class"].replace("Ranged", "Skill").replace("Melee", "Might")],
-                elementType: bh.ElementType[card["Element"]],
-                rarityType: bh.RarityType[card["Rarity"].replace(/ /, "")],
-                turns: +card["Turns"],
-                typesTargets: card["Effect Type"].trim().split(/\s*\/\s*/),
-                brag: bh.utils.parseBoolean(card["Is Brag?"]),
-                minValues: minValuesArray.map(function (index) { return [0, 1, 2, 3, 4, 5].map(function (i) { return card[i + "* Min"]; }).filter(function (s) { return !!s; }).map(function (s) { return +s.split(/\s*\/\s*/)[index]; }); }),
-                maxValues: [0, 1, 2, 3, 4, 5].map(function (i) { return card[i + "* Max"]; }).filter(function (s) { return !!s; }).pop().split(/\s*\/\s*/).map(function (s) { return +s; }),
-                tier: existing && existing.tier || "",
-                mats: [1, 2, 3, 4].map(function (i) { return card[i + "* Evo Jar"]; }).filter(function (s) { return !!s; }),
-                perkBase: +card["Perk %"],
-                perks: [1, 2].map(function (i) { return card["Perk #" + i]; }).filter(function (s) { return !!s; }),
-                effects: [1, 2, 3].map(function (i) { return card["Effect #" + i]; }).filter(function (s) { return !!s && s != "Splash"; }),
-                inPacks: bh.utils.parseBoolean(card["In Packs?"])
-            };
-            if (!existing)
-                console.log("New Card: " + card["Name"]);
-            else if (existing.name != card["Name"])
-                console.log(existing.name + " !== " + card["Name"]);
-            return created;
+            try {
+                var guid = card["Id"], existing = bh.data.BattleCardRepo.find(guid), multiValues = card["Effect Type"].includes("/"), minValuesArray = multiValues ? [0, 1] : [0];
+                var created = {
+                    guid: guid,
+                    name: existing && existing.name || card["Name"],
+                    klassType: bh.KlassType[card["Class"].replace("Ranged", "Skill").replace("Melee", "Might")],
+                    elementType: bh.ElementType[card["Element"]],
+                    rarityType: bh.RarityType[card["Rarity"].replace(/ /, "")],
+                    turns: +card["Turns"],
+                    typesTargets: card["Effect Type"].trim().split(/\s*\/\s*/),
+                    brag: bh.utils.parseBoolean(card["Is Brag?"]),
+                    minValues: minValuesArray.map(function (index) { return [0, 1, 2, 3, 4, 5].map(function (i) { return card[i + "* Min"]; }).filter(function (s) { return !!s; }).map(function (s) { return +String(s).split(/\s*\/\s*/)[index]; }); }),
+                    maxValues: [0, 1, 2, 3, 4, 5].map(function (i) { return card[i + "* Max"]; }).filter(function (s) { return !!s; }).pop().split(/\s*\/\s*/).map(function (s) { return +s; }),
+                    tier: existing && existing.tier || "",
+                    mats: [1, 2, 3, 4].map(function (i) { return card[i + "* Evo Jar"]; }).filter(function (s) { return !!s; }),
+                    perkBase: +card["Perk %"],
+                    perks: [1, 2].map(function (i) { return card["Perk #" + i]; }).filter(function (s) { return !!s; }),
+                    effects: [1, 2, 3].map(function (i) { return card["Effect #" + i]; }).filter(function (s) { return !!s && s != "Splash"; }),
+                    inPacks: bh.utils.parseBoolean(card["In Packs?"])
+                };
+                if (!existing)
+                    console.log("New Card: " + card["Name"]);
+                else if (existing.name != card["Name"])
+                    console.log(existing.name + " !== " + card["Name"]);
+                return created;
+            }
+            catch (ex) {
+                console.error(card);
+            }
+            return null;
         });
         var tsv = "guid\tname\tklassType\telementType\trarityType\tturns\ttypesTargets\tbrag\tminValues\tmaxValues\ttier\tmats\tperkBase\tperks\teffects\tpacks";
-        cards.forEach(function (c) {
+        cards.filter(function (c) { return !!c; }).forEach(function (c) {
             tsv += "\n" + c.guid + "\t" + c.name + "\t" + bh.KlassType[c.klassType].slice(0, 2) + "\t" + bh.ElementType[c.elementType][0] + "\t" + bh.RarityType[c.rarityType][0] + "\t" + c.turns + "\t" + c.typesTargets.join("|") + "\t" + String(c.brag)[0] + "\t" + c.minValues.map(function (a) { return a.join(","); }).join("|") + "\t" + c.maxValues.join("|") + "\t" + c.tier + "\t" + c.mats.join(",") + "\t" + c.perkBase + "\t" + c.perks.join(",") + "\t" + c.effects.join(",") + "\t" + String(c.inPacks)[0];
         });
         $("#data-output").val(tsv);
@@ -1895,10 +1886,10 @@ var bh;
         targets.forEach(function (target, typeIndex) { return rating += calcValue(card, typeIndex, evoLevel, level) / target.typeDivisor; });
         gameEffects.forEach(function (gameEffect) { return rating += gameEffect.powerRating; });
         rating /= card.turns;
-        return Math.round(100 * rating) / 100 * 10;
+        return Math.round(100 * rating);
     }
     function calcValue(card, typeIndex, evo, level) {
-        var baseValue = bh.BattleCardRepo.calculateValue({ configId: card.guid, evolutionLevel: evo, level: level }), perkMultiplier = bh.BattleCardRepo.getPerk(card, evo) / 100, critMultiplier = card.perks.includes("Critical") ? 1.5 * perkMultiplier : 1, target = bh.PlayerBattleCard.parseTarget(card.typesTargets[typeIndex]), value = Math.round(baseValue * critMultiplier * target.targetMultiplier);
+        var baseValue = bh.BattleCardRepo.calculateValue({ configId: card.guid, evolutionLevel: evo, level: level }), perkMultiplier = bh.BattleCardRepo.getPerk(card, evo) / 100, regenMultiplier = (bh.GameEffect.parse(card.effects.find(function (e) { return e == "Regen"; })) || { turns: 1 }).turns, critMultiplier = card.perks.includes("Critical") ? 1.5 * perkMultiplier : 1, target = bh.PlayerBattleCard.parseTarget(card.typesTargets[typeIndex]), value = Math.round(baseValue * critMultiplier * target.targetMultiplier * regenMultiplier);
         if (target.flurry) {
             value = value / target.flurryCount * target.flurryHitMultiplier * target.flurryCount;
         }
@@ -2741,8 +2732,8 @@ var NO_CACHE = false;
 var MaxHeroCount = 13;
 var MaxFameLevel = 45;
 var AttackDivisor = 750;
-var ShieldDivisor = 1000;
-var HealDivisor = 1000;
+var ShieldDivisor = 1500;
+var HealDivisor = 1500;
 var BattleCardDataUrl = "https://docs.google.com/spreadsheets/d/1xckeq3t9T2g4sR5zgKK52ZkXNEXQGgiUrJ8EQ5FJAPI/pub?output=tsv";
 var DungeonDataUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRCyjBTeKjsBri_uvkFnT-i9f-jI4RUR0YffYh32XFtQfywivXktmLcmGOuXTfOQZH1sv6VTmF9Ceee/pub?gid=1815567292&single=true&output=tsv";
 var bh;

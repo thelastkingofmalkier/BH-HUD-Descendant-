@@ -76,14 +76,15 @@ namespace bh {
 		targets.forEach((target, typeIndex) => rating += calcValue(card, typeIndex, evoLevel, level) / target.typeDivisor);
 		gameEffects.forEach(gameEffect => rating += gameEffect.powerRating);
 		rating /= card.turns;
-		return Math.round(100 * rating) / 100 * 10// + 10;
+		return Math.round(100 * rating);
 	}
 	function calcValue(card: IDataBattleCard, typeIndex: number, evo: number, level: number) {
 		var baseValue = bh.BattleCardRepo.calculateValue(<any>{configId:card.guid,evolutionLevel:evo,level:level}),
 			perkMultiplier = bh.BattleCardRepo.getPerk(card, evo) / 100,
+			regenMultiplier = (bh.GameEffect.parse(card.effects.find(e=> e == "Regen")) || { turns:1 }).turns,
 			critMultiplier = card.perks.includes("Critical") ? 1.5 * perkMultiplier : 1,
 			target = bh.PlayerBattleCard.parseTarget(card.typesTargets[typeIndex]),
-			value = Math.round(baseValue * critMultiplier * target.targetMultiplier);
+			value = Math.round(baseValue * critMultiplier * target.targetMultiplier * regenMultiplier);
 		if (target.flurry) {
 			value = value / target.flurryCount * target.flurryHitMultiplier * target.flurryCount;
 		}

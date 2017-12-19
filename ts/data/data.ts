@@ -18,8 +18,8 @@ var NO_CACHE = false;
 var MaxHeroCount = 13;
 var MaxFameLevel = 45;
 var AttackDivisor = 750; // 888;
-var ShieldDivisor = 1000; // 888 * 2;
-var HealDivisor = 1000; // 888 * 3;
+var ShieldDivisor = 1500; // 888 * 2;
+var HealDivisor = 1500; // 888 * 3;
 
 var BattleCardDataUrl = "https://docs.google.com/spreadsheets/d/1xckeq3t9T2g4sR5zgKK52ZkXNEXQGgiUrJ8EQ5FJAPI/pub?output=tsv";
 var DungeonDataUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRCyjBTeKjsBri_uvkFnT-i9f-jI4RUR0YffYh32XFtQfywivXktmLcmGOuXTfOQZH1sv6VTmF9Ceee/pub?gid=1815567292&single=true&output=tsv";
