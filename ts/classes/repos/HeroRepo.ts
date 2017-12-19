@@ -53,8 +53,13 @@ namespace bh {
 			}
 		}
 
+		public static get MaxHeroCount() { return MaxHeroCount; }
 		public static get MaxFame() { return MaxFameLevel; }
 		public static get MaxLevel() { return HeroRepo.getMaxLevel(HeroRepo.MaxFame); }
+		public static get MaxCompletionLevel() {
+			var maxLevel = HeroRepo.MaxLevel, hero = <any>{ };
+			return maxLevel + HeroRepo.getMaxTrait(maxLevel) + HeroRepo.getMaxActive(hero, maxLevel) + HeroRepo.getMaxPassive(hero, maxLevel);
+		}
 
 		public static getAbilityMaxLevel(hero: Hero, abilityType: AbilityType) {
 			switch(abilityType) {

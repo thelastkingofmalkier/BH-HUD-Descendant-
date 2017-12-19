@@ -22,9 +22,11 @@ namespace bh {
 				})
 			}
 			export function loadPlayer(player: Player, arenaIndex: number = -1): void {
-				var star = player.isFullMeat ? `&#9734;` : ``,
-					averagePercentText = player.powerPercent == player.averagePowerPercent ? `` : `; Avg ${player.averagePowerPercent}%`,
-					percentText = player.isArena ? `` : ` <span style="white-space:nowrap;">(${player.powerPercent}%${averagePercentText})</span>`,
+				var fullMeat = player.isFullMeat,
+					star = fullMeat ? `&#9734;` : ``,
+					// averagePercentText = player.powerPercent == player.averagePowerPercent ? `` : `; Avg ${player.averagePowerPercent}%`,
+					// percentText = player.isArena ? `` : ` <span style="white-space:nowrap;">(${player.powerPercent}%${averagePercentText})</span>`,
+					percentText = player.isArena || fullMeat ? `` : ` <span style="white-space:nowrap;">(${player.completionPercent}%)</span>`,
 					html = `<div class="player-name" data-action="sort-heroes">${star} ${utils.htmlFriendly(player.name)} ${percentText}</div>`,
 					playerHeroes: PlayerHero[] = player.heroes.sort(utils.sort.byElementThenKlass);
 				playerHeroes.forEach(hero => {

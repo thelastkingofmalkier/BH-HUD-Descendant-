@@ -1,5 +1,5 @@
 var __extends = (this && this.__extends) || (function () {
-    var extendStatics = Object.setPrototypeOf ||
+   var extendStatics = Object.setPrototypeOf ||
         ({ __proto__: [] } instanceof Array && function (d, b) { d.__proto__ = b; }) ||
         function (d, b) { for (var p in b) if (b.hasOwnProperty(p)) d[p] = b[p]; };
     return function (d, b) {
@@ -138,6 +138,7 @@ var bh;
             this.turns = parts && +parts[3] || null;
             this.value = effect && effect.value;
             this.perkMultiplier = 0;
+            this.offense = !(effect && effect.value || "").toLowerCase().startsWith("d");
         }
         Object.defineProperty(GameEffect.prototype, "powerRating", {
             get: function () { return getPowerRating(this); },
@@ -171,11 +172,7 @@ var bh;
         return GameEffect;
     }());
     bh.GameEffect = GameEffect;
-    var offensiveEffects = ["Interrupt", "Reset", "Burn", "Bleed", "Shock", "Poison", "Backstab", "Sap", "Drown", "Pierce", "Perfect Shot", "Taunt"];
-    var defensiveEffects = ["Regen", "Immunity to Bleed", "Immunity to Burn", "Immunity to Charm", "Immunity to Chill", "Immunity to Confuse", "Immunity to Poison", "Immunity to Shock", "Immunity to Stun", "Attack Up", "Accuracy Up", "Trait Up"];
-    var healEffects = ["Regen"];
-    var shieldEffects = [""];
-    var notRatedEffects = ["Stun", "Charm", "Max Health Up", "Luck Down", "Luck Up", "Bamboozle"];
+    var offensiveEffects = ["Interrupt", "Reset", "Burn", "Bleed", "Shock", "Poison", "Backstab", "Sap", "Drown", "Pierce", "Perfect Shot"];
     function reconcileTargets(gameEffects, card) {
         var targets = card.typesTargets.map(function (typeTarget) { return bh.PlayerBattleCard.parseTarget(typeTarget); }), damage = targets.find(function (t) { return t.type == "Damage"; }), shield = targets.find(function (t) { return t.type == "Shield"; }), heal = targets.find(function (t) { return t.type == "Heal"; }), def = targets.find(function (t) { return ["Heal", "Shield"].includes(t.type); }), damages = [];
         gameEffects.slice().forEach(function (gameEffect) {
@@ -187,44 +184,40 @@ var bh;
                     gameEffects.push(ge);
                 });
             }
+            else if (gameEffect.effect.startsWith("Immunity")) {
+                gameEffect.target = def || bh.PlayerBattleCard.parseTarget(damage.all ? "Heal All Allies" : "Heal Self");
+            }
+            else if (gameEffect.effect == "Bamboozle" && ["Rum Shower"].includes(card.name)) {
+                gameEffect.target = gameEffect.perkMultiplier ? damage : bh.PlayerBattleCard.parseTarget("Heal Self");
+            }
+            else if (gameEffect.effect == "Stun" && ["Breaking Chakra"].includes(card.name)) {
+                gameEffect.target = gameEffect.perkMultiplier ? damage : bh.PlayerBattleCard.parseTarget("Heal Self");
+            }
+            else if (["Attack Up", "Trait Up", "Evade", "Accuracy Up", "Defence Up"].includes(gameEffect.effect) && damage) {
+                gameEffect.target = bh.PlayerBattleCard.parseTarget("Heal Self");
+            }
+            else if (["Charm", "Taunt"].includes(gameEffect.effect) && damage) {
+                gameEffect.target = def || bh.PlayerBattleCard.parseTarget("Heal Self");
+            }
+            else if (["Haste", "Regen"].includes(gameEffect.effect)) {
+                gameEffect.target = def || bh.PlayerBattleCard.parseTarget(damage.all ? "Heal All Allies" : "Heal Self");
+            }
+            else if (["Wet"].includes(gameEffect.effect) && card.name == "Apnoea") {
+                gameEffect.target = damage || bh.PlayerBattleCard.parseTarget("Damage Single Enemy");
+            }
+            else if (["Storm", "Terra", "Wet"].includes(gameEffect.effect) && ["Wind Barrier", "Hurricane Barrier", "Forest Barrier", "Shield of The Nature", "Tides Control", "Wet Kiss"].includes(card.name)) {
+                gameEffect.target = damage || bh.PlayerBattleCard.parseTarget(def.all ? "Damage All Enemies" : "Damage Single Enemy");
+            }
+            else if (gameEffect.effect == "Terra" && card.name == "Peace Pipe" && card.rarityType == bh.RarityType.Legendary) {
+                gameEffect.target = damage || bh.PlayerBattleCard.parseTarget(def.all ? "Damage All Enemies" : "Damage Single Enemy");
+            }
             else if (targets.length == 1 || gameEffect.perkMultiplier) {
-                if (gameEffect.effect == "Storm" && ["Wind Barrier", "Hurricane Barrier"].includes(card.name)) {
-                    gameEffect.target = bh.PlayerBattleCard.parseTarget("Damage All Enemies");
-                }
-                else if (gameEffect.effect == "Terra" && ["Forest Barrier", "Shield of The Nature"].includes(card.name)) {
-                    gameEffect.target = bh.PlayerBattleCard.parseTarget("Damage All Enemies");
-                }
-                else if (gameEffect.effect == "Bamboozle" && ["Rum Shower"].includes(card.name)) {
-                    gameEffect.target = gameEffect.perkMultiplier ? damage : bh.PlayerBattleCard.parseTarget("Heal Self");
-                }
-                else if (gameEffect.effect == "Stun" && ["Breaking Chakra"].includes(card.name)) {
-                    gameEffect.target = gameEffect.perkMultiplier ? damage : bh.PlayerBattleCard.parseTarget("Heal Self");
-                }
-                else {
-                    gameEffect.target = targets[0];
-                }
+                gameEffect.target = targets[0];
+            }
+            else if (offensiveEffects.includes(gameEffect.effect) && damage) {
+                gameEffect.target = damage;
             }
             else {
-                if (offensiveEffects.includes(gameEffect.effect)) {
-                    gameEffect.target = damage;
-                }
-                else if (defensiveEffects.includes(gameEffect.effect)) {
-                    if (healEffects.includes(gameEffect.effect)) {
-                        gameEffect.target = heal;
-                    }
-                    else if (shieldEffects.includes(gameEffect.effect)) {
-                        gameEffect.target = shield;
-                    }
-                    else if (gameEffect.effect.startsWith("Immunity")) {
-                        gameEffect.target = def;
-                    }
-                }
-                else if (gameEffect.effect == "Storm" && ["Wind Barrier", "Hurricane Barrier"].includes(card.name)) {
-                    gameEffect.target = bh.PlayerBattleCard.parseTarget("Damage All Enemies");
-                }
-                else if (gameEffect.effect == "Terra" && ["Forest Barrier", "Shield of The Nature"].includes(card.name)) {
-                    gameEffect.target = bh.PlayerBattleCard.parseTarget("Damage All Enemies");
-                }
             }
             if (!gameEffect.target)
                 console.warn("can't find target for " + gameEffect.effect, gameEffect.card);
@@ -232,38 +225,16 @@ var bh;
     }
     function getPowerRating(gameEffect) {
         var rating = _getPowerRating(gameEffect);
+        if (rating < 0)
+            console.log(gameEffect);
         return rating;
     }
     function _getPowerRating(gameEffect) {
-        var effect = gameEffect.effect, target = gameEffect.target, offense = target && target.offense, match = (gameEffect.value || "").match(/(\d+(?:\.\d+))(T)?/i), points = match && +match[1] || 1, turns = match && match[2] == "T" ? gameEffect.turns : 1, percentMultiplier = gameEffect.percentMultiplier || 1, value = match ? points * turns * percentMultiplier : 0.5;
+        if (["Critical", "Regen"].includes(gameEffect.effect))
+            return 0;
+        var target = gameEffect.target, targetOffense = target && target.offense, targetDefense = target && !target.offense, match = (gameEffect.value || "").toUpperCase().match(/(O|D)?((?:\+|\-)?\d+(?:\.\d+)?)(T)?(%)?/), effectOffense = match && match[1] == "O", effectDefense = match && match[1] == "D", points = match && +match[2] || 1, turns = match && match[3] == "T" ? gameEffect.turns : 1, percentMultiplier = match && match[4] == "%" ? gameEffect.percentMultiplier : 1, value = match ? points * turns * percentMultiplier : 0.5;
         if (target) {
-            if (!["Critical", "Regen"].includes(effect)) {
-                if (["Slow"].includes(effect))
-                    return value * (offense ? 1 : -1);
-                if (["Sleep"].includes(effect))
-                    return value * (offense ? 1 : -1);
-                if (offense) {
-                    if (["Interrupt", "Burn", "Bleed", "Shock", "Poison", "Backstab", "Chill", "Reset"].includes(effect))
-                        return value;
-                    if (["Sap", "Drown"].includes(effect))
-                        return value;
-                    if (["Marked"].includes(effect))
-                        return value;
-                    if (["Accuracy Down"].includes(effect))
-                        return value;
-                }
-                else {
-                    if (["Cure All"].includes(effect))
-                        return value;
-                    if (["Evade"].includes(effect))
-                        return value;
-                }
-                if (["Attack Up"].includes(effect))
-                    return value;
-                if (["Haste", "Trait Up", "Speed Up"].includes(effect))
-                    return value;
-                return value;
-            }
+            return value * gameEffect.perkMultiplier * (targetOffense == effectOffense || targetDefense == effectDefense ? 1 : -1);
         }
         else {
             console.warn("no target", gameEffect);
@@ -565,57 +536,74 @@ var bh;
             configurable: true
         });
         Object.defineProperty(Player.prototype, "canScout", {
-            get: function () { return this.guid == "b0a8b57b-54f5-47d8-8b7a-f9dac8300ca0"; },
+            get: function () {
+                return this.guid == "b0a8b57b-54f5-47d8-8b7a-f9dac8300ca0";
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Player.prototype, "completionPercent", {
+            get: function () {
+                return Math.floor(100 * this.heroes.map(function (h) { return h.completionLevel; }).reduce(function (l, c) { return l + c; }, 0) / (bh.HeroRepo.MaxCompletionLevel * bh.HeroRepo.MaxHeroCount));
+            },
             enumerable: true,
             configurable: true
         });
         Object.defineProperty(Player.prototype, "isExtended", {
-            get: function () { return !!this._pp; },
+            get: function () {
+                return !!this._pp;
+            },
             enumerable: true,
             configurable: true
         });
         Object.defineProperty(Player.prototype, "isFullMeat", {
-            get: function () { return this.heroes.length == bh.data.HeroRepo.length && !this.heroes.find(function (hero) { return !hero.isMeat; }); },
+            get: function () {
+                var heroes = this.heroes.filter(function (h) { return !h.isLocked && h.isMeat; });
+                return heroes.length == bh.HeroRepo.MaxHeroCount;
+            },
             enumerable: true,
             configurable: true
         });
         Object.defineProperty(Player.prototype, "isMe", {
-            get: function () { return bh.Messenger.ActivePlayerGuid == this.guid; },
+            get: function () {
+                return bh.Messenger.ActivePlayerGuid == this.guid;
+            },
             enumerable: true,
             configurable: true
         });
         Object.defineProperty(Player.prototype, "name", {
-            get: function () { return this._pp ? this._pp.name : this._gp && this._gp.name || null; },
+            get: function () {
+                return this._pp ? this._pp.name : this._gp && this._gp.name || null;
+            },
             enumerable: true,
             configurable: true
         });
         Object.defineProperty(Player.prototype, "position", {
-            get: function () { return this._gp && this._gp.position || null; },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(Player.prototype, "averagePowerPercent", {
-            get: function () { var percents = this.heroes.map(function (ph) { return ph.powerPercent; }); return Math.floor(percents.reduce(function (out, p) { return out + p; }, 0) / percents.length); },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(Player.prototype, "powerPercent", {
-            get: function () { var percentSum = this.heroes.map(function (ph) { return ph.powerPercent; }).reduce(function (score, pp) { return score + pp; }, 0), max = bh.data.HeroRepo.length * 100; return Math.floor(100 * percentSum / max); },
+            get: function () {
+                return this._gp && this._gp.position || null;
+            },
             enumerable: true,
             configurable: true
         });
         Object.defineProperty(Player.prototype, "powerRating", {
-            get: function () { return this.heroes.reduce(function (power, hero) { return power + hero.powerRating; }, 0); },
+            get: function () {
+                var _this = this;
+                return this.fromCache("poewrRating", function () { return _this.heroes.reduce(function (power, hero) { return power + hero.powerRating; }, 0); });
+            },
             enumerable: true,
             configurable: true
         });
         Object.defineProperty(Player.prototype, "raidRowHtml", {
-            get: function () { return this._pp ? formatRow("keys", "RaidTicket", "Raid Tickets", this.raidTickets) : ""; },
+            get: function () {
+                return this._pp ? formatRow("keys", "RaidTicket", "Raid Tickets", this.raidTickets) : "";
+            },
             enumerable: true,
             configurable: true
         });
         Object.defineProperty(Player.prototype, "raidTickets", {
-            get: function () { return this._pp && this._pp.raidKeys || 0; },
+            get: function () {
+                return this._pp && this._pp.raidKeys || 0;
+            },
             enumerable: true,
             configurable: true
         });
@@ -644,17 +632,26 @@ var bh;
             configurable: true
         });
         Object.defineProperty(Player.prototype, "boosterCards", {
-            get: function () { var map = this._pp && this._pp.feederCardsMap; return !map ? [] : Object.keys(map).map(function (guid) { return new bh.PlayerBoosterCard(guid, map[guid]); }).sort(bh.utils.sort.byElementThenRarityThenName); },
+            get: function () {
+                var map = this._pp && this._pp.feederCardsMap;
+                return !map ? [] : Object.keys(map).map(function (guid) { return new bh.PlayerBoosterCard(guid, map[guid]); }).sort(bh.utils.sort.byElementThenRarityThenName);
+            },
             enumerable: true,
             configurable: true
         });
         Object.defineProperty(Player.prototype, "boosterCount", {
-            get: function () { var count = 0, map = this._pp && this._pp.feederCardsMap; Object.keys(map || {}).map(function (guid) { return count += map[guid]; }); return count; },
+            get: function () {
+                var count = 0, map = this._pp && this._pp.feederCardsMap || {};
+                Object.keys(map).map(function (guid) { return count += map[guid]; });
+                return count;
+            },
             enumerable: true,
             configurable: true
         });
         Object.defineProperty(Player.prototype, "boosterRowHtml", {
-            get: function () { return this._pp ? bh.PlayerBoosterCard.rowHtml(this.boosterCount) : ""; },
+            get: function () {
+                return this._pp ? bh.PlayerBoosterCard.rowHtml(this.boosterCount) : "";
+            },
             enumerable: true,
             configurable: true
         });
@@ -676,7 +673,9 @@ var bh;
             configurable: true
         });
         Object.defineProperty(Player.prototype, "wildCardRowHtml", {
-            get: function () { return this._pp ? formatRow("cardtypes", "WildCard", "Wild Cards", this.wildCards.filter(function (wc) { return wc.count; }).slice(-3).map(function (wc) { return bh.RarityType[wc.rarityType][0] + ":" + wc.count; }).join(" / ")) : ""; },
+            get: function () {
+                return this._pp ? formatRow("cardtypes", "WildCard", "Wild Cards", this.wildCards.filter(function (wc) { return wc.count; }).slice(-3).map(function (wc) { return bh.RarityType[wc.rarityType][0] + ":" + wc.count; }).join(" / ")) : "";
+            },
             enumerable: true,
             configurable: true
         });
@@ -937,7 +936,7 @@ var bh;
                     .replace(/Mischievous/, "Misch.")
                     .replace(/Protection/, "Prot.")
                     .replace(/-[\w-]+-/, "-...-");
-                return this.battleOrBragImage + " " + this.evoLevel + " <small>" + stars + "</small> " + name + " " + typeAndValue + " " + count;
+                return this.battleOrBragImage + " " + this.evoLevel + " <small>" + stars + "</small> " + name + " " + typeAndValue + " " + count + "<span class=\"pull-right\">" + Math.round(this.powerRating) * this.count + "</span>";
             },
             enumerable: true,
             configurable: true
@@ -1126,6 +1125,12 @@ var bh;
 })(bh || (bh = {}));
 var bh;
 (function (bh) {
+    function getAbilityLevel(playerHero, abilityType) {
+        var level = playerHero.archetype.abilityLevels
+            ? playerHero.archetype.abilityLevels[playerHero.hero.abilities[abilityType].guid]
+            : null;
+        return isNaN(level) ? 0 : level + 1;
+    }
     var PlayerHero = (function (_super) {
         __extends(PlayerHero, _super);
         function PlayerHero(player, archetype) {
@@ -1154,7 +1159,7 @@ var bh;
         Object.defineProperty(PlayerHero.prototype, "active", {
             get: function () {
                 var _this = this;
-                return this.fromCache("active", function () { return new bh.PlayerHeroAbility(_this, _this.hero.active, _this.getAbilityLevel(bh.AbilityType.Active)); });
+                return this.fromCache("active", function () { return new bh.PlayerHeroAbility(_this, _this.hero.active, getAbilityLevel(_this, bh.AbilityType.Active)); });
             },
             enumerable: true,
             configurable: true
@@ -1182,7 +1187,7 @@ var bh;
         Object.defineProperty(PlayerHero.prototype, "passive", {
             get: function () {
                 var _this = this;
-                return this.fromCache("passive", function () { return new bh.PlayerHeroAbility(_this, _this.hero.passive, _this.getAbilityLevel(bh.AbilityType.Passive)); });
+                return this.fromCache("passive", function () { return new bh.PlayerHeroAbility(_this, _this.hero.passive, getAbilityLevel(_this, bh.AbilityType.Passive)); });
             },
             enumerable: true,
             configurable: true
@@ -1190,28 +1195,29 @@ var bh;
         Object.defineProperty(PlayerHero.prototype, "trait", {
             get: function () {
                 var _this = this;
-                return this.fromCache("trait", function () { return new bh.PlayerHeroAbility(_this, _this.hero.trait, _this.getAbilityLevel(bh.AbilityType.Trait)); });
+                return this.fromCache("trait", function () { return new bh.PlayerHeroAbility(_this, _this.hero.trait, getAbilityLevel(_this, bh.AbilityType.Trait)); });
             },
             enumerable: true,
             configurable: true
         });
-        Object.defineProperty(PlayerHero.prototype, "activePowerRating", {
-            get: function () { return this.active.powerRating; },
+        Object.defineProperty(PlayerHero.prototype, "battleCards", {
+            get: function () {
+                var _this = this;
+                return this.fromCache("battleCards", function () { return bh.Hero.filterCardsByHero(_this.hero, _this.player.battleCards); });
+            },
             enumerable: true,
             configurable: true
         });
-        Object.defineProperty(PlayerHero.prototype, "battleCards", {
-            get: function () { return bh.Hero.filterCardsByHero(this.hero, this.player.battleCards); },
+        Object.defineProperty(PlayerHero.prototype, "completionLevel", {
+            get: function () { return this.level + this.trait.level + this.active.level + this.passive.level; },
             enumerable: true,
             configurable: true
         });
         Object.defineProperty(PlayerHero.prototype, "deck", {
-            get: function () { return this.player.sortAndReduceBattleCards(this.archetype.deck); },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(PlayerHero.prototype, "deckPowerRating", {
-            get: function () { return bh.PowerRating.rateDeck(this.deck); },
+            get: function () {
+                var _this = this;
+                return this.fromCache("deck", function () { return _this.player.sortAndReduceBattleCards(_this.archetype.deck); });
+            },
             enumerable: true,
             configurable: true
         });
@@ -1220,18 +1226,8 @@ var bh;
             enumerable: true,
             configurable: true
         });
-        Object.defineProperty(PlayerHero.prototype, "hitPointsPowerRating", {
-            get: function () { return bh.PowerRating.ratePlayerHeroHitPoints(this); },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(PlayerHero.prototype, "isActiveCapped", {
-            get: function () { return this.active.level == bh.HeroRepo.getMaxActive(this.hero, this.level); },
-            enumerable: true,
-            configurable: true
-        });
         Object.defineProperty(PlayerHero.prototype, "isCapped", {
-            get: function () { return this.isActiveCapped && this.isPassiveCapped && this.isTraitCapped; },
+            get: function () { return this.active.isCapped && this.passive.isCapped && this.trait.isCapped; },
             enumerable: true,
             configurable: true
         });
@@ -1250,23 +1246,8 @@ var bh;
             enumerable: true,
             configurable: true
         });
-        Object.defineProperty(PlayerHero.prototype, "isPassiveCapped", {
-            get: function () { return this.passive.level == bh.HeroRepo.getMaxPassive(this.hero, this.level); },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(PlayerHero.prototype, "isTraitCapped", {
-            get: function () { return this.trait.level == bh.HeroRepo.getMaxTrait(this.level); },
-            enumerable: true,
-            configurable: true
-        });
         Object.defineProperty(PlayerHero.prototype, "level", {
             get: function () { return this.archetype.level + 1; },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(PlayerHero.prototype, "passivePowerRating", {
-            get: function () { return this.passive.powerRating; },
             enumerable: true,
             configurable: true
         });
@@ -1286,12 +1267,10 @@ var bh;
             configurable: true
         });
         Object.defineProperty(PlayerHero.prototype, "powerRating", {
-            get: function () { return Math.round(this.hitPointsPowerRating + this.traitPowerRating + this.activePowerRating + this.passivePowerRating + this.deckPowerRating); },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(PlayerHero.prototype, "traitPowerRating", {
-            get: function () { return this.trait.powerRating; },
+            get: function () {
+                var _this = this;
+                return this.fromCache("powerRating", function () { return Math.round(bh.PowerRating.ratePlayerHeroHitPoints(_this) + _this.trait.powerRating + _this.active.powerRating + _this.passive.powerRating + bh.PowerRating.rateDeck(_this.deck)); });
+            },
             enumerable: true,
             configurable: true
         });
@@ -1862,7 +1841,7 @@ var bh;
         function PowerRating() {
         }
         PowerRating.rateMaxedHero = function (hero) {
-            var abilities = hero.name == "Jinx" ? 30 : 40;
+            var abilities = hero.name == "Jinx" ? 45 : 55;
             return abilities + PowerRating.rateMaxedDeck(hero);
         };
         PowerRating.rateMaxedDeck = function (hero) {
@@ -1901,10 +1880,11 @@ var bh;
         PowerRating.ratePlayerHeroAbility = function (playerHeroAbility) {
             if (playerHeroAbility.hero.name == "Jinx" && playerHeroAbility.heroAbility.type == bh.AbilityType.Passive)
                 return 0;
-            return Math.round(1000 * playerHeroAbility.level / playerHeroAbility.levelMax) / 100;
+            var mult = playerHeroAbility.type == bh.AbilityType.Trait ? 2 : playerHeroAbility.type == bh.AbilityType.Active ? 1.5 : 1;
+            return mult * Math.round(1000 * playerHeroAbility.level / playerHeroAbility.levelMax) / 100;
         };
         PowerRating.ratePlayerHeroHitPoints = function (playerHero) {
-            var maxHP = bh.data.HeroRepo.all.map(function (h) { return [bh.Hero.getHitPoints(h, 90), h]; }).sort().pop()[0], heroMultiplier = bh.Hero.getHitPoints(playerHero.hero, 90) / maxHP, levelMultiplier = playerHero.level / 90;
+            var maxHeroLevel = bh.HeroRepo.MaxLevel, maxHP = bh.data.HeroRepo.all.map(function (h) { return [bh.Hero.getHitPoints(h, maxHeroLevel), h]; }).sort().pop()[0], heroMultiplier = bh.Hero.getHitPoints(playerHero.hero, maxHeroLevel) / maxHP, levelMultiplier = playerHero.level / maxHeroLevel;
             return Math.round(1000 * heroMultiplier * levelMultiplier) / 100;
         };
         return PowerRating;
@@ -1912,12 +1892,10 @@ var bh;
     bh.PowerRating = PowerRating;
     function ratePlayerCard(playerCard) {
         var card = bh.data.BattleCardRepo.find(playerCard.configId), evoLevel = playerCard.evolutionLevel, level = playerCard.level, perkMultiplier = bh.BattleCardRepo.getPerk(card, evoLevel) / 100, targets = card.typesTargets.map(function (typeTarget) { return bh.PlayerBattleCard.parseTarget(typeTarget); }), gameEffects = bh.GameEffect.parseAll(playerCard), rating = 0;
-        targets.forEach(function (target, typeIndex) {
-            var turns = card.turns, regen = target.type == "Heal" && card.effects.concat(card.perks).find(function (s) { return s.startsWith("Regen"); }), regenEffect = regen ? bh.GameEffect.parse(regen) : null, regenDivisor = regen && regenEffect.turns || 1, value = calcValue(card, typeIndex, evoLevel, level) / target.typeDivisor / regenDivisor;
-            rating += value / turns - turns;
-        });
+        targets.forEach(function (target, typeIndex) { return rating += calcValue(card, typeIndex, evoLevel, level) / target.typeDivisor; });
         gameEffects.forEach(function (gameEffect) { return rating += gameEffect.powerRating; });
-        return Math.round(100 * rating) / 100;
+        rating /= card.turns;
+        return Math.round(100 * rating) / 100 * 10;
     }
     function calcValue(card, typeIndex, evo, level) {
         var baseValue = bh.BattleCardRepo.calculateValue({ configId: card.guid, evolutionLevel: evo, level: level }), perkMultiplier = bh.BattleCardRepo.getPerk(card, evo) / 100, critMultiplier = card.perks.includes("Critical") ? 1.5 * perkMultiplier : 1, target = bh.PlayerBattleCard.parseTarget(card.typesTargets[typeIndex]), value = Math.round(baseValue * critMultiplier * target.targetMultiplier);
@@ -1925,7 +1903,7 @@ var bh;
             value = value / target.flurryCount * target.flurryHitMultiplier * target.flurryCount;
         }
         if (!value)
-            console.log(card.name, target);
+            console.log(card.name, [card, typeIndex, evo, level, baseValue, perkMultiplier, critMultiplier, target, value]);
         return value;
     }
 })(bh || (bh = {}));
@@ -1936,7 +1914,7 @@ function rateCards(max) {
         var playerCard = { configId: card.guid };
         playerCard.evolutionLevel = max ? card.rarityType : 0;
         playerCard.level = max ? bh.BattleCardRepo.getLevelsForRarity(card.rarityType) - 1 : 0;
-        return { card: card, powerRating: 10 + bh.PowerRating.ratePlayerCard(playerCard) };
+        return { card: card, powerRating: bh.PowerRating.ratePlayerCard(playerCard) };
     });
     scores.sort(function (a, b) { return b.powerRating - a.powerRating; });
     $("textarea").val(scores.map(function (s, i) { return (i + 1) + ": " + s.card.name + (s.card.rarityType == bh.RarityType.Legendary ? " (L)" : ""); }).slice(0, 30).join("\n"));
@@ -2586,6 +2564,11 @@ var bh;
                 case bh.AbilityType.Trait: return HeroRepo.getMaxTrait(HeroRepo.MaxLevel);
             }
         };
+        Object.defineProperty(HeroRepo, "MaxHeroCount", {
+            get: function () { return MaxHeroCount; },
+            enumerable: true,
+            configurable: true
+        });
         Object.defineProperty(HeroRepo, "MaxFame", {
             get: function () { return MaxFameLevel; },
             enumerable: true,
@@ -2593,6 +2576,14 @@ var bh;
         });
         Object.defineProperty(HeroRepo, "MaxLevel", {
             get: function () { return HeroRepo.getMaxLevel(HeroRepo.MaxFame); },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(HeroRepo, "MaxCompletionLevel", {
+            get: function () {
+                var maxLevel = HeroRepo.MaxLevel, hero = {};
+                return maxLevel + HeroRepo.getMaxTrait(maxLevel) + HeroRepo.getMaxActive(hero, maxLevel) + HeroRepo.getMaxPassive(hero, maxLevel);
+            },
             enumerable: true,
             configurable: true
         });
@@ -2747,10 +2738,11 @@ var WildCardRepoGID = 2106503523;
 var GuildsGID = 496437953;
 var USE_CACHE = true;
 var NO_CACHE = false;
+var MaxHeroCount = 13;
 var MaxFameLevel = 45;
-var AttackDivisor = 888;
-var ShieldDivisor = 888 * 2;
-var HealDivisor = 888 * 3;
+var AttackDivisor = 750;
+var ShieldDivisor = 1000;
+var HealDivisor = 1000;
 var BattleCardDataUrl = "https://docs.google.com/spreadsheets/d/1xckeq3t9T2g4sR5zgKK52ZkXNEXQGgiUrJ8EQ5FJAPI/pub?output=tsv";
 var DungeonDataUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRCyjBTeKjsBri_uvkFnT-i9f-jI4RUR0YffYh32XFtQfywivXktmLcmGOuXTfOQZH1sv6VTmF9Ceee/pub?gid=1815567292&single=true&output=tsv";
 var bh;
@@ -3822,7 +3814,7 @@ var bh;
                 var json = message.data;
                 var player = new bh.Player(json), select = bh.$("#brain-hud-scouter-player-target");
                 if (!bh.$("#brain-hud-scouter-player-target > option[value=\"" + player.guid + "\"]").length) {
-                    select.append("<option value=\"" + player.guid + "\">" + (player.isFullMeat ? "&#9734; " : "") + bh.utils.htmlFriendly(player.name) + " (" + player.powerPercent + "%)</option>");
+                    select.append("<option value=\"" + player.guid + "\">" + (player.isFullMeat ? "&#9734; " : "") + bh.utils.htmlFriendly(player.name) + "</option>");
                     select.children().toArray().slice(1)
                         .sort(function (a, b) { return a.text < b.text ? -1 : a.text == b.text ? 0 : 1; })
                         .forEach(function (el) { return select.append(el); });
@@ -4157,7 +4149,7 @@ var bh;
             }
             function loadPlayer(player, arenaIndex) {
                 if (arenaIndex === void 0) { arenaIndex = -1; }
-                var star = player.isFullMeat ? "&#9734;" : "", averagePercentText = player.powerPercent == player.averagePowerPercent ? "" : "; Avg " + player.averagePowerPercent + "%", percentText = player.isArena ? "" : " <span style=\"white-space:nowrap;\">(" + player.powerPercent + "%" + averagePercentText + ")</span>", html = "<div class=\"player-name\" data-action=\"sort-heroes\">" + star + " " + bh.utils.htmlFriendly(player.name) + " " + percentText + "</div>", playerHeroes = player.heroes.sort(bh.utils.sort.byElementThenKlass);
+                var fullMeat = player.isFullMeat, star = fullMeat ? "&#9734;" : "", percentText = player.isArena || fullMeat ? "" : " <span style=\"white-space:nowrap;\">(" + player.completionPercent + "%)</span>", html = "<div class=\"player-name\" data-action=\"sort-heroes\">" + star + " " + bh.utils.htmlFriendly(player.name) + " " + percentText + "</div>", playerHeroes = player.heroes.sort(bh.utils.sort.byElementThenKlass);
                 playerHeroes.forEach(function (hero) {
                     var id = player.guid + "-" + hero.guid, icon = hero.isLocked ? bh.getImg("misc", "Lock") : bh.getImg("heroes", hero.name), level = hero.isLocked ? "" : hero.level == bh.HeroRepo.MaxLevel ? hero.isMeat ? "<span class=\"evo-star\">&#9734;</span>" : "<span class=\"star\">&#9734;</span>" : "(" + hero.level + ")", hitPoints = hero.isLocked ? "" : bh.utils.truncateNumber(hero.hitPoints) + " HP", powerPercent = hero.powerPercent, progressBG = hero.isOp ? "background-color:pink;" : "", color = powerPercent < 25 ? "progress-bar-info" : powerPercent < 50 ? "progress-bar-success" : powerPercent < 75 ? "progress-bar-warning" : "progress-bar-danger", progressBar = hero.isLocked ? "" : "<div class=\"progress\" style=\"" + progressBG + "\"><div class=\"progress-bar " + color + "\" style=\"width:" + powerPercent + "%;\"><span></span></div></div>", powerRating = hero.isLocked ? "" : hero.powerRating, title = "<span class=\"hero-icon\">" + icon + "</span>"
                         + ("<span class=\"hero-name\">" + hero.name + "</span>")

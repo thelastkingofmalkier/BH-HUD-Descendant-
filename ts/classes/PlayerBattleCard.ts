@@ -118,7 +118,7 @@ namespace bh {
 					.replace(/Mischievous/, "Misch.")
 					.replace(/Protection/, "Prot.")
 					.replace(/-[\w-]+-/, "-...-");
-			return `${this.battleOrBragImage} ${this.evoLevel} <small>${stars}</small> ${name} ${typeAndValue} ${count}`;
+			return `${this.battleOrBragImage} ${this.evoLevel} <small>${stars}</small> ${name} ${typeAndValue} ${count}<span class="pull-right">${Math.round(this.powerRating)*this.count}</span>`;
 		}
 		public get isActive() { return (this.evo > 0 || this.level > 1) && !this.isMaxed; }
 		public get isMaxed() { return this.evoLevel == ["1.10", "2.20", "3.35", "4.50", "5.50"][this.rarityType]; }

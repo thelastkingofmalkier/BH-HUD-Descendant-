@@ -67,26 +67,71 @@ namespace bh {
 		public get isAlly(): boolean {
 			return this.fromCache("isAlly", () => !!(Player.me && Player.me.guilds || []).find(g => g.guid == this.guildGuid));
 		}
-		public get canScout() { return this.guid == "b0a8b57b-54f5-47d8-8b7a-f9dac8300ca0"; }
-		public get isExtended() { return !!this._pp; }
-		public get isFullMeat() { return this.heroes.length == data.HeroRepo.length && !this.heroes.find(hero => !hero.isMeat); }
-		public get isMe() { return Messenger.ActivePlayerGuid == this.guid; }
-		public get name() { return this._pp ? this._pp.name : this._gp && this._gp.name || null; }
-		public get position() { return this._gp && this._gp.position || null; }
-		public get averagePowerPercent() { var percents = this.heroes.map(ph => ph.powerPercent); return Math.floor(percents.reduce((out, p) => out + p, 0) / percents.length); }
-		public get powerPercent() { var percentSum = this.heroes.map(ph => ph.powerPercent).reduce((score, pp) => score + pp, 0), max = data.HeroRepo.length * 100; return Math.floor(100 * percentSum / max); }
-		public get powerRating() { return this.heroes.reduce((power, hero) => power + hero.powerRating, 0); }
-		public get raidRowHtml() { return this._pp ? formatRow("keys", "RaidTicket", "Raid Tickets", this.raidTickets) : ""; }
-		public get raidTickets() { return this._pp && this._pp.raidKeys || 0; }
-		public get battleCards(): PlayerBattleCard[] { return this.fromCache("battleCards", () => !(this._pp && this._pp.playerCards && this._pp.playerCards.cards) ? [] : this.sortAndReduceBattleCards(Object.keys(this._pp.playerCards.cards))); }
-		public get activeBattleCards(): PlayerBattleCard[] { return this.fromCache("activeBattleCards", () => this.battleCards.filter(battleCard => battleCard.isActive)); }
-		public get activeRecipes(): Recipe[] { return this.fromCache("activeRecipes", () => this.activeBattleCards.map(bc => new Recipe(bc, true)).filter(r => !!r)); }
-		public get boosterCards() { var map = this._pp && this._pp.feederCardsMap; return !map ? [] : Object.keys(map).map(guid => new PlayerBoosterCard(guid, map[guid])).sort(utils.sort.byElementThenRarityThenName); }
-		public get boosterCount() { var count = 0, map = this._pp && this._pp.feederCardsMap; Object.keys(map || {}).map(guid => count += map[guid]); return count; }
-		public get boosterRowHtml() { return this._pp ? PlayerBoosterCard.rowHtml(this.boosterCount) : ""; }
-		public get inventory() { var mats = this._pp && this._pp.craftingMaterials; return data.ItemRepo.allSortedByName.map(item => new PlayerInventoryItem(this, item, mats[item.guid] || 0)); }
-		public get wildCards(): PlayerWildCard[] { return this.fromCache("wildCards", () => data.WildCardRepo.all.map(wc => new PlayerWildCard(this, wc.guid))); }
-		public get wildCardRowHtml() { return this._pp ? formatRow("cardtypes", "WildCard", "Wild Cards", this.wildCards.filter(wc => wc.count).slice(-3).map(wc => RarityType[wc.rarityType][0] + ":" + wc.count).join(" / ")) : ""; }
+		public get canScout() {
+			return this.guid == "b0a8b57b-54f5-47d8-8b7a-f9dac8300ca0";
+		}
+		public get completionPercent(): number {
+			return Math.floor(100 * this.heroes.map(h => h.completionLevel).reduce((l, c) => l + c, 0) / (HeroRepo.MaxCompletionLevel * HeroRepo.MaxHeroCount));
+		}
+		public get isExtended() {
+			return !!this._pp;
+		}
+		public get isFullMeat() {
+			var heroes = this.heroes.filter(h => !h.isLocked && h.isMeat);
+			return heroes.length == HeroRepo.MaxHeroCount;
+		}
+		public get isMe() {
+			return Messenger.ActivePlayerGuid == this.guid;
+		}
+		public get name() {
+			return this._pp ? this._pp.name : this._gp && this._gp.name || null;
+		}
+		public get position() {
+			return this._gp && this._gp.position || null;
+		}
+		// public get averagePowerPercent() { var percents = this.heroes.map(ph => ph.powerPercent); return Math.floor(percents.reduce((out, p) => out + p, 0) / percents.length); }
+		// public get powerPercent() { var percentSum = this.heroes.map(ph => ph.powerPercent).reduce((score, pp) => score + pp, 0), max = data.HeroRepo.length * 100; return Math.floor(100 * percentSum / max); }
+		public get powerRating() {
+			return this.fromCache("poewrRating", () => this.heroes.reduce((power, hero) => power + hero.powerRating, 0));
+		}
+		public get raidRowHtml() {
+			return this._pp ? formatRow("keys", "RaidTicket", "Raid Tickets", this.raidTickets) : "";
+		}
+		public get raidTickets() {
+			return this._pp && this._pp.raidKeys || 0;
+		}
+		public get battleCards(): PlayerBattleCard[] {
+			return this.fromCache("battleCards", () => !(this._pp && this._pp.playerCards && this._pp.playerCards.cards) ? [] : this.sortAndReduceBattleCards(Object.keys(this._pp.playerCards.cards)));
+		}
+		public get activeBattleCards(): PlayerBattleCard[] {
+			return this.fromCache("activeBattleCards", () => this.battleCards.filter(battleCard => battleCard.isActive));
+		}
+		public get activeRecipes(): Recipe[] {
+			return this.fromCache("activeRecipes", () => this.activeBattleCards.map(bc => new Recipe(bc, true)).filter(r => !!r));
+		}
+		public get boosterCards() {
+			var map = this._pp && this._pp.feederCardsMap;
+			return !map ? [] : Object.keys(map).map(guid => new PlayerBoosterCard(guid, map[guid])).sort(utils.sort.byElementThenRarityThenName);
+		}
+		public get boosterCount() {
+			var count = 0,
+			map = this._pp && this._pp.feederCardsMap || {};
+			Object.keys(map).map(guid => count += map[guid]);
+			return count;
+		}
+		public get boosterRowHtml() {
+			return this._pp ? PlayerBoosterCard.rowHtml(this.boosterCount) : "";
+		}
+		public get inventory() {
+			var mats = this._pp && this._pp.craftingMaterials;
+			return data.ItemRepo.allSortedByName.map(item => new PlayerInventoryItem(this, item, mats[item.guid] || 0));
+		}
+		public get wildCards(): PlayerWildCard[] {
+			return this.fromCache("wildCards", () => data.WildCardRepo.all.map(wc => new PlayerWildCard(this, wc.guid)));
+		}
+		public get wildCardRowHtml() {
+			return this._pp ? formatRow("cardtypes", "WildCard", "Wild Cards", this.wildCards.filter(wc => wc.count).slice(-3).map(wc => RarityType[wc.rarityType][0] + ":" + wc.count).join(" / ")) : "";
+		}
 
 		private battleCardToPlayerBattleInfo(guid: string) {
 			var playerCard = this._pp.playerCards.cards[guid];

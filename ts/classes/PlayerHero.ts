@@ -1,4 +1,12 @@
 namespace bh {
+
+	function getAbilityLevel(playerHero: PlayerHero, abilityType: AbilityType) {
+		var level = playerHero.archetype.abilityLevels
+			? playerHero.archetype.abilityLevels[playerHero.hero.abilities[abilityType].guid]
+			: null;
+		return isNaN(level) ? 0 : level + 1;
+	}
+
 	export class PlayerHero extends Cacheable {
 
 		private getAbilityLevel(abilityType: AbilityType) {
@@ -16,37 +24,30 @@ namespace bh {
 		}
 
 		// Passthrough for Hero
-		public get abilities() { return this.hero.abilities; }
-		public get abilityLevels() { return this.archetype.abilityLevels; }
-		public get active(): PlayerHeroAbility { return this.fromCache("active", () => new PlayerHeroAbility(this, this.hero.active, this.getAbilityLevel(AbilityType.Active))); }
-		public get guid() { return this.hero.guid; }
-		public get elementType() { return this.hero.elementType; }
-		public get klassType() { return this.hero.klassType; }
-		public get name() { return this.hero.name; }
-		public get passive(): PlayerHeroAbility { return this.fromCache("passive", () => new PlayerHeroAbility(this, this.hero.passive, this.getAbilityLevel(AbilityType.Passive))); }
-		public get trait(): PlayerHeroAbility { return this.fromCache("trait", () => new PlayerHeroAbility(this, this.hero.trait, this.getAbilityLevel(AbilityType.Trait))); }
+		public get abilities(): HeroAbility[] { return this.hero.abilities; }
+		public get abilityLevels(): IPlayer.GuidNumberMap { return this.archetype.abilityLevels; }
+		public get active(): PlayerHeroAbility { return this.fromCache("active", () => new PlayerHeroAbility(this, this.hero.active, getAbilityLevel(this, AbilityType.Active))); }
+		public get guid(): string { return this.hero.guid; }
+		public get elementType(): ElementType { return this.hero.elementType; }
+		public get klassType(): KlassType { return this.hero.klassType; }
+		public get name(): string { return this.hero.name; }
+		public get passive(): PlayerHeroAbility { return this.fromCache("passive", () => new PlayerHeroAbility(this, this.hero.passive, getAbilityLevel(this, AbilityType.Passive))); }
+		public get trait(): PlayerHeroAbility { return this.fromCache("trait", () => new PlayerHeroAbility(this, this.hero.trait, getAbilityLevel(this, AbilityType.Trait))); }
 
 		// New to PlayerHero
-		public get activePowerRating() { return this.active.powerRating; }
-		public get battleCards() { return Hero.filterCardsByHero(this.hero, this.player.battleCards); }
-		public get deck() { return this.player.sortAndReduceBattleCards(this.archetype.deck); }
-		public get deckPowerRating() { return PowerRating.rateDeck(this.deck); }
-		public get hitPoints() { return this.hero.getHitPoints(this.level); }
-		public get hitPointsPowerRating() { return PowerRating.ratePlayerHeroHitPoints(this); }
-		public get isActiveCapped() { return this.active.level == HeroRepo.getMaxActive(this.hero, this.level); }
-		public get isCapped() { return this.isActiveCapped && this.isPassiveCapped && this.isTraitCapped; }
-		public get isLocked() { return this.archetype.locked; }
-		public get isMeat() { return this.level == HeroRepo.MaxLevel && this.isCapped; }
-		public get isOp() { return !!this.deck.find(pbc => pbc.tier == "OP"); }
-		public get isPassiveCapped() { return this.passive.level == HeroRepo.getMaxPassive(this.hero, this.level); }
-		public get isTraitCapped() { return this.trait.level == HeroRepo.getMaxTrait(this.level); }
-		public get level() { return this.archetype.level + 1; }
-		public get passivePowerRating() { return this.passive.powerRating; }
+		public get battleCards(): IDataBattleCard[] { return this.fromCache("battleCards", () => Hero.filterCardsByHero(this.hero, this.player.battleCards)); }
+		public get completionLevel(): number { return this.level + this.trait.level + this.active.level + this.passive.level; }
+		public get deck(): PlayerBattleCard[] { return this.fromCache("deck", () => this.player.sortAndReduceBattleCards(this.archetype.deck)); }
+		public get hitPoints(): number { return this.hero.getHitPoints(this.level); }
+		public get isCapped(): boolean { return this.active.isCapped && this.passive.isCapped && this.trait.isCapped; }
+		public get isLocked(): boolean { return this.archetype.locked; }
+		public get isMeat(): boolean { return this.level == HeroRepo.MaxLevel && this.isCapped; }
+		public get isOp(): boolean { return !!this.deck.find(pbc => pbc.tier == "OP"); }
+		public get level(): number { return this.archetype.level + 1; }
 		public get playerHeroAbilities() { return [this.trait, this.active, this.passive]; }
-		public get playerHeroGuid() { return `${this.player.guid}-${this.hero.guid}`; }
-		public get powerPercent() { return Math.floor(100 * this.powerRating / this.hero.maxPowerRating); }
-		public get powerRating() { return Math.round(this.hitPointsPowerRating + this.traitPowerRating + this.activePowerRating + this.passivePowerRating + this.deckPowerRating); }
-		public get traitPowerRating() { return this.trait.powerRating; }
+		public get playerHeroGuid(): string { return `${this.player.guid}-${this.hero.guid}`; }
+		public get powerPercent(): number { return Math.floor(100 * this.powerRating / this.hero.maxPowerRating); }
+		public get powerRating(): number { return this.fromCache("powerRating", () => Math.round(PowerRating.ratePlayerHeroHitPoints(this) + this.trait.powerRating + this.active.powerRating + this.passive.powerRating + PowerRating.rateDeck(this.deck))); }
 
 	}
 }

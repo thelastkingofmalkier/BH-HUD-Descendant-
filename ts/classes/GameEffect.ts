@@ -8,6 +8,7 @@ namespace bh {
 		public turns: number;
 		public target: IDataBattleCardTarget;
 		public card: IDataBattleCard;
+		public offense: boolean;
 
 		private constructor(public raw: string) {
 			var parts = raw.match(/([a-zA-z]+(?: [a-zA-Z]+)*)(?: (\d+)%)?(?: (\d+)T)?/),
@@ -19,6 +20,7 @@ namespace bh {
 			this.turns = parts && +parts[3] || null;
 			this.value = effect && effect.value;
 			this.perkMultiplier = 0;
+			this.offense = !(effect && effect.value || "").toLowerCase().startsWith("d");
 		}
 
 		public get powerRating(): number { return getPowerRating(this); }
@@ -47,17 +49,14 @@ namespace bh {
 			return gameEffects;
 		}
 	}
-	var offensiveEffects = ["Interrupt", "Reset", "Burn", "Bleed", "Shock", "Poison", "Backstab", "Sap", "Drown", "Pierce", "Perfect Shot", "Taunt"];
-	var defensiveEffects = ["Regen", "Immunity to Bleed", "Immunity to Burn", "Immunity to Charm", "Immunity to Chill", "Immunity to Confuse", "Immunity to Poison", "Immunity to Shock", "Immunity to Stun", "Attack Up", "Accuracy Up", "Trait Up"];
-	var healEffects = ["Regen"];
-	var shieldEffects = [""];
-	var notRatedEffects = ["Stun", "Charm", "Max Health Up", "Luck Down", "Luck Up", "Bamboozle"];
+	var offensiveEffects = ["Interrupt", "Reset", "Burn", "Bleed", "Shock", "Poison", "Backstab", "Sap", "Drown", "Pierce", "Perfect Shot"];
 	function reconcileTargets(gameEffects: GameEffect[], card: IDataBattleCard): void {
 		var targets = card.typesTargets.map(typeTarget => bh.PlayerBattleCard.parseTarget(typeTarget)),
 			damage = targets.find(t => t.type == "Damage"),
 			shield = targets.find(t => t.type == "Shield"),
 			heal = targets.find(t => t.type == "Heal"),
 			def = targets.find(t => ["Heal", "Shield"].includes(t.type)),
+			// first = targets[0],
 			damages = [];
 		gameEffects.slice().forEach(gameEffect => {
 			if (gameEffect.effect == "Critical") {
@@ -67,72 +66,65 @@ namespace bh {
 					ge.target = t;
 					gameEffects.push(ge);
 				});
+
+			}else if (gameEffect.effect.startsWith("Immunity")) {
+				gameEffect.target = def || bh.PlayerBattleCard.parseTarget(damage.all ? "Heal All Allies" : "Heal Self");
+
+			}else if (gameEffect.effect == "Bamboozle" && ["Rum Shower"].includes(card.name)) {
+				gameEffect.target = gameEffect.perkMultiplier ? damage : bh.PlayerBattleCard.parseTarget("Heal Self");
+
+			}else if (gameEffect.effect == "Stun" && ["Breaking Chakra"].includes(card.name)) {
+				gameEffect.target = gameEffect.perkMultiplier ? damage : bh.PlayerBattleCard.parseTarget("Heal Self");
+
+			}else if (["Attack Up", "Trait Up", "Evade", "Accuracy Up", "Defence Up"].includes(gameEffect.effect) && damage) {
+				gameEffect.target = bh.PlayerBattleCard.parseTarget("Heal Self");
+
+			}else if (["Charm", "Taunt"].includes(gameEffect.effect) && damage) {
+				gameEffect.target = def || bh.PlayerBattleCard.parseTarget("Heal Self");
+
+			}else if (["Haste", "Regen"].includes(gameEffect.effect)) {
+				gameEffect.target = def || bh.PlayerBattleCard.parseTarget(damage.all ? "Heal All Allies" : "Heal Self");
+
+			}else if (["Wet"].includes(gameEffect.effect) && card.name == "Apnoea") {
+				gameEffect.target = damage || bh.PlayerBattleCard.parseTarget("Damage Single Enemy");
+
+			}else if (["Storm", "Terra", "Wet"].includes(gameEffect.effect) && ["Wind Barrier", "Hurricane Barrier", "Forest Barrier", "Shield of The Nature", "Tides Control", "Wet Kiss"].includes(card.name)) {
+				gameEffect.target = damage || bh.PlayerBattleCard.parseTarget(def.all ? "Damage All Enemies" : "Damage Single Enemy");
+
+			}else if (gameEffect.effect == "Terra" && card.name == "Peace Pipe" && card.rarityType == RarityType.Legendary) {
+				gameEffect.target = damage || bh.PlayerBattleCard.parseTarget(def.all ? "Damage All Enemies" : "Damage Single Enemy");
+
 			}else if (targets.length == 1 || gameEffect.perkMultiplier) {
-				if (gameEffect.effect == "Storm" && ["Wind Barrier", "Hurricane Barrier"].includes(card.name)) {
-					gameEffect.target = bh.PlayerBattleCard.parseTarget("Damage All Enemies");
-				}else if (gameEffect.effect == "Terra" && ["Forest Barrier", "Shield of The Nature"].includes(card.name)) {
-					gameEffect.target = bh.PlayerBattleCard.parseTarget("Damage All Enemies");
-				}else if (gameEffect.effect == "Bamboozle" && ["Rum Shower"].includes(card.name)) {
-					gameEffect.target = gameEffect.perkMultiplier ? damage : bh.PlayerBattleCard.parseTarget("Heal Self");
-				}else if (gameEffect.effect == "Stun" && ["Breaking Chakra"].includes(card.name)) {
-					gameEffect.target = gameEffect.perkMultiplier ? damage : bh.PlayerBattleCard.parseTarget("Heal Self");
-				}else {
-					gameEffect.target = targets[0];
-				}
+				gameEffect.target = targets[0];
+
+			}else if (offensiveEffects.includes(gameEffect.effect) && damage) {
+				gameEffect.target = damage;
+
 			}else {
-				if (offensiveEffects.includes(gameEffect.effect)) {
-					gameEffect.target = damage;
-				}else if (defensiveEffects.includes(gameEffect.effect)) {
-					if (healEffects.includes(gameEffect.effect)) {
-						gameEffect.target = heal;
-					}else if (shieldEffects.includes(gameEffect.effect)) {
-						gameEffect.target = shield;
-					}else if (gameEffect.effect.startsWith("Immunity")) {
-						gameEffect.target = def;
-					}
-				}else if (gameEffect.effect == "Storm" && ["Wind Barrier", "Hurricane Barrier"].includes(card.name)) {
-					gameEffect.target = bh.PlayerBattleCard.parseTarget("Damage All Enemies");
-				}else if (gameEffect.effect == "Terra" && ["Forest Barrier", "Shield of The Nature"].includes(card.name)) {
-					gameEffect.target = bh.PlayerBattleCard.parseTarget("Damage All Enemies");
-				}
+
 			}
 			if (!gameEffect.target) console.warn("can't find target for " + gameEffect.effect, gameEffect.card);
 		});
 	}
 	function getPowerRating(gameEffect: GameEffect): number {
 		var rating = _getPowerRating(gameEffect);
-		// if (rating != gameEffect.value) console.log(gameEffect.raw + ": " + gameEffect.value + " ("+typeof(gameEffect.value)+")")
+		if (rating < 0) console.log(gameEffect);
 		return rating;
 	}
 	function _getPowerRating(gameEffect: GameEffect): number {
-		var effect = gameEffect.effect,
-			target = gameEffect.target,
-			offense = target && target.offense,
-			match = (gameEffect.value || "").match(/(\d+(?:\.\d+))(T)?/i),
-			points = match && +match[1] || 1,
-			turns = match && match[2] == "T" ? gameEffect.turns : 1,
-			percentMultiplier = gameEffect.percentMultiplier || 1,
+		if (["Critical", "Regen"].includes(gameEffect.effect)) return 0;
+		var target = gameEffect.target,
+			targetOffense = target && target.offense,
+			targetDefense = target && !target.offense,
+			match = (gameEffect.value || "").toUpperCase().match(/(O|D)?((?:\+|\-)?\d+(?:\.\d+)?)(T)?(%)?/),
+			effectOffense = match && match[1] == "O",
+			effectDefense = match && match[1] == "D",
+			points = match && +match[2] || 1,
+			turns = match && match[3] == "T" ? gameEffect.turns : 1,
+			percentMultiplier = match && match[4] == "%" ? gameEffect.percentMultiplier : 1,
 			value = match ? points * turns * percentMultiplier : 0.5;
 		if (target) {
-			if (!["Critical", "Regen"].includes(effect)) {
-				if (["Slow"].includes(effect)) return value * (offense ? 1 : -1);
-				if (["Sleep"].includes(effect)) return value * (offense ? 1 : -1);
-				if (offense) {
-					if (["Interrupt", "Burn", "Bleed", "Shock", "Poison", "Backstab", "Chill", "Reset"].includes(effect))
-						return value;
-					if (["Sap", "Drown"].includes(effect))
-						return value;
-					if (["Marked"].includes(effect))
-					return value;
-					if (["Accuracy Down"].includes(effect)) return value;
-				}else {
-					if (["Cure All"].includes(effect)) return value;
-					if (["Evade"].includes(effect)) return value;
-				}
-				if (["Attack Up"].includes(effect)) return value;
-				if (["Haste", "Trait Up", "Speed Up"].includes(effect)) return value;
-				return value;
-			}
+			return value * gameEffect.perkMultiplier * (targetOffense == effectOffense || targetDefense == effectDefense ? 1 : -1);
 		}else {
 			console.warn("no target", gameEffect);
 		}

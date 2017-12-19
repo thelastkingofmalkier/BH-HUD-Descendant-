@@ -7,7 +7,7 @@ namespace bh {
 	export enum MinMaxType { Min, Max }
 	export class PowerRating {
 		public static rateMaxedHero(hero: Hero) {
-			var abilities = hero.name == "Jinx" ? 30 : 40;
+			var abilities = hero.name == "Jinx" ? 45 : 55;
 			return abilities + PowerRating.rateMaxedDeck(hero);
 		}
 		public static rateMaxedDeck(hero: Hero) {
@@ -33,7 +33,6 @@ namespace bh {
 				cycleCards = deck.filter(card => BattleCardRepo.isCycleCard(card, card.evo)),
 				cycleCount = cycleCards.length,
 				cards = deck.filter(card => !cycleCards.includes(card));
-			// console.log(rated);
 			return deck.reduce((score, pbc) => score + PowerRating.ratePlayerCard(pbc.playerCard) * pbc.count, 0);
 		}
 		public static rateBattleCard(battleCard: IDataBattleCard, minMax: MinMaxType) {
@@ -52,13 +51,14 @@ namespace bh {
 		}
 		public static ratePlayerHeroAbility(playerHeroAbility: PlayerHeroAbility) {
 			if (playerHeroAbility.hero.name == "Jinx" && playerHeroAbility.heroAbility.type == AbilityType.Passive) return 0;
-			return Math.round(1000 * playerHeroAbility.level / playerHeroAbility.levelMax) / 100;
+			var mult = playerHeroAbility.type == AbilityType.Trait ? 2 : playerHeroAbility.type == AbilityType.Active ? 1.5 : 1;
+			return mult * Math.round(1000 * playerHeroAbility.level / playerHeroAbility.levelMax) / 100;
 		}
 		public static ratePlayerHeroHitPoints(playerHero: PlayerHero) {
-			// return Math.round(1000 * playerHero.level / 90) / 100;
-			var maxHP = <number>bh.data.HeroRepo.all.map(h=>[bh.Hero.getHitPoints(h,90),h]).sort().pop()[0],
-				heroMultiplier = bh.Hero.getHitPoints(playerHero.hero, 90) / maxHP,
-				levelMultiplier = playerHero.level / 90;
+			var maxHeroLevel = HeroRepo.MaxLevel,
+				maxHP = <number>bh.data.HeroRepo.all.map(h=>[bh.Hero.getHitPoints(h,maxHeroLevel),h]).sort().pop()[0],
+				heroMultiplier = bh.Hero.getHitPoints(playerHero.hero, maxHeroLevel) / maxHP,
+				levelMultiplier = playerHero.level / maxHeroLevel;
 			return Math.round(1000 * heroMultiplier * levelMultiplier) / 100;
 		}
 	}
@@ -73,16 +73,10 @@ namespace bh {
 			targets = card.typesTargets.map(typeTarget => bh.PlayerBattleCard.parseTarget(typeTarget)),
 			gameEffects = GameEffect.parseAll(playerCard),
 			rating = 0;
-		targets.forEach((target, typeIndex) => {
-			var turns = card.turns,
-				regen = target.type == "Heal" && card.effects.concat(card.perks).find(s => s.startsWith("Regen")),
-				regenEffect = regen ? bh.GameEffect.parse(regen) : null,
-				regenDivisor = regen && regenEffect.turns || 1,
-				value = calcValue(card, typeIndex, evoLevel, level) / target.typeDivisor / regenDivisor;
-			rating += value / turns - turns;
-		});
+		targets.forEach((target, typeIndex) => rating += calcValue(card, typeIndex, evoLevel, level) / target.typeDivisor);
 		gameEffects.forEach(gameEffect => rating += gameEffect.powerRating);
-		return Math.round(100 * rating) / 100;
+		rating /= card.turns;
+		return Math.round(100 * rating) / 100 * 10// + 10;
 	}
 	function calcValue(card: IDataBattleCard, typeIndex: number, evo: number, level: number) {
 		var baseValue = bh.BattleCardRepo.calculateValue(<any>{configId:card.guid,evolutionLevel:evo,level:level}),
@@ -93,7 +87,7 @@ namespace bh {
 		if (target.flurry) {
 			value = value / target.flurryCount * target.flurryHitMultiplier * target.flurryCount;
 		}
-		if (!value) console.log(card.name, target);
+		if (!value) console.log(card.name, [card, typeIndex, evo, level, baseValue, perkMultiplier, critMultiplier, target, value]);
 		return value;
 	}
 }
@@ -104,7 +98,7 @@ function rateCards(max = true) {
 		var playerCard: IPlayer.PlayerCard = <any> { configId:card.guid };
 		playerCard.evolutionLevel = max ? card.rarityType : 0;
 		playerCard.level = max ? bh.BattleCardRepo.getLevelsForRarity(card.rarityType) - 1 : 0;
-		return { card:card, powerRating:10 + bh.PowerRating.ratePlayerCard(playerCard) };
+		return { card:card, powerRating:bh.PowerRating.ratePlayerCard(playerCard) };
 	});
 	scores.sort((a, b) => b.powerRating - a.powerRating);
 	$("textarea").val(scores.map((s, i) => (i+1) + ": " + s.card.name + (s.card.rarityType == bh.RarityType.Legendary?" (L)":"")).slice(0, 30).join("\n"));
