@@ -26,11 +26,11 @@ var DungeonDataUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRCyjBTeKj
 
 namespace bh {
 	export namespace data {
-		export var BattleCardRepo = new bh.BattleCardRepo(DataSheetID, BattleCardRepoGID, NO_CACHE||true);
+		export var BattleCardRepo = new bh.BattleCardRepo(DataSheetID, BattleCardRepoGID, NO_CACHE);
 		export var BoosterCardRepo = new bh.BoosterCardRepo(DataSheetID, BoosterCardRepoGID, USE_CACHE);
-		export var DungeonRepo = new bh.DungeonRepo(DataSheetID, DungeonRepoGID, NO_CACHE||true);
-		export var EffectRepo = new bh.EffectRepo(DataSheetID, EffectRepoGID, NO_CACHE||true);
-		export var HeroRepo = new bh.HeroRepo(DataSheetID, HeroRepoGID, USE_CACHE&&false);
+		export var DungeonRepo = new bh.DungeonRepo(DataSheetID, DungeonRepoGID, NO_CACHE);
+		export var EffectRepo = new bh.EffectRepo(DataSheetID, EffectRepoGID, NO_CACHE);
+		export var HeroRepo = new bh.HeroRepo(DataSheetID, HeroRepoGID, USE_CACHE);
 		export var ItemRepo = new bh.ItemRepo(DataSheetID, ItemRepoGID, USE_CACHE);
 		export var PlayerRepo = new Repo<Player>();
 		export var WildCardRepo = new Repo<IDataWildCard>(DataSheetID, WildCardRepoGID, USE_CACHE);

@@ -2840,11 +2840,11 @@ var bh;
 (function (bh) {
     var data;
     (function (data) {
-        data.BattleCardRepo = new bh.BattleCardRepo(DataSheetID, BattleCardRepoGID, NO_CACHE || true);
+        data.BattleCardRepo = new bh.BattleCardRepo(DataSheetID, BattleCardRepoGID, NO_CACHE);
         data.BoosterCardRepo = new bh.BoosterCardRepo(DataSheetID, BoosterCardRepoGID, USE_CACHE);
-        data.DungeonRepo = new bh.DungeonRepo(DataSheetID, DungeonRepoGID, NO_CACHE || true);
-        data.EffectRepo = new bh.EffectRepo(DataSheetID, EffectRepoGID, NO_CACHE || true);
-        data.HeroRepo = new bh.HeroRepo(DataSheetID, HeroRepoGID, USE_CACHE && false);
+        data.DungeonRepo = new bh.DungeonRepo(DataSheetID, DungeonRepoGID, NO_CACHE);
+        data.EffectRepo = new bh.EffectRepo(DataSheetID, EffectRepoGID, NO_CACHE);
+        data.HeroRepo = new bh.HeroRepo(DataSheetID, HeroRepoGID, USE_CACHE);
         data.ItemRepo = new bh.ItemRepo(DataSheetID, ItemRepoGID, USE_CACHE);
         data.PlayerRepo = new bh.Repo();
         data.WildCardRepo = new bh.Repo(DataSheetID, WildCardRepoGID, USE_CACHE);
