@@ -47,50 +47,14 @@ namespace bh {
 		}
 	}
 	function mapTargetOrEffectOrPerk(item: string) {
-		var items: string[] = [];
-		if (["Damage", "Heal", "Shield"].includes(item.split(" ")[0])) {
-			if (item.includes("All Allies")) {
-				items.push("Multi-Target (Ally)");
-			}else if (item.includes("All Enemies")) {
-				items.push("Multi-Target (Enemy)");
-			}else if (item.includes("Splash")) {
-				items.push("Splash");
-			}
-			if (item.includes("Flurry")) {
-				items.push("Flurry");
-			}
-			if (!items.length) {
-				items.push(item.split(" ")[1]);
-			}
-		}else {
-			items.push(item);
+		var gameEffect = GameEffect.parse(item),
+			effect = gameEffect && data.EffectRepo.find(gameEffect.effect) || null,
+			effects = effect ? [effect] : [];
+		if (gameEffect) {
+			if (gameEffect.raw.includes("All Allies")) effects.push(data.EffectRepo.find("Multi-Target (Ally)"));
+			if (gameEffect.raw.includes("All Enemies")) effects.push(data.EffectRepo.find("Multi-Target (Enemy)"));
+			if (gameEffect.raw.includes("Flurry")) effects.push(data.EffectRepo.find("Flurry"));
 		}
-		return items.map(i => {
-			var match = i.match(/([a-zA-z]+(?: [a-zA-Z]+)*)(?: (\d+%))?(?: (\d+T))?/),
-				clean = match && match[1] || i,
-				effect = data.EffectRepo.find(clean) || data.EffectRepo.find(i) || data.EffectRepo.find(item) || null;
-			if (!effect) console.log(item, i, match, clean, effect);
-			return effect;
-		}).filter(i => !!i);
-	}
-	function effectTypeToTarget(value: string): GameBattleCardTarget[] {
-		return value.split("/").map(s => s.trim()).filter(s => !!s).map(s => {
-			var parts = s.split(" "),
-				all = parts[1] == "All",
-				single = parts[1] == "Single",
-				splash = parts[1] == "Splash",
-				self = parts[1] == "Self";
-			if (s.includes("Flurry")) {
-				if (self) { return "Self Flurry"; }
-				if (all) { return "Multi Flurry"; }
-				if (single) { return "Single Flurry"; }
-			}
-			if (self) { return "Self"; }
-			if (single) { return "Single"; }
-			if (all) { return "Multi"; }
-			if (splash) { return "Splash"; }
-			console.log(`Target of "${s}"`);
-			return <any>s;
-		});
+		return effects;
 	}
 }

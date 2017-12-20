@@ -1,5 +1,11 @@
 namespace bh {
 	export class GameEffect {
+		public static matchEffect(raw: string): string[] {
+			return raw == "Critical" ? ["Critical", "Critical"]
+				: raw == "Splash Enemy" ? ["Splash", "Splash"]
+				: raw.match(/([a-zA-z]+(?: [a-zA-Z]+)*)(?: (\d+)%)?(?: (\d+)T)?(?: (Enemy|Ally|Self))/);
+		}
+
 		public effect: string;
 		public value: string;
 		public percent: string;
@@ -12,9 +18,7 @@ namespace bh {
 		public offense: boolean;
 
 		private constructor(public raw: string) {
-			var parts = raw == "Critical" ? ["Critical", "Critical"]
-					: raw == "Splash Enemy" ? ["Splash", "Splash"]
-					: raw.match(/([a-zA-z]+(?: [a-zA-Z]+)*)(?: (\d+)%)?(?: (\d+)T)?(?: (Enemy|Ally|Self))/),
+			var parts =  GameEffect.matchEffect(raw),
 				cleanValue = parts && parts[1] || raw,
 				effect = bh.data.EffectRepo.find(cleanValue);
 			this.effect = effect && effect.name || cleanValue;

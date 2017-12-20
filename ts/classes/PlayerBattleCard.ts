@@ -95,7 +95,6 @@ namespace bh {
 		public get name() { return this._bc && this._bc.name || this.playerCard && this.playerCard.configId; }
 		public get rarityType() { return this._bc ? this._bc.rarityType : null; }
 		public get targets() { return typesTargetsToTargets(this.typesTargets); }
-		public get tier() { return this._bc && this._bc.tier || null; }
 		public get turns() { return this._bc && this._bc.turns || 0; }
 		public get types() { return this.typesTargets.map(s => <GameBattleCardType>s.split(" ")[0].replace("Damage", "Attack")); }
 		public get typesTargets() { return this._bc && this._bc.typesTargets || []; }
@@ -195,7 +194,6 @@ function updateCardData() {
 					brag: bh.utils.parseBoolean(card["Is Brag?"]),
 					minValues: minValuesArray.map(index => [0,1,2,3,4,5].map(i => card[`${i}* Min`]).filter(s => !!s).map(s => +String(s).split(/\s*\/\s*/)[index])),
 					maxValues: [0,1,2,3,4,5].map(i => card[`${i}* Max`]).filter(s => !!s).pop().split(/\s*\/\s*/).map(s => +s),
-					tier: existing && existing.tier || <any>"",
 					mats: [1,2,3,4].map(i => card[`${i}* Evo Jar`]).filter(s => !!s),
 					perkBase: +card["Perk %"],
 					perks: [1,2].map(i => card[`Perk #${i}`]).filter(s => !!s),
@@ -210,9 +208,9 @@ function updateCardData() {
 			}
 			return null;
 			});
-		var tsv = "guid\tname\tklassType\telementType\trarityType\tturns\ttypesTargets\tbrag\tminValues\tmaxValues\ttier\tmats\tperkBase\tperks\teffects\tpacks";
+		var tsv = "guid\tname\tklassType\telementType\trarityType\tturns\ttypesTargets\tbrag\tminValues\tmaxValues\tmats\tperkBase\tperks\teffects\tpacks";
 		cards.filter(c=>!!c).forEach(c => {
-			tsv += `\n${c.guid}\t${c.name}\t${bh.KlassType[c.klassType].slice(0, 2)}\t${bh.ElementType[c.elementType][0]}\t${bh.RarityType[c.rarityType][0]}\t${c.turns}\t${c.typesTargets.join("|")}\t${String(c.brag)[0]}\t${c.minValues.map(a=>a.join(",")).join("|")}\t${c.maxValues.join("|")}\t${c.tier}\t${c.mats.join(",")}\t${c.perkBase}\t${c.perks.join(",")}\t${c.effects.join(",")}\t${String(c.inPacks)[0]}`;
+			tsv += `\n${c.guid}\t${c.name}\t${bh.KlassType[c.klassType].slice(0, 2)}\t${bh.ElementType[c.elementType][0]}\t${bh.RarityType[c.rarityType][0]}\t${c.turns}\t${c.typesTargets.join("|")}\t${String(c.brag)[0]}\t${c.minValues.map(a=>a.join(",")).join("|")}\t${c.maxValues.join("|")}\t${c.mats.join(",")}\t${c.perkBase}\t${c.perks.join(",")}\t${c.effects.join(",")}\t${String(c.inPacks)[0]}`;
 		});
 		$("#data-output").val(tsv)
 	});

@@ -5,7 +5,6 @@ interface IMessage { action: string; playerGuid: string; sessionKey: string; gui
 
 type GameAbilityType = "Trait" | "Active" | "Passive";
 type GameBattleCardTarget = "All Enemies" | "All Enemies Flurry" | "Single Enemy" | "Single Enemy Flurry" | "Splash Enemies" | "All Allies" | "Self" | "Self Flurry" | "Single Ally" | "Splash Allies";
-type GameBattleCardTier = "OP" | "S" | "A" | "B" | "C" | "D";
 type GameBattleCardType = "Damage" | "Heal" | "Shield";
 type GameBoosterCardChallenge = "Halloween" | "Christmas";
 type GameElement = "Air" | "Earth" | "Fire" | "Water" | "Spirit" | "Neutral";
@@ -36,7 +35,6 @@ interface IDataBattleCard extends IHasGuid, IHasName, IHasElementType, IHasKlass
 	minValues: number[][];
 	perkBase: number;
 	perks: string[];
-	tier: GameBattleCardTier;
 	turns: number;
 	inPacks: boolean;
 	typesTargets: string[];

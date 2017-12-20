@@ -43,6 +43,7 @@ namespace bh {
 			bh.host = "http://bh.elvenintrigue.com";
 			data.init().then(render);
 			$(`body`).on("click", `[data-action="show-card"]`, onShowCard);
+			$(`body`).on("click", `[data-action="show-item"]`, onShowItem);
 			$(`body`).on("click", `[data-search-term]`, onSearchImage);
 			$("input.library-search").on("change keyup", onSearch);
 			$("button.library-search-clear").on("click", onSearchClear);
@@ -89,6 +90,25 @@ namespace bh {
 			return getValue(typeIndex, maxEvo, maxLevel);
 		}
 
+		var activeItem: IDataInventoryItem;
+		function onShowItem(ev: JQueryEventObject) {
+			var link = $(ev.target),
+				tr = link.closest("tr"),
+				guid = tr.attr("id"),
+				item = data.ItemRepo.find(guid);
+			activeItem = item;
+			$("div.modal-item").modal("show");
+
+			$(`#item-name`).html(item.name + " &nbsp; " + mapMatsToImages([item.name]).join(" "));
+			$(`#item-rarity`).html(utils.evoToStars(item.rarityType) + " " + RarityType[item.rarityType]);
+			$(`#item-element`).html(ElementRepo.toImage(item.elementType) + " " + ElementType[item.elementType]);
+
+			var html = data.DungeonRepo.getDropRates(item.name)
+				.map(dropRate => `${dropRate.dungeon.name}: ${Math.round(100*dropRate.dropRate.averagePerKey)/100}% / key (${dropRate.dungeon.keys} keys)`)
+				.join("<br/>")
+			$("#item-dungeons").html(html);
+		}
+
 		var activeCard: IDataBattleCard;
 		function onShowCard(ev: JQueryEventObject) {
 			var link = $(ev.target),
@@ -101,7 +121,6 @@ namespace bh {
 			// $(`#card-name`).html(card.name);
 			// $(`#card-name`).html(getImg20("battlecards", "icons", card.name.replace(/\W/g, "")) + " " + card.name);
 			$(`#card-name`).html(card.name + " &nbsp; " + mapHeroesToImages(card).join(" "));
-			$(`#card-tier`).html(card.tier || "");
 			$(`#card-image`).attr("src", getSrc("battlecards", "blank", cleanImageName(card.name)));
 			$(`#card-element`).html(ElementRepo.toImage(card.elementType) + " " + ElementType[card.elementType]);
 			$(`#card-klass`).html(KlassRepo.toImage(card.klassType) + " " + KlassType[card.klassType]);
@@ -249,11 +268,11 @@ namespace bh {
 			}
 			return tests[item.guid] || [];
 		}
-		function setDungeonTests(dungeon: IDataDungeon) {
+		function setDungeonTests(dungeon: Dungeon) {
 			if (!tests[dungeon.guid]) {
 				var list: string[] = tests[dungeon.guid] = [];
 				list.push(dungeon.lower);
-				dungeon.mats.forEach(s => list.push(s.toLowerCase()));
+				dungeon.mats.forEach(s => list.push(s.name.toLowerCase()));
 				// dungeon.runeHeroes.forEach(s => list.push(s.toLowerCase()));
 			}
 			return tests[dungeon.guid] || [];
@@ -395,7 +414,7 @@ namespace bh {
 				setItemTests(item);
 				var html = `<tr id="${item.guid}">`;
 				html += `<td><div class="bh-hud-image img-${item.guid}"></div></td>`;
-				html += `<td><span class="card-name">${item.name}</span></td>`;
+				html += `<td><span class="card-name"><a class="btn btn-link" data-action="show-item" style="padding:0;">${item.name}</a></span></td>`;
 				html += `<td>${mapRarityToStars(item.rarityType)}</td>`;
 				if (player) { html += `<td><span class="badge">${utils.formatNumber(owned && owned.count || 0)}</span></td>`; }
 				// html += `<td><span class="card-name"><a class="btn btn-link" data-action="show-effect" style="padding:0;">${mat}</a></span></td>`;
@@ -423,7 +442,7 @@ namespace bh {
 					html += "<td/>";
 					// html += `<td><span class="">${dungeon.runeHeroes.map(heroName => `<div class="bh-hud-image img-${data.ItemRepo.runes.find(rune => rune.name.startsWith(heroName)).guid}"></div>`).join("")}</span></td>`;
 					html += "<td/>";
-					html += `<td><span>${mapMatsToImages(dungeon.mats).join("")}</span></td>`;
+					html += `<td><span>${mapMatsToImages(dungeon.mats.map(m=>m.name)).join("")}</span></td>`;
 					html += `<td><span class="">${dungeon.randomMats.map((count, rarityType) => count ? getImg20("evojars", "random", `${RarityType[rarityType]}_Neutral_Small`) + count : "").join(" ")}</span></td>`;
 					// html += `<td>${mapRarityToStars(item.rarityType)}</td>`;
 					// html += `<td><span class="card-name"><a class="btn btn-link" data-action="show-effect" style="padding:0;">${mat}</a></span></td>`;

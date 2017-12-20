@@ -29,6 +29,118 @@ var bh;
 })(bh || (bh = {}));
 var bh;
 (function (bh) {
+    var Dungeon = (function (_super) {
+        __extends(Dungeon, _super);
+        function Dungeon(data) {
+            var _this = _super.call(this) || this;
+            _this.data = data;
+            return _this;
+        }
+        Object.defineProperty(Dungeon.prototype, "act", {
+            get: function () { return this.data.act; },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Dungeon.prototype, "boosterElementTypes", {
+            get: function () { return this.data.boosterElementTypes; },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Dungeon.prototype, "boosterRarities", {
+            get: function () { return this.data.boosterRarities; },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Dungeon.prototype, "crystals", {
+            get: function () {
+                var _this = this;
+                return this.fromCache("crystals", function () { return _this.data.crystals.map(toDropRate); });
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Dungeon.prototype, "dungeon", {
+            get: function () { return this.data.dungeon; },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Dungeon.prototype, "difficulty", {
+            get: function () { return this.data.difficulty; },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Dungeon.prototype, "elementTypes", {
+            get: function () { return this.data.elementTypes; },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Dungeon.prototype, "fame", {
+            get: function () { return this.data.fame; },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Dungeon.prototype, "guid", {
+            get: function () { return this.data.guid; },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Dungeon.prototype, "gold", {
+            get: function () { return this.data.gold; },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Dungeon.prototype, "keys", {
+            get: function () { return this.data.keys; },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Dungeon.prototype, "lower", {
+            get: function () { return this.data.lower; },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Dungeon.prototype, "mats", {
+            get: function () {
+                var _this = this;
+                return this.fromCache("mats", function () { return _this.data.mats.map(toDropRate); });
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Dungeon.prototype, "name", {
+            get: function () { return this.data.name; },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Dungeon.prototype, "randomMats", {
+            get: function () { return this.data.randomMats; },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(Dungeon.prototype, "runes", {
+            get: function () {
+                var _this = this;
+                return this.fromCache("runes", function () { return _this.data.runes.map(toDropRate); });
+            },
+            enumerable: true,
+            configurable: true
+        });
+        Dungeon.prototype.findDrop = function (value) {
+            var drop = this.crystals.find(function (dr) { return dr.name == value.split(" ")[0]; })
+                || this.runes.find(function (dr) { return dr.name == value.split("'")[0]; })
+                || this.mats.find(function (dr) { return dr.name == value; });
+            return drop && { dungeon: this, dropRate: drop } || null;
+        };
+        return Dungeon;
+    }(bh.Cacheable));
+    bh.Dungeon = Dungeon;
+    function toDropRate(value) {
+        var parts = value.split("|"), percentMultiplier = +parts[1].match(/(\d+)/)[1] / 100, minMax = parts[2].split("-"), min = +minMax[0], max = +minMax[1] || min, averagePerKey = (min + max) / 2 * percentMultiplier;
+        return { name: parts[0], percent: parts[1], percentMultiplier: percentMultiplier, min: min, max: max, averagePerKey: averagePerKey };
+    }
+})(bh || (bh = {}));
+var bh;
+(function (bh) {
     var AbilityType;
     (function (AbilityType) {
         AbilityType[AbilityType["Trait"] = 0] = "Trait";
@@ -131,9 +243,7 @@ var bh;
     var GameEffect = (function () {
         function GameEffect(raw) {
             this.raw = raw;
-            var parts = raw == "Critical" ? ["Critical", "Critical"]
-                : raw == "Splash Enemy" ? ["Splash", "Splash"]
-                    : raw.match(/([a-zA-z]+(?: [a-zA-Z]+)*)(?: (\d+)%)?(?: (\d+)T)?(?: (Enemy|Ally|Self))/), cleanValue = parts && parts[1] || raw, effect = bh.data.EffectRepo.find(cleanValue);
+            var parts = GameEffect.matchEffect(raw), cleanValue = parts && parts[1] || raw, effect = bh.data.EffectRepo.find(cleanValue);
             this.effect = effect && effect.name || cleanValue;
             this.percent = parts && parts[2] && (parts[2] + "%") || null;
             this.percentMultiplier = this.percent && (+parts[2] / 100) || null;
@@ -143,6 +253,11 @@ var bh;
             this.offense = !(effect && effect.value || "").toLowerCase().startsWith("d");
             this.rawTarget = parts && parts[4] || null;
         }
+        GameEffect.matchEffect = function (raw) {
+            return raw == "Critical" ? ["Critical", "Critical"]
+                : raw == "Splash Enemy" ? ["Splash", "Splash"]
+                    : raw.match(/([a-zA-z]+(?: [a-zA-Z]+)*)(?: (\d+)%)?(?: (\d+)T)?(?: (Enemy|Ally|Self))/);
+        };
         Object.defineProperty(GameEffect.prototype, "powerRating", {
             get: function () { return getPowerRating(this); },
             enumerable: true,
@@ -873,11 +988,6 @@ var bh;
             enumerable: true,
             configurable: true
         });
-        Object.defineProperty(PlayerBattleCard.prototype, "tier", {
-            get: function () { return this._bc && this._bc.tier || null; },
-            enumerable: true,
-            configurable: true
-        });
         Object.defineProperty(PlayerBattleCard.prototype, "turns", {
             get: function () { return this._bc && this._bc.turns || 0; },
             enumerable: true,
@@ -1053,7 +1163,6 @@ function updateCardData() {
                     brag: bh.utils.parseBoolean(card["Is Brag?"]),
                     minValues: minValuesArray.map(function (index) { return [0, 1, 2, 3, 4, 5].map(function (i) { return card[i + "* Min"]; }).filter(function (s) { return !!s; }).map(function (s) { return +String(s).split(/\s*\/\s*/)[index]; }); }),
                     maxValues: [0, 1, 2, 3, 4, 5].map(function (i) { return card[i + "* Max"]; }).filter(function (s) { return !!s; }).pop().split(/\s*\/\s*/).map(function (s) { return +s; }),
-                    tier: existing && existing.tier || "",
                     mats: [1, 2, 3, 4].map(function (i) { return card[i + "* Evo Jar"]; }).filter(function (s) { return !!s; }),
                     perkBase: +card["Perk %"],
                     perks: [1, 2].map(function (i) { return card["Perk #" + i]; }).filter(function (s) { return !!s; }),
@@ -1071,9 +1180,9 @@ function updateCardData() {
             }
             return null;
         });
-        var tsv = "guid\tname\tklassType\telementType\trarityType\tturns\ttypesTargets\tbrag\tminValues\tmaxValues\ttier\tmats\tperkBase\tperks\teffects\tpacks";
+        var tsv = "guid\tname\tklassType\telementType\trarityType\tturns\ttypesTargets\tbrag\tminValues\tmaxValues\tmats\tperkBase\tperks\teffects\tpacks";
         cards.filter(function (c) { return !!c; }).forEach(function (c) {
-            tsv += "\n" + c.guid + "\t" + c.name + "\t" + bh.KlassType[c.klassType].slice(0, 2) + "\t" + bh.ElementType[c.elementType][0] + "\t" + bh.RarityType[c.rarityType][0] + "\t" + c.turns + "\t" + c.typesTargets.join("|") + "\t" + String(c.brag)[0] + "\t" + c.minValues.map(function (a) { return a.join(","); }).join("|") + "\t" + c.maxValues.join("|") + "\t" + c.tier + "\t" + c.mats.join(",") + "\t" + c.perkBase + "\t" + c.perks.join(",") + "\t" + c.effects.join(",") + "\t" + String(c.inPacks)[0];
+            tsv += "\n" + c.guid + "\t" + c.name + "\t" + bh.KlassType[c.klassType].slice(0, 2) + "\t" + bh.ElementType[c.elementType][0] + "\t" + bh.RarityType[c.rarityType][0] + "\t" + c.turns + "\t" + c.typesTargets.join("|") + "\t" + String(c.brag)[0] + "\t" + c.minValues.map(function (a) { return a.join(","); }).join("|") + "\t" + c.maxValues.join("|") + "\t" + c.mats.join(",") + "\t" + c.perkBase + "\t" + c.perks.join(",") + "\t" + c.effects.join(",") + "\t" + String(c.inPacks)[0];
         });
         $("#data-output").val(tsv);
     });
@@ -1237,11 +1346,6 @@ var bh;
         });
         Object.defineProperty(PlayerHero.prototype, "isMeat", {
             get: function () { return this.level == bh.HeroRepo.MaxLevel && this.isCapped; },
-            enumerable: true,
-            configurable: true
-        });
-        Object.defineProperty(PlayerHero.prototype, "isOp", {
-            get: function () { return !!this.deck.find(function (pbc) { return pbc.tier == "OP"; }); },
             enumerable: true,
             configurable: true
         });
@@ -2351,9 +2455,30 @@ var bh;
             return _super !== null && _super.apply(this, arguments) || this;
         }
         DungeonRepo.prototype.parseTsv = function (tsv) {
-            this.data = bh.Repo.mapTsv(tsv);
-            this.data.forEach(function (effect) { return effect.guid = effect.lower.replace(/\W/g, "-"); });
-            return this.data;
+            var data = bh.Repo.mapTsv(tsv);
+            data.forEach(function (dungeon) {
+                dungeon.guid = dungeon.lower.replace(/\W/g, "-");
+                if (!Array.isArray(dungeon.crystals)) {
+                    dungeon.crystals = String(dungeon.crystals).split(",").filter(function (c) { return !!c; });
+                }
+                if (!Array.isArray(dungeon.mats)) {
+                    dungeon.mats = String(dungeon.mats).split(",").filter(function (m) { return !!m; });
+                }
+                if (!Array.isArray(dungeon.runes)) {
+                    dungeon.runes = String(dungeon.runes).split(",").filter(function (r) { return !!r; });
+                }
+            });
+            return this.data = data.map(function (d) { return new bh.Dungeon(d); });
+        };
+        DungeonRepo.prototype.findDungeonFor = function (value) {
+            return this.all.filter(function (dungeon) { return !!dungeon.findDrop(value); });
+        };
+        DungeonRepo.prototype.getDropRates = function (value) {
+            return this.all
+                .map(function (dungeon) { return dungeon.findDrop(value); })
+                .filter(function (drop) { return !!drop; })
+                .sort(function (a, b) { return a.dropRate.averagePerKey < b.dropRate.averagePerKey ? -1 : a.dropRate.averagePerKey == b.dropRate.averagePerKey ? 0 : 1; })
+                .reverse();
         };
         return DungeonRepo;
     }(bh.Repo));
@@ -2416,63 +2541,16 @@ var bh;
     }(bh.Repo));
     bh.EffectRepo = EffectRepo;
     function mapTargetOrEffectOrPerk(item) {
-        var items = [];
-        if (["Damage", "Heal", "Shield"].includes(item.split(" ")[0])) {
-            if (item.includes("All Allies")) {
-                items.push("Multi-Target (Ally)");
-            }
-            else if (item.includes("All Enemies")) {
-                items.push("Multi-Target (Enemy)");
-            }
-            else if (item.includes("Splash")) {
-                items.push("Splash");
-            }
-            if (item.includes("Flurry")) {
-                items.push("Flurry");
-            }
-            if (!items.length) {
-                items.push(item.split(" ")[1]);
-            }
+        var gameEffect = bh.GameEffect.parse(item), effect = gameEffect && bh.data.EffectRepo.find(gameEffect.effect) || null, effects = effect ? [effect] : [];
+        if (gameEffect) {
+            if (gameEffect.raw.includes("All Allies"))
+                effects.push(bh.data.EffectRepo.find("Multi-Target (Ally)"));
+            if (gameEffect.raw.includes("All Enemies"))
+                effects.push(bh.data.EffectRepo.find("Multi-Target (Enemy)"));
+            if (gameEffect.raw.includes("Flurry"))
+                effects.push(bh.data.EffectRepo.find("Flurry"));
         }
-        else {
-            items.push(item);
-        }
-        return items.map(function (i) {
-            var match = i.match(/([a-zA-z]+(?: [a-zA-Z]+)*)(?: (\d+%))?(?: (\d+T))?/), clean = match && match[1] || i, effect = bh.data.EffectRepo.find(clean) || bh.data.EffectRepo.find(i) || bh.data.EffectRepo.find(item) || null;
-            if (!effect)
-                console.log(item, i, match, clean, effect);
-            return effect;
-        }).filter(function (i) { return !!i; });
-    }
-    function effectTypeToTarget(value) {
-        return value.split("/").map(function (s) { return s.trim(); }).filter(function (s) { return !!s; }).map(function (s) {
-            var parts = s.split(" "), all = parts[1] == "All", single = parts[1] == "Single", splash = parts[1] == "Splash", self = parts[1] == "Self";
-            if (s.includes("Flurry")) {
-                if (self) {
-                    return "Self Flurry";
-                }
-                if (all) {
-                    return "Multi Flurry";
-                }
-                if (single) {
-                    return "Single Flurry";
-                }
-            }
-            if (self) {
-                return "Self";
-            }
-            if (single) {
-                return "Single";
-            }
-            if (all) {
-                return "Multi";
-            }
-            if (splash) {
-                return "Splash";
-            }
-            console.log("Target of \"" + s + "\"");
-            return s;
-        });
+        return effects;
     }
 })(bh || (bh = {}));
 var bh;
@@ -2822,7 +2900,7 @@ function numToRoman(num) {
 function updateDungeonData() {
     $.get(DungeonDataUrl).then(function (raw) {
         var mapped = bh.Repo.mapTsv(raw), columns = Object.keys(mapped[0]), dungeons = mapped.map(function (d) {
-            var name = d["Dungeon"] + " " + d["Difficulty"] + " " + numToRoman(d["Level"]), dungeon = bh.data.DungeonRepo.find(name);
+            var name = d["Dungeon"] + " " + d["Difficulty"] + " " + numToRoman(d["Level"]), dungeon = bh.data.DungeonRepo.find(name).data;
             if (!dungeon) {
                 dungeon = {};
                 dungeon.guid = name.replace(/\W/g, "-");
@@ -3144,8 +3222,8 @@ var bh;
                     return level ? level + "|" + hp + "|" : "/|/|/";
                 }
                 function mapPlayerHero(hero) {
-                    var playerHero = player.heroes.find(function (h) { return hero.guid == h.guid; }), level = playerHero ? playerHero.level : "/", hp = playerHero ? bh.utils.truncateNumber(playerHero.hitPoints) : "/", op = playerHero && playerHero.isOp ? "-" : "", power = playerHero ? playerHero.powerPercent + "%" : "/";
-                    return level + "|" + hp + "|" + op + power;
+                    var playerHero = player.heroes.find(function (h) { return hero.guid == h.guid; }), level = playerHero ? playerHero.level : "/", hp = playerHero ? bh.utils.truncateNumber(playerHero.hitPoints) : "/", power = playerHero ? playerHero.powerPercent + "%" : "/";
+                    return level + "|" + hp + "|" + power;
                 }
             }
             function calculateBattleData(war, member) {
@@ -3438,65 +3516,9 @@ var bh;
         for (var _i = 0; _i < arguments.length; _i++) {
             parts[_i] = arguments[_i];
         }
-        var sliced = parts.slice(), image = images[sliced.shift()];
-        while (sliced.length)
-            image = image[sliced.shift()];
-        if (!image)
-            image = getRoot() + "/images/" + parts.join("/") + ".png";
-        return image;
+        return getRoot() + "/images/" + parts.join("/") + ".png";
     }
     bh.getSrc = getSrc;
-    var images;
-    (function (images) {
-        var battlecards;
-        (function (battlecards) {
-            var blank;
-            (function (blank) {
-            })(blank = battlecards.blank || (battlecards.blank = {}));
-            var icons;
-            (function (icons) {
-            })(icons = battlecards.icons || (battlecards.icons = {}));
-        })(battlecards = images.battlecards || (images.battlecards = {}));
-        var cardtypes;
-        (function (cardtypes) {
-        })(cardtypes = images.cardtypes || (images.cardtypes = {}));
-        var classes;
-        (function (classes) {
-        })(classes = images.classes || (images.classes = {}));
-        var crystals;
-        (function (crystals) {
-        })(crystals = images.crystals || (images.crystals = {}));
-        var effects;
-        (function (effects) {
-        })(effects = images.effects || (images.effects = {}));
-        var elements;
-        (function (elements) {
-        })(elements = images.elements || (images.elements = {}));
-        var evojars;
-        (function (evojars) {
-            var random;
-            (function (random) {
-            })(random = evojars.random || (evojars.random = {}));
-        })(evojars = images.evojars || (images.evojars = {}));
-        var heroes;
-        (function (heroes) {
-        })(heroes = images.heroes || (images.heroes = {}));
-        var icons;
-        (function (icons) {
-        })(icons = images.icons || (images.icons = {}));
-        var keys;
-        (function (keys) {
-        })(keys = images.keys || (images.keys = {}));
-        var misc;
-        (function (misc) {
-        })(misc = images.misc || (images.misc = {}));
-        var runes;
-        (function (runes) {
-        })(runes = images.runes || (images.runes = {}));
-        var skills;
-        (function (skills) {
-        })(skills = images.skills || (images.skills = {}));
-    })(images = bh.images || (bh.images = {}));
 })(bh || (bh = {}));
 var bh;
 (function (bh) {
@@ -3994,25 +4016,6 @@ var bh;
             return dataURL;
         }
         utils.getBase64Image = getBase64Image;
-        function createImagesJs() {
-            var allTypes = Object.keys(bh.images), loadedTypes = [], imageSources = bh.$("img").toArray().map(function (img) { return img.src; }).reduce(function (arr, src) { return arr.includes(src) ? arr : arr.concat(src); }, []), output = "";
-            output += "var bh;(function (bh) {var images;(function (images) {";
-            bh.$("#data-output").val("Loading, please wait ...");
-            asyncForEach(imageSources, function (imageSource) {
-                var parts = imageSource.split("/images/")[1].split(".")[0].split("/");
-                if (allTypes.includes(parts[0]) && parts.length == 2) {
-                    if (!loadedTypes.includes(parts[0])) {
-                        loadedTypes.push(parts[0]);
-                        output += "\nimages." + parts[0] + " = {};";
-                    }
-                    output += "\nimages." + parts[0] + "[\"" + parts[1] + "\"] = \"" + getBase64Image(imageSource) + "\";";
-                }
-            }).then(function () {
-                output += "\n})(images = bh.images || (bh.images = {}));})(bh || (bh = {}));";
-                bh.$("#data-output").val(output);
-            });
-        }
-        utils.createImagesJs = createImagesJs;
         var loggedCards = {};
         function logMissingCard(playerBattleCard) {
             if (!loggedCards[playerBattleCard.playerCard.id]) {
@@ -4151,7 +4154,7 @@ var bh;
                 if (arenaIndex === void 0) { arenaIndex = -1; }
                 var fullMeat = player.isFullMeat, star = fullMeat ? "&#9734;" : "", percentText = player.isArena || fullMeat ? "" : " <span style=\"white-space:nowrap;\">(" + player.completionPercent + "%)</span>", html = "<div class=\"player-name\" data-action=\"sort-heroes\">" + star + " " + bh.utils.htmlFriendly(player.name) + " " + percentText + "</div>", playerHeroes = player.heroes.sort(bh.utils.sort.byElementThenKlass);
                 playerHeroes.forEach(function (hero) {
-                    var id = player.guid + "-" + hero.guid, icon = hero.isLocked ? bh.getImg("misc", "Lock") : bh.getImg("heroes", hero.name), level = hero.isLocked ? "" : hero.level == bh.HeroRepo.MaxLevel ? hero.isMeat ? "<span class=\"evo-star\">&#9734;</span>" : "<span class=\"star\">&#9734;</span>" : "(" + hero.level + ")", hitPoints = hero.isLocked ? "" : bh.utils.truncateNumber(hero.hitPoints) + " HP", powerThresholds = hero.hero.maxPowerThresholds, powerRating = hero.powerRating, powerPercent = Math.round(100 * powerRating / powerThresholds[powerRating < powerThresholds[3] ? 3 : 4]), progressBG = hero.isOp ? "background-color:pink;" : "", color = powerRating <= powerThresholds[0] ? "progress-bar-info" : powerRating <= powerThresholds[1] ? "progress-bar-success" : powerRating <= powerThresholds[2] ? "progress-bar-warning" : "progress-bar-danger", progressBar = hero.isLocked ? "" : "<div class=\"progress\" style=\"" + progressBG + "\"><div class=\"progress-bar " + color + "\" style=\"width:" + powerPercent + "%;\"><span></span></div></div>", powerRatingText = hero.isLocked ? "" : powerRating, title = "<span class=\"hero-icon\">" + icon + "</span>"
+                    var id = player.guid + "-" + hero.guid, icon = hero.isLocked ? bh.getImg("misc", "Lock") : bh.getImg("heroes", hero.name), level = hero.isLocked ? "" : hero.level == bh.HeroRepo.MaxLevel ? hero.isMeat ? "<span class=\"evo-star\">&#9734;</span>" : "<span class=\"star\">&#9734;</span>" : "(" + hero.level + ")", hitPoints = hero.isLocked ? "" : bh.utils.truncateNumber(hero.hitPoints) + " HP", powerThresholds = hero.hero.maxPowerThresholds, powerRating = hero.powerRating, powerPercent = Math.round(100 * powerRating / powerThresholds[powerRating < powerThresholds[3] ? 3 : 4]), color = powerRating <= powerThresholds[0] ? "progress-bar-info" : powerRating <= powerThresholds[1] ? "progress-bar-success" : powerRating <= powerThresholds[2] ? "progress-bar-warning" : "progress-bar-danger", progressBar = hero.isLocked ? "" : "<div class=\"progress\"><div class=\"progress-bar " + color + "\" style=\"width:" + powerPercent + "%;\"><span></span></div></div>", powerRatingText = hero.isLocked ? "" : powerRating, title = "<span class=\"hero-icon\">" + icon + "</span>"
                         + ("<span class=\"hero-name\">" + hero.name + "</span>")
                         + ("<span class=\"hero-level\">" + level + "</span>")
                         + ("<span class=\"hero-hp\">" + hitPoints + "</span>")
@@ -4230,6 +4233,7 @@ var bh;
             bh.host = "http://bh.elvenintrigue.com";
             bh.data.init().then(render);
             $("body").on("click", "[data-action=\"show-card\"]", onShowCard);
+            $("body").on("click", "[data-action=\"show-item\"]", onShowItem);
             $("body").on("click", "[data-search-term]", onSearchImage);
             $("input.library-search").on("change keyup", onSearch);
             $("button.library-search-clear").on("click", onSearchClear);
@@ -4265,13 +4269,25 @@ var bh;
             var maxEvo = activeCard.rarityType + 1, maxLevel = bh.BattleCardRepo.getLevelsForRarity(activeCard.rarityType) - 1;
             return getValue(typeIndex, maxEvo, maxLevel);
         }
+        var activeItem;
+        function onShowItem(ev) {
+            var link = $(ev.target), tr = link.closest("tr"), guid = tr.attr("id"), item = bh.data.ItemRepo.find(guid);
+            activeItem = item;
+            $("div.modal-item").modal("show");
+            $("#item-name").html(item.name + " &nbsp; " + mapMatsToImages([item.name]).join(" "));
+            $("#item-rarity").html(bh.utils.evoToStars(item.rarityType) + " " + bh.RarityType[item.rarityType]);
+            $("#item-element").html(bh.ElementRepo.toImage(item.elementType) + " " + bh.ElementType[item.elementType]);
+            var html = bh.data.DungeonRepo.getDropRates(item.name)
+                .map(function (dropRate) { return dropRate.dungeon.name + ": " + Math.round(100 * dropRate.dropRate.averagePerKey) / 100 + "% / key (" + dropRate.dungeon.keys + " keys)"; })
+                .join("<br/>");
+            $("#item-dungeons").html(html);
+        }
         var activeCard;
         function onShowCard(ev) {
             var link = $(ev.target), tr = link.closest("tr"), guid = tr.attr("id"), card = bh.data.BattleCardRepo.find(guid);
             activeCard = card;
             $("div.modal-card").modal("show");
             $("#card-name").html(card.name + " &nbsp; " + mapHeroesToImages(card).join(" "));
-            $("#card-tier").html(card.tier || "");
             $("#card-image").attr("src", bh.getSrc("battlecards", "blank", cleanImageName(card.name)));
             $("#card-element").html(bh.ElementRepo.toImage(card.elementType) + " " + bh.ElementType[card.elementType]);
             $("#card-klass").html(bh.KlassRepo.toImage(card.klassType) + " " + bh.KlassType[card.klassType]);
@@ -4395,7 +4411,7 @@ var bh;
             if (!tests[dungeon.guid]) {
                 var list = tests[dungeon.guid] = [];
                 list.push(dungeon.lower);
-                dungeon.mats.forEach(function (s) { return list.push(s.toLowerCase()); });
+                dungeon.mats.forEach(function (s) { return list.push(s.name.toLowerCase()); });
             }
             return tests[dungeon.guid] || [];
         }
@@ -4531,7 +4547,7 @@ var bh;
                 setItemTests(item);
                 var html = "<tr id=\"" + item.guid + "\">";
                 html += "<td><div class=\"bh-hud-image img-" + item.guid + "\"></div></td>";
-                html += "<td><span class=\"card-name\">" + item.name + "</span></td>";
+                html += "<td><span class=\"card-name\"><a class=\"btn btn-link\" data-action=\"show-item\" style=\"padding:0;\">" + item.name + "</a></span></td>";
                 html += "<td>" + mapRarityToStars(item.rarityType) + "</td>";
                 if (player) {
                     html += "<td><span class=\"badge\">" + bh.utils.formatNumber(owned && owned.count || 0) + "</span></td>";
@@ -4557,7 +4573,7 @@ var bh;
                     html += "<td><span class=\"\">" + dungeon.elementTypes.map(function (elementType) { return "<div class=\"bh-hud-image img-" + bh.ElementType[elementType] + "\"></div>"; }).join("") + "</span></td>";
                     html += "<td/>";
                     html += "<td/>";
-                    html += "<td><span>" + mapMatsToImages(dungeon.mats).join("") + "</span></td>";
+                    html += "<td><span>" + mapMatsToImages(dungeon.mats.map(function (m) { return m.name; })).join("") + "</span></td>";
                     html += "<td><span class=\"\">" + dungeon.randomMats.map(function (count, rarityType) { return count ? bh.getImg20("evojars", "random", bh.RarityType[rarityType] + "_Neutral_Small") + count : ""; }).join(" ") + "</span></td>";
                 }
                 catch (ex) {

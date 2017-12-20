@@ -106,27 +106,6 @@ namespace bh {
 
 			return dataURL;
 		}
-		export function createImagesJs() {
-			var allTypes = Object.keys(images),
-				loadedTypes: string[] = [],
-				imageSources: string[] = $("img").toArray().map(img => img.src).reduce((arr, src) => arr.includes(src) ? arr : arr.concat(src), []),
-				output = ``;
-			output += `var bh;(function (bh) {var images;(function (images) {`;
-			$("#data-output").val("Loading, please wait ...");
-			asyncForEach(imageSources, imageSource => {
-				var parts = imageSource.split("/images/")[1].split(".")[0].split("/");
-				if (allTypes.includes(parts[0]) && parts.length == 2) {
-					if (!loadedTypes.includes(parts[0])) {
-						loadedTypes.push(parts[0]);
-						output += `\nimages.${parts[0]} = {};`;
-					}
-					output += `\nimages.${parts[0]}["${parts[1]}"] = "${getBase64Image(imageSource)}";`;
-				}
-			}).then(() => {
-				output += `\n})(images = bh.images || (bh.images = {}));})(bh || (bh = {}));`;
-				$("#data-output").val(output);
-			});
-		}
 
 		var loggedCards: { [guid: string]: boolean; } = { }
 		export function logMissingCard(playerBattleCard: PlayerBattleCard) {

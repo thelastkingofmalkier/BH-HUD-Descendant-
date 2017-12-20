@@ -42,7 +42,6 @@ namespace bh {
 		public get isCapped(): boolean { return this.active.isCapped && this.passive.isCapped && this.trait.isCapped; }
 		public get isLocked(): boolean { return this.archetype.locked; }
 		public get isMeat(): boolean { return this.level == HeroRepo.MaxLevel && this.isCapped; }
-		public get isOp(): boolean { return !!this.deck.find(pbc => pbc.tier == "OP"); }
 		public get level(): number { return this.archetype.level + 1; }
 		public get playerHeroAbilities() { return [this.trait, this.active, this.passive]; }
 		public get playerHeroGuid(): string { return `${this.player.guid}-${this.hero.guid}`; }

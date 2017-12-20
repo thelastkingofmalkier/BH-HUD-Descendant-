@@ -19,7 +19,7 @@ function updateDungeonData() {
 			columns = Object.keys(mapped[0]),
 			dungeons = mapped.map(d => {
 				var name = `${d["Dungeon"]} ${d["Difficulty"]} ${numToRoman(d["Level"])}`,
-					dungeon = bh.data.DungeonRepo.find(name);
+					dungeon = bh.data.DungeonRepo.find(name).data;
 				if (!dungeon) {
 					dungeon = <any>{ };
 					dungeon.guid = name.replace(/\W/g, "-");

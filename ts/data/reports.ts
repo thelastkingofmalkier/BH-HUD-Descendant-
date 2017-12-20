@@ -78,9 +78,8 @@ namespace bh {
 					var playerHero = player.heroes.find(h => hero.guid == h.guid),
 						level = playerHero ? playerHero.level : "/",
 						hp = playerHero ? utils.truncateNumber(playerHero.hitPoints) : "/",
-						op = playerHero && playerHero.isOp ? "-" : "",
 						power = playerHero ? playerHero.powerPercent + "%" : "/";
-					return level + "|" + hp + "|" + op + power;
+					return level + "|" + hp + "|" + power;
 				}
 			}
 			function calculateBattleData(war: IGuildWar, member: IGuild.Player) {
