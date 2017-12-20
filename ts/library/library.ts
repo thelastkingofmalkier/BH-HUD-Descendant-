@@ -104,9 +104,9 @@ namespace bh {
 			$(`#item-element`).html(ElementRepo.toImage(item.elementType) + " " + ElementType[item.elementType]);
 
 			var html = data.DungeonRepo.getDropRates(item.name)
-				.map(dropRate => `${dropRate.dungeon.name}: ${Math.round(100*dropRate.dropRate.averagePerKey)/100}% / key (${dropRate.dungeon.keys} keys)`)
-				.join("<br/>")
-			$("#item-dungeons").html(html);
+				.map(dropRate => `<tr><td>${dropRate.dungeon.name}</td><td>${dropRate.dungeon.keys} keys</td><td>${Math.round(1000*dropRate.dropRate.averagePerKey)/10}% / key</td></tr>`)
+				.join("")
+			$("#item-dungeons").html(`<table class="table table-striped table-condensed"><tbody>${html}</tbody></table>`);
 		}
 
 		var activeCard: IDataBattleCard;

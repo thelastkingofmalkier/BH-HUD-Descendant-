@@ -54,7 +54,7 @@ var bh;
         Object.defineProperty(Dungeon.prototype, "crystals", {
             get: function () {
                 var _this = this;
-                return this.fromCache("crystals", function () { return _this.data.crystals.map(toDropRate); });
+                return this.fromCache("crystals", function () { return _this.data.crystals.map(function (v) { return toDropRate(v, _this.keys); }); });
             },
             enumerable: true,
             configurable: true
@@ -102,7 +102,7 @@ var bh;
         Object.defineProperty(Dungeon.prototype, "mats", {
             get: function () {
                 var _this = this;
-                return this.fromCache("mats", function () { return _this.data.mats.map(toDropRate); });
+                return this.fromCache("mats", function () { return _this.data.mats.map(function (v) { return toDropRate(v, _this.keys); }); });
             },
             enumerable: true,
             configurable: true
@@ -120,7 +120,7 @@ var bh;
         Object.defineProperty(Dungeon.prototype, "runes", {
             get: function () {
                 var _this = this;
-                return this.fromCache("runes", function () { return _this.data.runes.map(toDropRate); });
+                return this.fromCache("runes", function () { return _this.data.runes.map(function (v) { return toDropRate(v, _this.keys); }); });
             },
             enumerable: true,
             configurable: true
@@ -134,9 +134,10 @@ var bh;
         return Dungeon;
     }(bh.Cacheable));
     bh.Dungeon = Dungeon;
-    function toDropRate(value) {
-        var parts = value.split("|"), percentMultiplier = +parts[1].match(/(\d+)/)[1] / 100, minMax = parts[2].split("-"), min = +minMax[0], max = +minMax[1] || min, averagePerKey = (min + max) / 2 * percentMultiplier;
-        return { name: parts[0], percent: parts[1], percentMultiplier: percentMultiplier, min: min, max: max, averagePerKey: averagePerKey };
+    function toDropRate(value, keys) {
+        var parts = value.split("|"), percentMultiplier = +parts[1].match(/(\d+)/)[1] / 100, minMax = parts[2].split("-"), min = +minMax[0], max = +minMax[1] || min, average = (min + max) / 2 * percentMultiplier, averagePerKey = average / keys;
+        console.log([value, minMax, min, max, percentMultiplier, average, averagePerKey]);
+        return { name: parts[0], percent: parts[1], percentMultiplier: percentMultiplier, min: min, max: max, average: average, averagePerKey: averagePerKey };
     }
 })(bh || (bh = {}));
 var bh;
@@ -4290,9 +4291,9 @@ var bh;
             $("#item-rarity").html(bh.utils.evoToStars(item.rarityType) + " " + bh.RarityType[item.rarityType]);
             $("#item-element").html(bh.ElementRepo.toImage(item.elementType) + " " + bh.ElementType[item.elementType]);
             var html = bh.data.DungeonRepo.getDropRates(item.name)
-                .map(function (dropRate) { return dropRate.dungeon.name + ": " + Math.round(100 * dropRate.dropRate.averagePerKey) / 100 + "% / key (" + dropRate.dungeon.keys + " keys)"; })
-                .join("<br/>");
-            $("#item-dungeons").html(html);
+                .map(function (dropRate) { return "<tr><td>" + dropRate.dungeon.name + "</td><td>" + dropRate.dungeon.keys + " keys</td><td>" + Math.round(1000 * dropRate.dropRate.averagePerKey) / 10 + "% / key</td></tr>"; })
+                .join("");
+            $("#item-dungeons").html("<table class=\"table table-striped table-condensed\"><tbody>" + html + "</tbody></table>");
         }
         var activeCard;
         function onShowCard(ev) {

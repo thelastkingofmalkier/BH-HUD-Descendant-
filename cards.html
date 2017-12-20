@@ -38,6 +38,7 @@
 			#card-evolution th.min, #card-evolution td.min { width:75px; text-align:center; }
 			#card-evolution th.max, #card-evolution td.max { width:75px; text-align:center; }
 			#card-name > img { height:24px; width:24px; }
+			#item-dungeons td { font-size:10pt; }
 			table.card-list td { white-space: nowrap; }
 			div.bh-hud-image { background-size:20px 20px; background-repeat: no-repeat; height:20px; width:20px; font-size:0; display:inline-block; background-position-x: center; }
 			input[type="range"] { padding:0; }
@@ -116,20 +117,26 @@
 						<h4 class="modal-title"><span id="item-name"></span></h4>
 					</div>
 					<div class="modal-body">
-							<div class="form-horizontal">
-								<div class="form-group">
-									<label class="col-xs-3 control-label">Rarity</label>
-									<div class="col-xs-9"><p class="form-control-static"><span id="item-rarity"></span></p></div>
-								</div>
-								<div class="form-group">
-									<label class="col-xs-3 control-label">Element</label>
-									<div class="col-xs-9"><p class="form-control-static"><span id="item-element"></span></p></div>
-								</div>
-								<div class="form-group">
-									<label class="col-xs-3 control-label">Dungeons</label>
-									<div class="col-xs-9"><p class="form-control-static"><span id="item-dungeons"></span></p></div>
-								</div>
+						<div class="form-horizontal">
+							<div class="form-group">
+								<label class="col-xs-3 control-label">Rarity</label>
+								<div class="col-xs-9"><p class="form-control-static"><span id="item-rarity"></span></p></div>
 							</div>
+							<div class="form-group">
+								<label class="col-xs-3 control-label">Element</label>
+								<div class="col-xs-9"><p class="form-control-static"><span id="item-element"></span></p></div>
+							</div>
+						</div>
+						<ul class="nav nav-tabs" role="tablist">
+							<li role="presentation" class="active"><a href="#item-dungeons" aria-controls="item-dungeons" role="tab" data-toggle="tab">Dungeons</a></li>
+							<li role="presentation" class="disabled"><a -href="#" aria-controls="item-cards" -role="tab" -data-toggle="tab">Cards</a></li>
+						</ul>
+						<div class="tab-content">
+							<div role="tabpanel" class="tab-pane active" id="item-dungeons">
+							</div>
+							<div role="tabpanel" class="tab-pane" id="item-cards">
+							</div>
+						</div>
 					</div>
 				</div>
 			</div>
