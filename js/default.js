@@ -2477,12 +2477,24 @@ var bh;
             return this.all
                 .map(function (dungeon) { return dungeon.findDrop(value); })
                 .filter(function (drop) { return !!drop; })
-                .sort(function (a, b) { return a.dropRate.averagePerKey < b.dropRate.averagePerKey ? -1 : a.dropRate.averagePerKey == b.dropRate.averagePerKey ? 0 : 1; })
+                .sort(sortDropRates)
                 .reverse();
         };
         return DungeonRepo;
     }(bh.Repo));
     bh.DungeonRepo = DungeonRepo;
+    function sortDropRates(a, b) {
+        var aPerKey = a.dropRate.averagePerKey, bPerKey = b.dropRate.averagePerKey;
+        if (aPerKey != bPerKey)
+            return aPerKey < bPerKey ? -1 : 1;
+        var aKeys = a.dungeon.keys, bKeys = b.dungeon.keys;
+        if (aKeys != bKeys)
+            return aKeys < bKeys ? 1 : -1;
+        var aDiff = a.dungeon.difficulty == "Normal" ? 0 : a.dungeon.difficulty == "Elite" ? 1 : 2, bDiff = b.dungeon.difficulty == "Normal" ? 0 : b.dungeon.difficulty == "Elite" ? 1 : 2;
+        if (aDiff != bDiff)
+            return aDiff < bDiff ? 1 : -1;
+        return 0;
+    }
 })(bh || (bh = {}));
 var bh;
 (function (bh) {
@@ -4508,8 +4520,9 @@ var bh;
                     html += "<td><span class=\"card-owned glyphicon " + (owned ? "glyphicon-ok text-success" : "glyphicon-remove text-danger") + "\" title=\"" + (owned ? "Have" : "Need") + "\" data-toggle=\"tooltip\" data-placement=\"top\"></span></td>";
                 html += "<td><div class=\"bh-hud-image img-" + (card.brag ? "Brag" : "BattleCard") + "\" title=\"" + (card.brag ? "Brag" : "BattleCard") + "\" data-toggle=\"tooltip\" data-placement=\"top\"></div></td>";
                 html += "<td><span class=\"card-name\"><a class=\"btn btn-link\" data-action=\"show-card\" style=\"padding:0;\">" + card.name + "</a></span></td>";
+                html += "<td class=\"text-center\"><span class=\"card-rating\">" + bh.utils.formatNumber(bh.PowerRating.rateBattleCard(card, bh.MinMaxType.Max)) + "</span></td>";
                 if (complete)
-                    html += "<td data-search-term=\"" + bh.RarityType[card.rarityType] + "\">" + mapRarityToStars(card.rarityType) + "</td>";
+                    html += "<td class=\"text-center\" data-search-term=\"" + bh.RarityType[card.rarityType] + "\">" + mapRarityToStars(card.rarityType) + "</td>";
                 if (complete)
                     html += "<td>" + renderIcon(bh.ElementType[card.elementType]) + "</td>";
                 if (complete)

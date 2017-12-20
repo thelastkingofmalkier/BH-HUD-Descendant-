@@ -378,7 +378,8 @@ namespace bh {
 					if (player) html += `<td><span class="card-owned glyphicon ${owned ? "glyphicon-ok text-success" : "glyphicon-remove text-danger"}" title="${owned ? "Have" : "Need"}" data-toggle="tooltip" data-placement="top"></span></td>`;
 					html += `<td><div class="bh-hud-image img-${card.brag? "Brag" : "BattleCard"}" title="${card.brag? "Brag" : "BattleCard"}" data-toggle="tooltip" data-placement="top"></div></td>`;
 					html += `<td><span class="card-name"><a class="btn btn-link" data-action="show-card" style="padding:0;">${card.name}</a></span></td>`;
-					if (complete) html += `<td data-search-term="${RarityType[card.rarityType]}">${mapRarityToStars(card.rarityType)}</td>`;
+					html += `<td class="text-center"><span class="card-rating">${utils.formatNumber(PowerRating.rateBattleCard(card, MinMaxType.Max))}</span></td>`;
+					if (complete) html += `<td class="text-center" data-search-term="${RarityType[card.rarityType]}">${mapRarityToStars(card.rarityType)}</td>`;
 					if (complete) html += `<td>${renderIcon(ElementType[card.elementType])}</td>`;
 					if (complete) html += `<td>${renderIcon(KlassType[card.klassType], undefined, undefined, true)}</td>`;
 					html += `<td>${mapHeroesToImages(card).join("")}</td>`;

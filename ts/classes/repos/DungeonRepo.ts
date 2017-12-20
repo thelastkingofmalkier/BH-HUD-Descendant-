@@ -24,8 +24,20 @@ namespace bh {
 			return this.all
 				.map(dungeon => dungeon.findDrop(value))
 				.filter(drop => !!drop)
-				.sort((a, b) => a.dropRate.averagePerKey < b.dropRate.averagePerKey ? -1 : a.dropRate.averagePerKey == b.dropRate.averagePerKey ? 0 : 1)
+				.sort(sortDropRates)
 				.reverse();
 		}
+	}
+	function sortDropRates(a: IDungeonDropRate, b: IDungeonDropRate): number {
+		var aPerKey = a.dropRate.averagePerKey,
+			bPerKey = b.dropRate.averagePerKey;
+		if (aPerKey != bPerKey) return aPerKey < bPerKey ? -1 : 1;
+		var aKeys = a.dungeon.keys,
+			bKeys = b.dungeon.keys;
+		if (aKeys != bKeys) return aKeys < bKeys ? 1 : -1;
+		var aDiff = a.dungeon.difficulty == "Normal" ? 0 : a.dungeon.difficulty == "Elite" ? 1 : 2,
+			bDiff = b.dungeon.difficulty == "Normal" ? 0 : b.dungeon.difficulty == "Elite" ? 1 : 2;
+		if (aDiff != bDiff) return aDiff < bDiff ? 1 : -1;
+		return 0;
 	}
 }
