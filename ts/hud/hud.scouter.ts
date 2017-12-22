@@ -28,6 +28,7 @@ namespace bh {
 					html = `<div class="player-name" data-action="sort-heroes">${star} ${utils.htmlFriendly(player.name)} ${percentText}</div>`,
 					playerHeroes: PlayerHero[] = player.heroes.sort(utils.sort.byElementThenKlass);
 				playerHeroes.forEach(hero => {
+					if (!player.isMe && hero.isLocked) return;
 					var id = `${player.guid}-${hero.guid}`,
 						icon = hero.isLocked ? getImg("misc", "Lock") : getImg("heroes", hero.name),
 						level = hero.isLocked ? `` : hero.level == HeroRepo.MaxLevel ? hero.isMeat ? `<span class="evo-star">&#9734;</span>` : `<span class="star">&#9734;</span>` : `(${hero.level})`,
