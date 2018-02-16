@@ -3235,7 +3235,7 @@ var bh;
                     return level ? level + "|" + hp + "|" : "/|/|/";
                 }
                 function mapPlayerHero(hero) {
-                    var playerHero = player.heroes.find(function (h) { return hero.guid == h.guid; }), level = playerHero ? playerHero.level : "/", hp = playerHero ? bh.utils.truncateNumber(playerHero.hitPoints) : "/", power = playerHero ? playerHero.powerPercent + "%" : "/";
+                    var playerHero = player.heroes.find(function (h) { return hero.guid == h.guid; }), level = playerHero ? playerHero.level : "/", hp = playerHero ? bh.utils.truncateNumber(playerHero.hitPoints) : "/", power = playerHero ? playerHero.powerRating + " " : "/";
                     return level + "|" + hp + "|" + power;
                 }
             }
