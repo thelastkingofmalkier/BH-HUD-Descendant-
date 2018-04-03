@@ -16,7 +16,7 @@ else if(gameEffect.rawTarget=="Ally"){var healOrShield=def&&def.type||"Heal";gam
 else if(gameEffect.rawTarget=="Self"){var healOrShield=def&&def.type||"Heal";gameEffect.target=bh.PlayerBattleCard.parseTarget(healOrShield+" Self")}
 else{if(!gameEffect.target)
 console.warn("can't find target for "+gameEffect.effect,gameEffect.card)}})}
-function getPowerRating(gameEffect){var rating=_getPowerRating(gameEffect);return rating}
+
 function _getPowerRating(gameEffect){if(["Critical","Regen","Splash Damage"].includes(gameEffect.effect))
 return 0;var match=(gameEffect.value||"").toUpperCase().match(/(O|D)?((?:\+|\-)?\d+(?:\.\d+)?)(T)?(%)?/),effectOffense=match&&match[1]=="O",effectDefense=match&&match[1]=="D",points=match&&+match[2]||1,turns=match&&match[3]=="T"?gameEffect.turns:1,percentMultiplier=match&&match[4]=="%"?gameEffect.percentMultiplier:1,value=match?points*turns*percentMultiplier:0.5,target=gameEffect.target,targetOffense=target&&target.offense,targetDefense=target&&!target.offense,oppoMultiplier=targetOffense==effectOffense||targetDefense==effectDefense?1:-1,perkMultiplier=gameEffect.perkMultiplier||1;if(target){return value*perkMultiplier*oppoMultiplier}
 else{console.warn("no target",gameEffect)}
