@@ -964,6 +964,11 @@ var bh;
             enumerable: true,
             configurable: true
         });
+        Object.defineProperty(PlayerBattleCard.prototype, "isOp", {
+            get: function () { return this._bc && this._bc.isOp || false; },
+            enumerable: true,
+            configurable: true
+        });
         Object.defineProperty(PlayerBattleCard.prototype, "perkBase", {
             get: function () { return this._bc && this._bc.perkBase || 0; },
             enumerable: true,
@@ -991,6 +996,11 @@ var bh;
         });
         Object.defineProperty(PlayerBattleCard.prototype, "turns", {
             get: function () { return this._bc && this._bc.turns || 0; },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(PlayerBattleCard.prototype, "tier", {
+            get: function () { return this._bc && this._bc.tier || null; },
             enumerable: true,
             configurable: true
         });
@@ -1164,6 +1174,7 @@ function updateCardData() {
                     brag: bh.utils.parseBoolean(card["Is Brag?"]),
                     minValues: minValuesArray.map(function (index) { return [0, 1, 2, 3, 4, 5].map(function (i) { return card[i + "* Min"]; }).filter(function (s) { return !!s; }).map(function (s) { return +String(s).split(/\s*\/\s*/)[index]; }); }),
                     maxValues: [0, 1, 2, 3, 4, 5].map(function (i) { return card[i + "* Max"]; }).filter(function (s) { return !!s; }).pop().split(/\s*\/\s*/).map(function (s) { return +s; }),
+                    tier: existing && existing.tier || "",
                     mats: [1, 2, 3, 4].map(function (i) { return card[i + "* Evo Jar"]; }).filter(function (s) { return !!s; }),
                     perkBase: +card["Perk %"],
                     perks: [1, 2].map(function (i) { return card["Perk #" + i]; }).filter(function (s) { return !!s; }),
@@ -1181,9 +1192,9 @@ function updateCardData() {
             }
             return null;
         });
-        var tsv = "guid\tname\tklassType\telementType\trarityType\tturns\ttypesTargets\tbrag\tminValues\tmaxValues\tmats\tperkBase\tperks\teffects\tpacks";
+        var tsv = "guid\tname\tklassType\telementType\trarityType\tturns\ttypesTargets\tbrag\tminValues\tmaxValues\ttier\tmats\tperkBase\tperks\teffects\tpacks";
         cards.filter(function (c) { return !!c; }).forEach(function (c) {
-            tsv += "\n" + c.guid + "\t" + c.name + "\t" + bh.KlassType[c.klassType].slice(0, 2) + "\t" + bh.ElementType[c.elementType][0] + "\t" + bh.RarityType[c.rarityType][0] + "\t" + c.turns + "\t" + c.typesTargets.join("|") + "\t" + String(c.brag)[0] + "\t" + c.minValues.map(function (a) { return a.join(","); }).join("|") + "\t" + c.maxValues.join("|") + "\t" + c.mats.join(",") + "\t" + c.perkBase + "\t" + c.perks.join(",") + "\t" + c.effects.join(",") + "\t" + String(c.inPacks)[0];
+            tsv += "\n" + c.guid + "\t" + c.name + "\t" + bh.KlassType[c.klassType].slice(0, 2) + "\t" + bh.ElementType[c.elementType][0] + "\t" + bh.RarityType[c.rarityType][0] + "\t" + c.turns + "\t" + c.typesTargets.join("|") + "\t" + String(c.brag)[0] + "\t" + c.minValues.map(function (a) { return a.join(","); }).join("|") + "\t" + c.maxValues.join("|") + "\t" + c.tier + "\t" + c.mats.join(",") + "\t" + c.perkBase + "\t" + c.perks.join(",") + "\t" + c.effects.join(",") + "\t" + String(c.inPacks)[0];
         });
         $("#data-output").val(tsv);
     });
@@ -1352,6 +1363,11 @@ var bh;
         });
         Object.defineProperty(PlayerHero.prototype, "level", {
             get: function () { return this.archetype.level + 1; },
+            enumerable: true,
+            configurable: true
+        });
+        Object.defineProperty(PlayerHero.prototype, "isOp", {
+            get: function () { return !!this.deck.find(function (pbc) { return pbc.tier == "OP"; }); },
             enumerable: true,
             configurable: true
         });
@@ -2818,7 +2834,7 @@ var bh;
     }());
     bh.RarityRepo = RarityRepo;
 })(bh || (bh = {}));
-var DataSheetID = "1uXkC_xua7KhhWQsfX_CZNa6fyl9CJlV9E7KNDO4_1T4";
+var DataSheetID = "1203v6egra6rDQShMdklVHQrPa7lfP6RaSCcqdATIEIo";
 var BattleCardRepoGID = 1013492615;
 var BoosterCardRepoGID = 1070164839;
 var DungeonRepoGID = 1980099142;
@@ -2834,7 +2850,7 @@ var MaxFameLevel = 45;
 var AttackDivisor = 750;
 var ShieldDivisor = 1500;
 var HealDivisor = 1500;
-var BattleCardDataUrl = "https://docs.google.com/spreadsheets/d/1xckeq3t9T2g4sR5zgKK52ZkXNEXQGgiUrJ8EQ5FJAPI/pub?output=tsv";
+var BattleCardDataUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQgpt5tf178r4MJku64wjcQyK-py5KTwbeoePP4vnFQ0gEJWowglA-cGHLSQtVbpp7kb_07gLbZP1N_/pub?output=tsv";
 var DungeonDataUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRCyjBTeKjsBri_uvkFnT-i9f-jI4RUR0YffYh32XFtQfywivXktmLcmGOuXTfOQZH1sv6VTmF9Ceee/pub?gid=1815567292&single=true&output=tsv";
 var bh;
 (function (bh) {
@@ -3228,17 +3244,17 @@ var bh;
                 return report;
             }
             function mapMemberToOutput(member, index) {
-                var player = data.PlayerRepo.find(member.playerId), role = bh.PositionType[member.position] + 1, fame = member.fameLevel + 1, heroData = data.HeroRepo.sorted.map(player ? mapPlayerHero : mapHero), position = index ? index + 1 : "GL";
-                return [position, fame, member.name, role].concat(heroData).join("\t");
-                function mapHero(hero) {
-                    var level = member.archetypeLevels[hero.guid] + 1, hp = bh.utils.truncateNumber(hero.getHitPoints(level));
-                    return level ? level + "|" + hp + "|" : "/|/|/";
-                }
-                function mapPlayerHero(hero) {
-                    var playerHero = player.heroes.find(function (h) { return hero.guid == h.guid; }), level = playerHero ? playerHero.level : "/", hp = playerHero ? bh.utils.truncateNumber(playerHero.hitPoints) : "/", power = playerHero ? playerHero.powerRating + " " : "/";
-                    return level + "|" + hp + "|" + power;
-                }
-            }
+              var player = data.PlayerRepo.find(member.playerId), role = bh.PositionType[member.position] + 1, fame = member.fameLevel + 1, heroData = data.HeroRepo.sorted.map(player ? mapPlayerHero : mapHero), position = index ? index + 1 : "GL";
+              return [position, fame, member.name, role].concat(heroData).join("\t");
+              function mapHero(hero) {
+                  var level = member.archetypeLevels[hero.guid] + 1, hp = bh.utils.truncateNumber(hero.getHitPoints(level));
+                  return level ? level + "|" + hp + "|" : "/|/|/|/";
+              }
+              function mapPlayerHero(hero) {
+                  var playerHero = player.heroes.find(function (h) { return hero.guid == h.guid; }), level = playerHero ? playerHero.level : "/", hp = playerHero ? bh.utils.truncateNumber(playerHero.hitPoints) : "/", op = playerHero && playerHero.isOp ? "Y" : " ", power = playerHero ? playerHero.powerRating + " " : "/";
+                  return level + "|" + hp + "|" + op + "|" + power;
+              }
+          }
             function calculateBattleData(war, member) {
                 var battles = war.currentWar.battles, winCount = 0, lossCount = 0, dwCount = 0, brags = 0, score = 0;
                 if (member) {
@@ -4169,7 +4185,7 @@ var bh;
                 playerHeroes.forEach(function (hero) {
                     if (!player.isMe && hero.isLocked)
                         return;
-                    var id = player.guid + "-" + hero.guid, icon = hero.isLocked ? bh.getImg("misc", "Lock") : bh.getImg("heroes", hero.name), level = hero.isLocked ? "" : hero.level == bh.HeroRepo.MaxLevel ? hero.isMeat ? "<span class=\"evo-star\">&#9734;</span>" : "<span class=\"star\">&#9734;</span>" : "(" + hero.level + ")", hitPoints = hero.isLocked ? "" : bh.utils.truncateNumber(hero.hitPoints) + " HP", powerThresholds = hero.hero.maxPowerThresholds, powerRating = hero.powerRating, powerPercent = Math.round(100 * powerRating / powerThresholds[powerRating < powerThresholds[3] ? 3 : 4]), color = powerRating <= powerThresholds[0] ? "progress-bar-info" : powerRating <= powerThresholds[1] ? "progress-bar-success" : powerRating <= powerThresholds[2] ? "progress-bar-warning" : "progress-bar-danger", progressBar = hero.isLocked ? "" : "<div class=\"progress\"><div class=\"progress-bar " + color + "\" style=\"width:" + powerPercent + "%;\"><span></span></div></div>", powerRatingText = hero.isLocked ? "" : powerRating, title = "<span class=\"hero-icon\">" + icon + "</span>"
+                    var id = player.guid + "-" + hero.guid, icon = hero.isLocked ? bh.getImg("misc", "Lock") : bh.getImg("heroes", hero.name), level = hero.isLocked ? "" : hero.level == bh.HeroRepo.MaxLevel ? hero.isMeat ? "<span class=\"evo-star\">&#9734;</span>" : "<span class=\"star\">&#9734;</span>" : "(" + hero.level + ")", hitPoints = hero.isLocked ? "" : bh.utils.truncateNumber(hero.hitPoints) + " HP", powerThresholds = hero.hero.maxPowerThresholds, powerRating = hero.powerRating, powerPercent = Math.round(100 * powerRating / powerThresholds[powerRating < powerThresholds[3] ? 3 : 4]), color = powerRating <= powerThresholds[0] ? "progress-bar-info" : powerRating <= powerThresholds[1] ? "progress-bar-success" : powerRating <= powerThresholds[2] ? "progress-bar-warning" : "progress-bar-danger", progressBG = hero.isOp ? "background-color:pink;" : "", progressBar = hero.isLocked ? "" : "<div class=\"progress\"><div class=\"progress-bar " + color + "\" style=\"width:" + powerPercent + "%;\"><span></span></div></div>", powerRatingText = hero.isLocked ? "" : powerRating, title = "<span class=\"hero-icon\">" + icon + "</span>"
                         + ("<span class=\"hero-name\">" + hero.name + "</span>")
                         + ("<span class=\"hero-level\">" + level + "</span>")
                         + ("<span class=\"hero-hp\">" + hitPoints + "</span>")
