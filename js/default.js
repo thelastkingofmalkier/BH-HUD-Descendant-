@@ -3175,7 +3175,7 @@ var bh;
                             resolvefn(parseTSV(tsv));
                         }
                         else {
-                            bh.Repo.fetchTsv(null, GuildsGID).then(function (tsv) { return resolvefn(parseTSV(tsv)); }, function () { return resolvefn(_names); });
+                            bh.Repo.fetchTsv(DataSheetID, GuildsGID).then(function (tsv) { return resolvefn(parseTSV(tsv)); }, function () { return resolvefn(_names); });
                         }
                     });
                 }
@@ -3281,7 +3281,7 @@ var bh;
                 return report;
                 function _mapMemberToOutput(index, member, oppo) {
                     var memberTsv = mapMemberToOutput(member, index), battleData = calculateBattleData(war, member);
-                    return memberTsv + "\t" + battleData.winCount + "\t" + battleData.lossCount + "\t" + battleData.dwCount + "\t" + battleData.score;
+                    return memberTsv + "\t" + battleData.winCount + "\t" + battleData.lossCount + "\t" + battleData.dwCount + "\t" + battleData.brags +"\t" + battleData.score;
                 }
             }
         })(reports = data.reports || (data.reports = {}));
